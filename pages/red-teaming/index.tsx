@@ -35,7 +35,7 @@ import {
   XCircle,
 } from "lucide-react";
 import Sidebar from "@/components/sidebar";
-import { signOutAction } from "@/app/actions";
+import { supabase } from "@/utils/supabase/client";
 import { TargetedRedTeamingPanel } from "@/components/ui/targeted-red-teaming";
 import {
   Dialog,
@@ -96,8 +96,6 @@ export default function RedTeamingPage() {
   // Check authentication status
   useEffect(() => {
     const checkAuth = async () => {
-      const { createClient } = await import("@/ai-governance-backend/utils/supabase/client");
-      const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       setIsLoggedIn(!!user);
     };
@@ -105,7 +103,7 @@ export default function RedTeamingPage() {
   }, []);
 
   const handleLogout = async () => {
-    await signOutAction();
+    await supabase.auth.signOut();
     router.push("/");
   };
 
@@ -120,7 +118,14 @@ export default function RedTeamingPage() {
 
   const fetchSystems = async () => {
     try {
-      const res = await fetch("/api/ai-systems/list");
+      const session = await supabase.auth.getSession();
+
+const res = await fetch("http://localhost:3001/api/ai-systems/list", {
+  headers: {
+    Authorization: `Bearer ${session.data.session?.access_token}`,
+  },
+});
+
       if (res.ok) {
         const data = await res.json();
         setSystems(data.systems || []);
@@ -141,9 +146,16 @@ export default function RedTeamingPage() {
       setLoading(true);
       setError(null);
       const url = filterSystemId && filterSystemId !== "all"
-        ? `/api/red-teaming?ai_system_id=${filterSystemId}`
-        : "/api/red-teaming";
-      const res = await fetch(url);
+        ? `http://localhost:3001/api/red-teaming?ai_system_id=${filterSystemId}`
+        : "http://localhost:3001/api/red-teaming";
+        const session = await supabase.auth.getSession();
+
+        const res = await fetch(url, {
+          headers: {
+            Authorization: `Bearer ${session.data.session?.access_token}`,
+          },
+        });
+        
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -179,15 +191,21 @@ export default function RedTeamingPage() {
       setRunningTests(true);
       setError(null);
 
-      const res = await fetch("/api/red-teaming", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ai_system_id: selectedSystemId,
-          test_all: testAll,
-          attack_types: testAll ? undefined : selectedAttackTypes,
-        }),
-      });
+      const session = await supabase.auth.getSession();
+
+const res = await fetch("http://localhost:3001/api/red-teaming", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${session.data.session?.access_token}`,
+  },
+  body: JSON.stringify({
+    ai_system_id: selectedSystemId,
+    test_all: testAll,
+    attack_types: testAll ? undefined : selectedAttackTypes,
+  }),
+});
+
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));

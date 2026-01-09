@@ -13,10 +13,39 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Loader2, RefreshCcw, Shield, Plus, TrendingUp, AlertTriangle, CheckCircle, CheckCircle2, XCircle } from "lucide-react";
-import type { UKAssessmentResult, UKRiskLevel, UKComplianceStatus } from "@/ai-governance-backend/types/uk";
+import type { UKAssessmentResult, UKRiskLevel, UKComplianceStatus } from "@/types/uk";
 import Sidebar from "@/components/sidebar";
-import { createClient } from "@/ai-governance-backend/utils/supabase/client";
-import { signOutAction } from "@/app/actions";
+import { supabase } from "@/utils/supabase/client";
+
+async function backendFetch(
+  path: string,
+  options: RequestInit = {}
+) {
+  const { data } = await supabase.auth.getSession();
+
+  const accessToken = data.session?.access_token;
+
+  if (!accessToken) {
+    console.error('❌ No access token found in Supabase session');
+    throw new Error("User not authenticated");
+  }
+
+  console.log('✅ Frontend: Sending token (first 50 chars):', accessToken.substring(0, 50) + '...');
+
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+
+  return fetch(
+    `${process.env.NEXT_PUBLIC_BACKEND_URL}${normalizedPath}`,
+    {
+      ...options,
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    }
+  );
+}
 
 export default function UKDashboardPage() {
   const router = useRouter();
@@ -28,7 +57,6 @@ export default function UKDashboardPage() {
   // Check authentication status
   useEffect(() => {
     const checkAuth = async () => {
-      const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       setIsLoggedIn(!!user);
     };
@@ -36,7 +64,7 @@ export default function UKDashboardPage() {
   }, []);
 
   const handleLogout = async () => {
-    await signOutAction();
+    await supabase.auth.signOut();
     router.push("/");
   };
 
@@ -44,7 +72,7 @@ export default function UKDashboardPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/uk-compliance");
+      const res = await backendFetch("/api/uk-compliance");
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.error || "Failed to load assessments");

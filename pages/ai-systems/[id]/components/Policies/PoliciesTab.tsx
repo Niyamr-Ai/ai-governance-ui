@@ -17,7 +17,38 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, ShieldCheck, Plus, ExternalLink, Globe, Building2, X } from "lucide-react";
-import type { Policy, SystemPolicyMapping, ComplianceStatus } from "@/ai-governance-backend/types/policy";
+import { supabase } from "@/utils/supabase/client";
+import type { Policy, SystemPolicyMapping, ComplianceStatus } from "@/types/policy";
+
+async function backendFetch(
+  path: string,
+  options: RequestInit = {}
+) {
+  const { data } = await supabase.auth.getSession();
+
+  const accessToken = data.session?.access_token;
+
+  if (!accessToken) {
+    console.error('❌ No access token found in Supabase session');
+    throw new Error("User not authenticated");
+  }
+
+  console.log('✅ Frontend: Sending token (first 50 chars):', accessToken.substring(0, 50) + '...');
+
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+
+  return fetch(
+    `${process.env.NEXT_PUBLIC_BACKEND_URL}${normalizedPath}`,
+    {
+      ...options,
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    }
+  );
+}
 
 interface PoliciesTabProps {
   systemId: string;
@@ -45,7 +76,7 @@ export default function PoliciesTab({ systemId }: PoliciesTabProps) {
     try {
       setLoading(true);
       setError(null);
-      const res = await fetch(`/api/ai-systems/${systemId}/policies`);
+      const res = await backendFetch(`/api/ai-systems/${systemId}/policies`);
       if (res.ok) {
         const data = await res.json();
         setMappings(data || []);
@@ -65,7 +96,7 @@ export default function PoliciesTab({ systemId }: PoliciesTabProps) {
 
   const fetchAllPolicies = async () => {
     try {
-      const res = await fetch("/api/policies");
+      const res = await backendFetch("/api/policies");
       if (res.ok) {
         const data = await res.json();
         setAllPolicies(data || []);

@@ -22,8 +22,39 @@ import {
   Activity
 } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
-import type { SmartSuggestion, TaskSuggestionContext } from '@/ai-governance-backend/services/governance/smart-governance-suggestions';
-import type { GovernanceRegulation } from '@/ai-governance-backend/types/governance-task';
+import { supabase } from "@/utils/supabase/client";
+import type { SmartSuggestion, TaskSuggestionContext } from '@/types/smart-governance-suggestions';
+import type { GovernanceRegulation } from '@/types/governance-task';
+
+async function backendFetch(
+  path: string,
+  options: RequestInit = {}
+) {
+  const { data } = await supabase.auth.getSession();
+
+  const accessToken = data.session?.access_token;
+
+  if (!accessToken) {
+    console.error('❌ No access token found in Supabase session');
+    throw new Error("User not authenticated");
+  }
+
+  console.log('✅ Frontend: Sending token (first 50 chars):', accessToken.substring(0, 50) + '...');
+
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+
+  return fetch(
+    `${process.env.NEXT_PUBLIC_BACKEND_URL}${normalizedPath}`,
+    {
+      ...options,
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    }
+  );
+}
 
 interface SmartGovernanceSuggestionsProps {
   systemId: string;
@@ -92,9 +123,8 @@ export function SmartGovernanceSuggestions({
         completedTasks
       };
 
-      const response = await fetch('/api/governance-tasks/suggestions', {
+      const response = await backendFetch('/api/governance-tasks/suggestions', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(context)
       });
 
@@ -141,9 +171,8 @@ export function SmartGovernanceSuggestions({
         completedTasks
       };
 
-      const response = await fetch('/api/governance-tasks/contextual-help', {
+      const response = await backendFetch('/api/governance-tasks/contextual-help', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           taskTitle: suggestion.title,
           taskDescription: suggestion.description,

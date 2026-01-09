@@ -23,7 +23,38 @@ import {
   Loader2,
   Info
 } from "lucide-react";
-import type { RiskCategory, RiskLevel } from "@/ai-governance-backend/services/risk-assessment/guidance";
+import { supabase } from "@/utils/supabase/client";
+import type { RiskCategory, RiskLevel } from "@/types/risk-assessment";
+
+async function backendFetch(
+  path: string,
+  options: RequestInit = {}
+) {
+  const { data } = await supabase.auth.getSession();
+
+  const accessToken = data.session?.access_token;
+
+  if (!accessToken) {
+    console.error('❌ No access token found in Supabase session');
+    throw new Error("User not authenticated");
+  }
+
+  console.log('✅ Frontend: Sending token (first 50 chars):', accessToken.substring(0, 50) + '...');
+
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+
+  return fetch(
+    `${process.env.NEXT_PUBLIC_BACKEND_URL}${normalizedPath}`,
+    {
+      ...options,
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    }
+  );
+}
 
 interface RiskGuidanceProps {
   category: RiskCategory;
@@ -69,9 +100,8 @@ export function RiskGuidancePanel({
     setError(null);
 
     try {
-      const response = await fetch('/api/risk-assessment/guidance', {
+      const response = await backendFetch('/api/risk-assessment/guidance', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           category,
           riskLevel,
@@ -258,9 +288,8 @@ export function FieldGuidance({ field, category, riskLevel, children }: FieldGui
 
     setLoading(true);
     try {
-      const response = await fetch('/api/risk-assessment/field-guidance', {
+      const response = await backendFetch('/api/risk-assessment/field-guidance', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ field, category, riskLevel })
       });
 

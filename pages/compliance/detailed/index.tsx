@@ -6,9 +6,38 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, AlertCircle, FileText, Shield, ChevronLeft, ChevronRight, Send, ClipboardCheck } from "lucide-react";
 import Sidebar from "@/components/sidebar";
-import { signOutAction } from "@/app/actions";
-import { createClient } from "@/ai-governance-backend/utils/supabase/client";
+import { supabase } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
+
+async function backendFetch(
+  path: string,
+  options: RequestInit = {}
+) {
+  const { data } = await supabase.auth.getSession();
+
+  const accessToken = data.session?.access_token;
+
+  if (!accessToken) {
+    console.error('❌ No access token found in Supabase session');
+    throw new Error("User not authenticated");
+  }
+
+  console.log('✅ Frontend: Sending token (first 50 chars):', accessToken.substring(0, 50) + '...');
+
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+
+  return fetch(
+    `${process.env.NEXT_PUBLIC_BACKEND_URL}${normalizedPath}`,
+    {
+      ...options,
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    }
+  );
+}
 
 // Define the question types
 type QuestionType = "checkbox" | "text";
@@ -215,25 +244,53 @@ function DetailedPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const complianceId = searchParams.get("id");
-  
+  console.log("📋 Detailed assessment page loaded with complianceId:", complianceId);
+
   const [currentCategoryIndex, setCurrentCategoryIndex] = useState(0);
   const [answers, setAnswers] = useState<Answer[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState<string | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [checkingExistingAssessment, setCheckingExistingAssessment] = useState(true);
 
-  // Check authentication status
+  // Check authentication status and existing detailed assessment
   useEffect(() => {
-    const checkAuth = async () => {
-      const supabase = createClient();
+    const checkAuthAndAssessment = async () => {
+      setCheckingExistingAssessment(true);
+
       const { data: { user } } = await supabase.auth.getUser();
       setIsLoggedIn(!!user);
+
+      // Check if detailed assessment already exists
+      if (complianceId && user) {
+        console.log("🔍 Checking for existing detailed assessment with ID:", complianceId);
+        try {
+          const res = await backendFetch(`/api/compliance/detailed?id=${complianceId}`);
+          console.log("🔍 Detailed assessment check response status:", res.status);
+          if (res.ok) {
+            console.log("✅ Detailed assessment exists, redirecting to view page");
+            // Detailed assessment exists, redirect to view it
+            router.push(`/compliance/detailed/${complianceId}`);
+            return;
+          }
+          console.log("ℹ️ No detailed assessment found (404 expected), showing submission form");
+          // 404 is expected if no detailed assessment exists yet
+        } catch (error) {
+          console.log("❌ Error checking for existing assessment:", error);
+          // Ignore errors here, user can still proceed with submission
+          console.log("No existing detailed assessment found, proceeding with submission form");
+        }
+      } else {
+        console.log("⚠️ Missing complianceId or user:", { complianceId, user: !!user });
+      }
+
+      setCheckingExistingAssessment(false);
     };
-    checkAuth();
-  }, []);
+    checkAuthAndAssessment();
+  }, [complianceId, router]);
 
   const handleLogout = async () => {
-    await signOutAction();
+    await supabase.auth.signOut();
     router.push("/");
   };
 
@@ -318,11 +375,8 @@ function DetailedPageContent() {
         ...answersObject,
       };
 
-      const res = await fetch("/api/compliance/detailed", {
+      const res = await backendFetch("/api/compliance/detailed", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
         body: JSON.stringify(requestBody),
       });
       
@@ -357,6 +411,18 @@ function DetailedPageContent() {
   };
 
   const CategoryIcon = categoryIcons[currentCategory.title] || Shield;
+
+  if (checkingExistingAssessment) {
+    return (
+      <main className="min-h-screen flex items-center justify-center bg-white">
+        {isLoggedIn && <Sidebar onLogout={handleLogout} />}
+        <div className={`text-center ${isLoggedIn ? 'lg:pl-72 pt-24' : ''}`}>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="text-foreground mt-4">Checking existing assessments...</p>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-white py-12 px-4 sm:px-6 lg:px-10">

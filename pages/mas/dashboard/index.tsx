@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Loader2, RefreshCcw } from "lucide-react";
-import type { MasAssessmentResult, MasComplianceStatus, MasRiskLevel } from "@/ai-governance-backend/types";
+import type { MasAssessmentResult, MasComplianceStatus, MasRiskLevel } from "@/types/mas";
 import { DashboardInsightsPanel } from "@/components/ui/dashboard-insights";
 
 export default function MasDashboardPage() {

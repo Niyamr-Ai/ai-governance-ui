@@ -26,7 +26,38 @@ import {
   Info,
   Lightbulb
 } from "lucide-react";
-import type { TargetedTestSuite, TargetedAttackPrompt, AttackType } from "@/ai-governance-backend/services/ai/targeted-red-teaming";
+import { supabase } from "@/utils/supabase/client";
+import type { TargetedTestSuite, TargetedAttackPrompt, AttackType } from "@/types/targeted-red-teaming";
+
+async function backendFetch(
+  path: string,
+  options: RequestInit = {}
+) {
+  const { data } = await supabase.auth.getSession();
+
+  const accessToken = data.session?.access_token;
+
+  if (!accessToken) {
+    console.error('❌ No access token found in Supabase session');
+    throw new Error("User not authenticated");
+  }
+
+  console.log('✅ Frontend: Sending token (first 50 chars):', accessToken.substring(0, 50) + '...');
+
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+
+  return fetch(
+    `${process.env.NEXT_PUBLIC_BACKEND_URL}${normalizedPath}`,
+    {
+      ...options,
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    }
+  );
+}
 
 interface TargetedRedTeamingProps {
   aiSystemId: string;
@@ -100,9 +131,8 @@ export function TargetedRedTeamingPanel({
     setError(null);
 
     try {
-      const response = await fetch('/api/red-teaming/targeted', {
+      const response = await backendFetch('/api/red-teaming/targeted', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ai_system_id: aiSystemId,
           attack_types: selectedAttackTypes,
@@ -134,9 +164,8 @@ export function TargetedRedTeamingPanel({
     setError(null);
 
     try {
-      const response = await fetch('/api/red-teaming/execute-targeted', {
+      const response = await backendFetch('/api/red-teaming/execute-targeted', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ai_system_id: aiSystemId,
           targeted_attacks: testSuite.attacks

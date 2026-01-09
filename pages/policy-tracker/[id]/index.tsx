@@ -7,8 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Loader2, ShieldCheck, FileText, Edit, Globe, Building2 } from "lucide-react";
 import Sidebar from "@/components/sidebar";
-import { signOutAction } from "@/app/actions";
-import type { Policy, PolicyRequirement, ComplianceStatus } from "@/ai-governance-backend/types/policy";
+import { supabase } from "@/utils/supabase/client";
+import type {
+  Policy,
+  PolicyRequirement,
+  ComplianceStatus,
+} from "../../../types/policy";
+
 
 export default function PolicyDetailPage() {
   const params = useParams();
@@ -21,8 +26,6 @@ export default function PolicyDetailPage() {
 
   useEffect(() => {
     const checkAuth = async () => {
-      const { createClient } = await import("@/ai-governance-backend/utils/supabase/client");
-      const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       const loggedIn = !!user;
       setIsLoggedIn(loggedIn);
@@ -43,8 +46,10 @@ export default function PolicyDetailPage() {
 
     try {
       setLoading(true);
-      const res = await fetch(`/api/policies/${policyId}`, {
-        credentials: "include",
+      const res = await fetch(`http://localhost:3001/api/policies/${policyId}`, {
+        headers: {
+          Authorization: `Bearer ${await supabase.auth.getSession().then(res => res.data.session?.access_token)}`,
+        },
       });
       if (res.ok) {
         const data = await res.json();
@@ -64,7 +69,7 @@ export default function PolicyDetailPage() {
   };
 
   const handleLogout = async () => {
-    await signOutAction();
+    await supabase.auth.signOut();
     router.push("/");
   };
 

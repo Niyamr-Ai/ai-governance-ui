@@ -35,21 +35,52 @@ import {
   Plus,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { supabase } from "@/utils/supabase/client";
+
+async function backendFetch(
+  path: string,
+  options: RequestInit = {}
+) {
+  const { data } = await supabase.auth.getSession();
+
+  const accessToken = data.session?.access_token;
+
+  if (!accessToken) {
+    console.error('❌ No access token found in Supabase session');
+    throw new Error("User not authenticated");
+  }
+
+  console.log('✅ Frontend: Sending token (first 50 chars):', accessToken.substring(0, 50) + '...');
+
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+
+  return fetch(
+    `${process.env.NEXT_PUBLIC_BACKEND_URL}${normalizedPath}`,
+    {
+      ...options,
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    }
+  );
+}
 
 // Risk Tier badge styles
 const getRiskTierClasses = (tier) => {
   switch (tier) {
     case "Minimal-Risk":
-      return "bg-emerald-900/50 text-emerald-300 border-emerald-700/50";
+      return "bg-emerald-50 text-emerald-700 border-emerald-200";
     case "Limited-Risk":
-      return "bg-amber-900/50 text-amber-300 border-amber-700/50";
+      return "bg-amber-50 text-amber-700 border-amber-200";
     case "High-Risk":
-      return "bg-orange-900/50 text-orange-300 border-orange-700/50";
+      return "bg-orange-50 text-orange-700 border-orange-200";
     case "Prohibited":
     case "Unacceptable":
-      return "bg-red-900/50 text-red-300 border-red-700/50";
+      return "bg-red-50 text-red-700 border-red-200";
     default:
-      return "bg-slate-800/50 text-slate-300 border-slate-700/50";
+      return "bg-muted text-muted-foreground border-border";
   }
 };
 
@@ -57,13 +88,13 @@ const getRiskTierClasses = (tier) => {
 const getComplianceStatusClasses = (status) => {
   switch (status) {
     case "Compliant":
-      return "bg-emerald-600/80 text-white border-emerald-500/50";
+      return "bg-emerald-600/80 text-foreground border-emerald-500/50";
     case "Partial":
-      return "bg-amber-600/80 text-white border-amber-500/50";
+      return "bg-amber-600/80 text-foreground border-amber-500/50";
     case "Non-Compliant":
-      return "bg-red-600/80 text-white border-red-500/50";
+      return "bg-red-600/80 text-foreground border-red-500/50";
     default:
-      return "bg-slate-600/80 text-white border-slate-500/50";
+      return "bg-slate-600/80 text-foreground border-slate-500/50";
   }
 };
 
@@ -89,16 +120,24 @@ const monitoringFRIALabels = {
 };
 
 export default function ComplianceResultPage() {
-  const { id } = useParams();
+  const params = useParams();
   const router = useRouter();
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  const id = params?.id;
+
   useEffect(() => {
     async function fetchResult() {
+      if (!id) {
+        setError("Invalid compliance ID");
+        setLoading(false);
+        return;
+      }
+
       try {
-        const res = await fetch(`/api/compliance/${id}`);
+        const res = await backendFetch(`/api/compliance/${id}`);
         if (!res.ok) throw new Error(`${res.status}`);
         const data = await res.json();
         setResult(data);
@@ -116,7 +155,7 @@ export default function ComplianceResultPage() {
       <div className="flex items-center justify-center h-screen bg-gradient-to-br from-slate-950 via-indigo-950 to-purple-950">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mx-auto"></div>
-          <p className="text-xl mt-4 text-slate-300">Loading compliance data...</p>
+          <p className="text-xl mt-4 text-muted-foreground">Loading compliance data...</p>
         </div>
       </div>
     );
@@ -205,14 +244,28 @@ export default function ComplianceResultPage() {
       ]
     : [];
 
+  // Handle case where ID is not available (server-side rendering)
+  if (!id) {
+    return (
+      <main className="min-h-screen bg-gradient-to-br from-slate-950 via-indigo-950 to-purple-950 py-8 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto space-y-6">
+          <div className="text-center py-12">
+            <h1 className="text-2xl font-bold text-foreground mb-4">Loading Compliance Assessment...</h1>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto"></div>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
   return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-950 via-indigo-950 to-purple-950 py-8 px-4 sm:px-6 lg:px-8">
+    <main className="min-h-screen bg-gradient-to-br from-white via-gray-50 to-blue-50 py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header Section */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-4xl font-bold text-white">Compliance Dashboard</h1>
-            <p className="text-purple-300 mt-2 text-lg font-medium">EU AI Act Compliance Assessment Result</p>
+            <h1 className="text-4xl font-bold text-foreground">Compliance Dashboard</h1>
+            <p className="text-primary mt-2 text-lg font-medium">EU AI Act Compliance Assessment Result</p>
             {created_at && (
               <p className="text-sm text-slate-400 mt-1">
                 Assessment Date: {new Date(created_at).toLocaleDateString("en-US", {
@@ -240,7 +293,7 @@ export default function ComplianceResultPage() {
 
         {/* Key Metrics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="border-slate-700/50 bg-slate-900/60 backdrop-blur-sm shadow-lg">
+          <Card className="glass-card shadow-premium rounded-2xl border-0 bg-gradient-to-br from-white/90 via-white/80 to-white/70 backdrop-blur-xl">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-slate-400">Risk Tier</CardTitle>
               <Shield className="h-4 w-4 text-slate-400" />
@@ -252,10 +305,10 @@ export default function ComplianceResultPage() {
             </CardContent>
           </Card>
 
-          <Card className="border-slate-700/50 bg-slate-900/60 backdrop-blur-sm shadow-lg">
+          <Card className="glass-card shadow-premium rounded-2xl border-0 bg-gradient-to-br from-white/90 via-white/80 to-white/70 backdrop-blur-xl">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-slate-400">Compliance Status</CardTitle>
-              <TrendingUp className="h-4 w-4 text-purple-400" />
+              <TrendingUp className="h-4 w-4 text-primary" />
             </CardHeader>
             <CardContent>
               <div className={`inline-block px-3 py-1 rounded-lg text-sm font-semibold border ${getComplianceStatusClasses(compliance_status)}`}>
@@ -264,20 +317,20 @@ export default function ComplianceResultPage() {
             </CardContent>
           </Card>
 
-          <Card className="border-slate-700/50 bg-slate-900/60 backdrop-blur-sm shadow-lg">
+          <Card className="glass-card shadow-premium rounded-2xl border-0 bg-gradient-to-br from-white/90 via-white/80 to-white/70 backdrop-blur-xl">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-slate-400">Obligations Fulfilled</CardTitle>
               <CheckCircle2 className="h-4 w-4 text-emerald-400" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-white">
+              <div className="text-3xl font-bold text-foreground">
                 {fulfilledObligations}/{totalObligations}
               </div>
               <div className="text-sm text-slate-400 mt-1">{compliancePercentage}% Complete</div>
             </CardContent>
           </Card>
 
-          <Card className="border-slate-700/50 bg-slate-900/60 backdrop-blur-sm shadow-lg">
+          <Card className="glass-card shadow-premium rounded-2xl border-0 bg-gradient-to-br from-white/90 via-white/80 to-white/70 backdrop-blur-xl">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-slate-400">Prohibited Practices</CardTitle>
               <Ban className="h-4 w-4 text-red-400" />
@@ -299,7 +352,7 @@ export default function ComplianceResultPage() {
           {/* Obligations Pie Chart */}
           <Card className="shadow-lg border-slate-700/50 bg-slate-900/60 backdrop-blur-sm">
             <CardHeader className="bg-gradient-to-r from-purple-900/30 to-indigo-900/30 border-b border-slate-700/50">
-              <CardTitle className="text-white">Obligations Overview</CardTitle>
+              <CardTitle className="text-foreground">Obligations Overview</CardTitle>
               <CardDescription className="text-slate-400">High-risk obligations fulfillment status</CardDescription>
             </CardHeader>
             <CardContent className="pt-6 flex items-center justify-center">
@@ -349,7 +402,7 @@ export default function ComplianceResultPage() {
                         const data = payload[0];
                         return (
                           <div className="bg-slate-800/95 backdrop-blur-sm p-4 border border-slate-700/50 rounded-lg shadow-xl">
-                            <p className="font-bold text-lg mb-1 text-white">{data.name}</p>
+                            <p className="font-bold text-lg mb-1 text-foreground">{data.name}</p>
                             <p className="text-2xl font-extrabold" style={{ color: data.payload.color }}>
                               {data.value} {data.value === 1 ? "Obligation" : "Obligations"}
                             </p>
@@ -370,7 +423,7 @@ export default function ComplianceResultPage() {
           {/* Obligations Bar Chart */}
           <Card className="shadow-lg border-slate-700/50 bg-slate-900/60 backdrop-blur-sm">
             <CardHeader className="bg-gradient-to-r from-emerald-900/30 to-teal-900/30 border-b border-slate-700/50">
-              <CardTitle className="text-white">Obligations Breakdown</CardTitle>
+              <CardTitle className="text-foreground">Obligations Breakdown</CardTitle>
               <CardDescription className="text-slate-400">Individual obligation fulfillment status</CardDescription>
             </CardHeader>
             <CardContent className="pt-6 overflow-hidden">
@@ -411,7 +464,7 @@ export default function ComplianceResultPage() {
                           const data = payload[0].payload;
                           return (
                             <div className="bg-slate-800/95 backdrop-blur-sm p-4 border border-slate-700/50 rounded-lg shadow-xl">
-                              <p className="font-bold text-lg mb-2 text-white">{data.fullName}</p>
+                              <p className="font-bold text-lg mb-2 text-foreground">{data.fullName}</p>
                               <div className="flex items-center gap-2">
                                 <span className={`text-2xl ${data.fulfilled ? "text-emerald-400" : "text-red-400"}`}>
                                   {data.fulfilled ? "✅" : "❌"}
@@ -446,10 +499,10 @@ export default function ComplianceResultPage() {
         {/* Detailed Sections */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* High-Risk Obligations */}
-          <Card className="border-slate-700/50 bg-slate-900/60 backdrop-blur-sm shadow-lg">
+          <Card className="glass-card shadow-premium rounded-2xl border-0 bg-gradient-to-br from-white/90 via-white/80 to-white/70 backdrop-blur-xl">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-white">
-                <Shield className="h-5 w-5 text-purple-400" />
+              <CardTitle className="flex items-center gap-2 text-foreground">
+                <Shield className="h-5 w-5 text-primary" />
                 High-Risk Obligations
               </CardTitle>
               <CardDescription className="text-slate-400">
@@ -477,13 +530,13 @@ export default function ComplianceResultPage() {
                         ) : (
                           <XCircle className="h-5 w-5 text-red-400" />
                         )}
-                        <span className="font-medium text-white">{label}</span>
+                        <span className="font-medium text-foreground">{label}</span>
                       </div>
                       <Badge
                         variant={isFulfilled ? "default" : "destructive"}
                         className={isFulfilled 
-                          ? "bg-emerald-600/80 text-white border-emerald-500/50" 
-                          : "bg-red-600/80 text-white border-red-500/50"}
+                          ? "bg-emerald-600/80 text-foreground border-emerald-500/50" 
+                          : "bg-red-600/80 text-foreground border-red-500/50"}
                       >
                         {isFulfilled ? "Fulfilled" : "Missing"}
                       </Badge>
@@ -495,10 +548,10 @@ export default function ComplianceResultPage() {
           </Card>
 
           {/* Transparency & Monitoring */}
-          <Card className="border-slate-700/50 bg-slate-900/60 backdrop-blur-sm shadow-lg">
+          <Card className="glass-card shadow-premium rounded-2xl border-0 bg-gradient-to-br from-white/90 via-white/80 to-white/70 backdrop-blur-xl">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-white">
-                <Eye className="h-5 w-5 text-purple-400" />
+              <CardTitle className="flex items-center gap-2 text-foreground">
+                <Eye className="h-5 w-5 text-primary" />
                 Transparency & Monitoring
               </CardTitle>
             </CardHeader>
@@ -506,7 +559,7 @@ export default function ComplianceResultPage() {
               <div className="space-y-4">
                 {transparency_required ? (
                   <div>
-                    <h4 className="font-semibold text-white mb-2">Transparency Requirements</h4>
+                    <h4 className="font-semibold text-foreground mb-2">Transparency Requirements</h4>
                     <div className="space-y-2">
                       {Object.entries(transparencyLabels).map(([key, label]) => {
                         const isFulfilled = !transparency_missing.includes(key);
@@ -522,7 +575,7 @@ export default function ComplianceResultPage() {
                             ) : (
                               <XCircle className="h-4 w-4 text-red-400" />
                             )}
-                            <span className="text-sm text-slate-300">{label}</span>
+                            <span className="text-sm text-muted-foreground">{label}</span>
                           </div>
                         );
                       })}
@@ -530,8 +583,8 @@ export default function ComplianceResultPage() {
                   </div>
                 ) : (
                   <div className="p-4 bg-slate-800/50 rounded-lg border border-slate-700/50">
-                    <p className="text-sm text-slate-300">
-                      <strong className="text-white">Transparency Requirements:</strong> Not required for this AI system. 
+                    <p className="text-sm text-muted-foreground">
+                      <strong className="text-foreground">Transparency Requirements:</strong> Not required for this AI system. 
                       Transparency obligations (Article 50) apply to limited-risk AI systems that 
                       interact with humans, generate synthetic content, or perform emotion/biometric recognition.
                     </p>
@@ -540,7 +593,7 @@ export default function ComplianceResultPage() {
 
                 {monitoring_required ? (
                   <div>
-                    <h4 className="font-semibold text-white mb-2">Monitoring & FRIA</h4>
+                    <h4 className="font-semibold text-foreground mb-2">Monitoring & FRIA</h4>
                     <div className="space-y-2">
                       <div
                         className={`flex items-center gap-2 p-2 rounded ${
@@ -552,7 +605,7 @@ export default function ComplianceResultPage() {
                         ) : (
                           <XCircle className="h-4 w-4 text-red-400" />
                         )}
-                        <span className="text-sm text-slate-300">
+                        <span className="text-sm text-muted-foreground">
                           {monitoringFRIALabels.postMarketMonitoring}
                         </span>
                       </div>
@@ -566,7 +619,7 @@ export default function ComplianceResultPage() {
                         ) : (
                           <XCircle className="h-4 w-4 text-red-400" />
                         )}
-                        <span className="text-sm text-slate-300">
+                        <span className="text-sm text-muted-foreground">
                           {monitoringFRIALabels.incidentReporting}
                         </span>
                       </div>
@@ -580,7 +633,7 @@ export default function ComplianceResultPage() {
                         ) : (
                           <XCircle className="h-4 w-4 text-red-400" />
                         )}
-                        <span className="text-sm text-slate-300">
+                        <span className="text-sm text-muted-foreground">
                           {monitoringFRIALabels.friaCompleted}
                         </span>
                       </div>
@@ -588,8 +641,8 @@ export default function ComplianceResultPage() {
                   </div>
                 ) : (
                   <div className="p-4 bg-slate-800/50 rounded-lg border border-slate-700/50">
-                    <p className="text-sm text-slate-300">
-                      <strong className="text-white">Monitoring & FRIA:</strong> Not required for this AI system. 
+                    <p className="text-sm text-muted-foreground">
+                      <strong className="text-foreground">Monitoring & FRIA:</strong> Not required for this AI system. 
                       Post-market monitoring and Fundamental Rights Impact Assessment (FRIA) 
                       are mandatory for high-risk AI systems only.
                     </p>
@@ -601,10 +654,10 @@ export default function ComplianceResultPage() {
         </div>
 
         {/* Summary Section */}
-        <Card className="bg-gradient-to-r from-purple-900/30 to-indigo-900/30 border-slate-700/50 backdrop-blur-sm shadow-lg">
+        <Card className="glass-card shadow-premium rounded-2xl border-0 bg-gradient-to-r from-primary/10 via-accent/5 to-primary/10 backdrop-blur-xl">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-white">
-              <FileText className="h-5 w-5 text-purple-400" />
+            <CardTitle className="flex items-center gap-2 text-foreground">
+              <FileText className="h-5 w-5 text-primary" />
               Executive Summary
             </CardTitle>
           </CardHeader>
@@ -615,17 +668,17 @@ export default function ComplianceResultPage() {
 
         {/* References Section */}
         {Object.keys(reference).length > 0 && (
-          <Card className="border-slate-700/50 bg-slate-900/60 backdrop-blur-sm shadow-lg">
+          <Card className="glass-card shadow-premium rounded-2xl border-0 bg-gradient-to-br from-white/90 via-white/80 to-white/70 backdrop-blur-xl">
             <CardHeader>
-              <CardTitle className="text-white">Regulatory References</CardTitle>
+              <CardTitle className="text-foreground">Regulatory References</CardTitle>
               <CardDescription className="text-slate-400">EU AI Act articles and provisions referenced</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {Object.entries(reference).map(([key, value]) => (
                   <div key={key} className="p-3 bg-slate-800/50 rounded-lg border border-slate-700/50">
-                    <div className="font-semibold text-white mb-1">{key}</div>
-                    <div className="text-sm text-slate-300">
+                    <div className="font-semibold text-foreground mb-1">{key}</div>
+                    <div className="text-sm text-muted-foreground">
                       {Array.isArray(value) ? value.join(", ") : String(value)}
                     </div>
                   </div>

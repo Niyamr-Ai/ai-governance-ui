@@ -42,10 +42,9 @@ import {
   ArrowRight,
 } from "lucide-react";
 import Link from "next/link";
-import { createClient } from "@/ai-governance-backend/utils/supabase/client";
+import { supabase } from "@/utils/supabase/client";
 import Sidebar from "@/components/sidebar";
-import { signOutAction } from "@/app/actions";
-import type { DocumentationWithSystemInfo } from "@/ai-governance-backend/types/documentation";
+import type { DocumentationWithSystemInfo } from "../../types/documentation";
 
 export default function DocumentationPage() {
   const router = useRouter();
@@ -63,7 +62,6 @@ export default function DocumentationPage() {
   // Check authentication status
   useEffect(() => {
     const checkAuth = async () => {
-      const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       setIsLoggedIn(!!user);
     };
@@ -71,7 +69,7 @@ export default function DocumentationPage() {
   }, []);
 
   const handleLogout = async () => {
-    await signOutAction();
+    await supabase.auth.signOut();
     router.push("/");
   };
 
@@ -89,7 +87,17 @@ export default function DocumentationPage() {
       if (documentTypeFilter !== "all") params.append("document_type", documentTypeFilter);
       if (statusFilter !== "all") params.append("status", statusFilter);
 
-      const res = await fetch(`/api/documentation?${params.toString()}`);
+      const res = await fetch(
+        `http://localhost:3001/api/documentation?${params.toString()}`,
+        {
+          headers: {
+            Authorization: `Bearer ${
+              (await supabase.auth.getSession()).data.session?.access_token
+            }`,
+          },
+        }
+      );
+      
       
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));

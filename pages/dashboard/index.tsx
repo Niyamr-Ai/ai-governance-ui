@@ -39,7 +39,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { createClient } from "@/utils/supabase/client";
+import { supabase } from "@/utils/supabase/client";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import Sidebar from "@/components/sidebar";
 import {
@@ -50,6 +50,36 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Loader2, X } from "lucide-react";
+
+async function backendFetch(
+  path: string,
+  options: RequestInit = {}
+) {
+  const { data } = await supabase.auth.getSession();
+
+  const accessToken = data.session?.access_token;
+
+  if (!accessToken) {
+    console.error('❌ No access token found in Supabase session');
+    throw new Error("User not authenticated");
+  }
+
+  console.log('✅ Frontend: Sending token (first 50 chars):', accessToken.substring(0, 50) + '...');
+
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+
+  return fetch(
+    `${process.env.NEXT_PUBLIC_BACKEND_URL}${normalizedPath}`,
+    {
+      ...options,
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    }
+  );
+}
 
 interface ComplianceTest {
   id: string;
@@ -109,8 +139,6 @@ interface UnifiedAssessment {
   lifecycle_stage?: string;
 }
 
-import { backendFetch } from "@/utils/backend-fetch";
-
 export default function ComplianceDashboard() {
   const router = useRouter();
   const [tests, setTests] = useState<ComplianceTest[]>([]);
@@ -131,7 +159,6 @@ export default function ComplianceDashboard() {
   // Check authentication status
   useEffect(() => {
     const checkAuth = async () => {
-      const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       setIsLoggedIn(!!user);
     };
@@ -139,7 +166,6 @@ export default function ComplianceDashboard() {
   }, []);
 
   const handleLogout = async () => {
-    const supabase = createClient();
     await supabase.auth.signOut();
     router.push("/");
   };
@@ -197,7 +223,7 @@ export default function ComplianceDashboard() {
           const assessmentData = await Promise.all(
             allSystemIds.map(async (id) => {
               try {
-                const res = await fetch(`/api/ai-systems/${id}/automated-risk-assessment`);
+                const res = await backendFetch(`/api/ai-systems/${id}/automated-risk-assessment`);
                 if (res.ok) {
                   const data = await res.json();
                   return { id, data };
@@ -462,25 +488,22 @@ export default function ComplianceDashboard() {
     setSystemDetails(null);
     setRiskAssessments([]);
     setDocumentation([]);
-
+  
     try {
-      // Fetch all data in parallel
       const [complianceRes, riskRes, docRes] = await Promise.all([
-        fetch(`/api/ai-systems/${assessment.id}/compliance-data`),
-        fetch(`/api/ai-systems/${assessment.id}/risk-assessments`),
-        fetch(`/api/ai-systems/${assessment.id}/documentation`),
+        backendFetch(`/api/ai-systems/${assessment.id}/compliance-data`),
+        backendFetch(`/api/ai-systems/${assessment.id}/risk-assessments`),
+        backendFetch(`/api/ai-systems/${assessment.id}/documentation`),
       ]);
-
+  
       if (complianceRes.ok) {
-        const data = await complianceRes.json();
-        setSystemDetails(data);
+        setSystemDetails(await complianceRes.json());
       }
-
+  
       if (riskRes.ok) {
-        const riskData = await riskRes.json();
-        setRiskAssessments(riskData || []);
+        setRiskAssessments(await riskRes.json());
       }
-
+  
       if (docRes.ok) {
         const docData = await docRes.json();
         setDocumentation(docData.documentation || []);
@@ -491,6 +514,7 @@ export default function ComplianceDashboard() {
       setLoadingDetails(false);
     }
   };
+  
 
   // Handle document download as PDF
   const handleDownloadDocument = async (doc: any) => {
@@ -928,7 +952,11 @@ export default function ComplianceDashboard() {
                                     variant="outline"
                                     size="sm"
                                     className="flex items-center gap-2 border-primary/40 bg-primary/5 text-primary hover:bg-primary/10 hover:border-primary/60 hover:shadow-md transition-all font-medium rounded-xl px-3 py-1.5"
-                                    onClick={() => router.push(`/compliance/detailed/${assessment.id}`)}
+                                    onClick={() => {
+                                      console.log("🔍 Dashboard: Clicking detailed assessment for assessment:", assessment);
+                                      console.log("🔍 Dashboard: assessment.id:", assessment.id);
+                                      router.push(`/compliance/detailed/${assessment.id}`);
+                                    }}
                                   >
                                     <CheckCircle className="w-4 h-4" /> 
                                     <span>View Detailed</span>
@@ -937,7 +965,11 @@ export default function ComplianceDashboard() {
                                   <Button
                                     size="sm"
                                     className="bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20 hover:border-primary/50 hover:shadow-md flex items-center gap-2 transition-all font-medium rounded-xl px-3 py-1.5"
-                                    onClick={() => router.push(`/compliance/detailed/${assessment.id}`)}
+                                    onClick={() => {
+                                      console.log("🔍 Dashboard: Clicking detailed assessment for assessment:", assessment);
+                                      console.log("🔍 Dashboard: assessment.id:", assessment.id);
+                                      router.push(`/compliance/detailed/${assessment.id}`);
+                                    }}
                                   >
                                     <Plus className="w-4 h-4" />
                                     <span>Run Detailed</span>
@@ -952,7 +984,7 @@ export default function ComplianceDashboard() {
                                 variant="outline"
                                 size="sm"
                                 className="border-secondary/40 bg-secondary/30 text-foreground hover:bg-secondary/50 hover:border-primary/40 hover:shadow-md transition-all font-medium flex items-center gap-2 rounded-xl px-3 py-1.5"
-                                onClick={() => router.push(`/ai-systems/${assessment.id}?tab=risk-assessments`)}
+                                onClick={() => router.push(`http://localhost:3000/ai-systems/${assessment.id}?tab=risk-assessments`)}
                               >
                                 <AlertTriangle className="w-4 h-4" />
                                 <span>Check Assessment</span>
@@ -964,7 +996,7 @@ export default function ComplianceDashboard() {
                                   variant="outline"
                                   size="sm"
                                   className="border-primary/40 bg-primary/5 text-primary hover:bg-primary/10 hover:border-primary/60 hover:shadow-md transition-all font-medium flex items-center gap-2 rounded-xl px-3 py-1.5"
-                                  onClick={() => router.push(`/ai-systems/${assessment.id}/automated-risk-assessment`)}
+                                  onClick={() => router.push(`http://localhost:3000/ai-systems/${assessment.id}/automated-risk-assessment`)}
                                 >
                                   <Shield className="w-4 h-4" />
                                   <span>View Report</span>
@@ -973,7 +1005,7 @@ export default function ComplianceDashboard() {
                                 <Button
                                   size="sm"
                                   className="bg-green-500/10 text-green-600 border border-green-500/30 hover:bg-green-500/20 hover:border-green-500/50 hover:shadow-md transition-all font-medium flex items-center gap-2 rounded-xl px-3 py-1.5 dark:bg-green-500/20 dark:text-green-400 dark:border-green-500/40 dark:hover:bg-green-500/30"
-                                  onClick={() => router.push(`/ai-systems/${assessment.id}/automated-risk-assessment`)}
+                                  onClick={() => router.push(`http://localhost:3000/ai-systems/${assessment.id}/automated-risk-assessment`)}
                                 >
                                   <Shield className="w-4 h-4" />
                                   <span>Generate</span>
@@ -985,7 +1017,7 @@ export default function ComplianceDashboard() {
                                 variant="outline"
                                 size="sm"
                                 className="border-primary/40 bg-primary/5 text-primary hover:bg-primary/10 hover:border-primary/60 hover:shadow-md transition-all font-medium flex items-center gap-2 rounded-xl px-3 py-1.5"
-                                onClick={() => router.push(`/ai-systems/${assessment.id}?tab=documentation`)}
+                                onClick={() => router.push(`http://localhost:3000/ai-systems/${assessment.id}?tab=documentation`)}
                               >
                                 <FileText className="w-4 h-4" />
                                 <span>Generate</span>
@@ -1013,7 +1045,7 @@ export default function ComplianceDashboard() {
 
           {/* System Details Modal */}
           <Dialog open={showDetailsModal} onOpenChange={setShowDetailsModal}>
-            <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto glass-panel shadow-elevated rounded-xl">
+            <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto glass-card shadow-premium rounded-2xl border-0 bg-gradient-to-br from-white/90 via-white/80 to-white/70 backdrop-blur-xl">
               <DialogHeader className="pb-6 border-b border-border/50">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -1055,7 +1087,7 @@ export default function ComplianceDashboard() {
               ) : systemDetails && selectedSystem ? (
                 <div className="space-y-6 mt-6">
                   {/* System Information */}
-                  <Card className="glass-panel shadow-elevated rounded-xl">
+                  <Card className="glass-card shadow-premium rounded-2xl border-0 bg-gradient-to-br from-white/90 via-white/80 to-white/70 backdrop-blur-xl">
                     <CardHeader className="pb-4 border-b border-border/50">
                       <CardTitle className="text-xl font-bold text-foreground flex items-center gap-2">
                         <div className="p-1.5 rounded-lg bg-primary/10 border border-primary/30">
@@ -1108,7 +1140,7 @@ export default function ComplianceDashboard() {
 
 
                   {/* Risk & Compliance Summary */}
-                  <Card className="glass-panel shadow-elevated rounded-xl">
+                  <Card className="glass-card shadow-premium rounded-2xl border-0 bg-gradient-to-br from-white/90 via-white/80 to-white/70 backdrop-blur-xl">
                     <CardHeader className="pb-4 border-b border-border/50">
                       <CardTitle className="text-xl font-bold text-foreground flex items-center gap-2">
                         <div className="p-1.5 rounded-lg bg-amber-500/10 border border-amber-500/30">
@@ -1181,7 +1213,7 @@ export default function ComplianceDashboard() {
 
                   {/* Compliance Details */}
                   {systemDetails.complianceData && (
-                    <Card className="glass-panel shadow-elevated rounded-xl">
+                    <Card className="glass-card shadow-premium rounded-2xl border-0 bg-gradient-to-br from-white/90 via-white/80 to-white/70 backdrop-blur-xl">
                       <CardHeader className="pb-4 border-b border-border/50">
                         <CardTitle className="text-xl font-bold text-foreground flex items-center gap-2">
                           <div className="p-1.5 rounded-lg bg-primary/10 border border-primary/30">
@@ -1263,7 +1295,7 @@ export default function ComplianceDashboard() {
                   )}
 
                   {/* Risk Assessments */}
-                  <Card className="glass-panel shadow-elevated rounded-xl">
+                  <Card className="glass-card shadow-premium rounded-2xl border-0 bg-gradient-to-br from-white/90 via-white/80 to-white/70 backdrop-blur-xl">
                     <CardHeader className="pb-4 border-b border-border/50">
                       <CardTitle className="text-xl font-bold text-foreground flex items-center gap-2">
                         <div className="p-1.5 rounded-lg bg-red-500/10 border border-red-500/30">
@@ -1330,7 +1362,7 @@ export default function ComplianceDashboard() {
                   </Card>
 
                   {/* Documentation */}
-                  <Card className="glass-panel shadow-elevated rounded-xl">
+                  <Card className="glass-card shadow-premium rounded-2xl border-0 bg-gradient-to-br from-white/90 via-white/80 to-white/70 backdrop-blur-xl">
                     <CardHeader className="pb-4 border-b border-border/50">
                       <CardTitle className="text-xl font-bold text-foreground flex items-center gap-2">
                         <div className="p-1.5 rounded-lg bg-primary/10 border border-primary/30">
@@ -1415,7 +1447,7 @@ export default function ComplianceDashboard() {
                     <Button
                       onClick={() => {
                         setShowDetailsModal(false);
-                        router.push(`/ai-systems/${selectedSystem.id}`);
+                        router.push(`http://localhost:3000/ai-systems/${selectedSystem.id}`);
                       }}
                       variant="hero"
                       className="rounded-xl"
@@ -1443,7 +1475,7 @@ export default function ComplianceDashboard() {
                         variant="outline"
                         onClick={() => {
                           setShowDetailsModal(false);
-                          router.push(`/ai-systems/${selectedSystem.id}?tab=documentation`);
+                          router.push(`http://localhost:3000/ai-systems/${selectedSystem.id}?tab=documentation`);
                         }}
                         className="rounded-xl"
                       >

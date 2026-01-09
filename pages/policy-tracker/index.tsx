@@ -7,10 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Plus, ShieldCheck, FileText, Globe, Building2, Loader2, ExternalLink } from "lucide-react";
-import { createClient } from "@/ai-governance-backend/utils/supabase/client";
+import { supabase } from "@/utils/supabase/client";
 import Sidebar from "@/components/sidebar";
-import { signOutAction } from "@/app/actions";
-import type { Policy, ComplianceStatus } from "@/ai-governance-backend/types/policy";
+import type { Policy, ComplianceStatus } from "../../types/policy";
 
 export default function PolicyTrackerPage() {
   const router = useRouter();
@@ -21,43 +20,52 @@ export default function PolicyTrackerPage() {
   const [loadingPolicies, setLoadingPolicies] = useState(true);
 
   useEffect(() => {
-    const checkAuth = async () => {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      const loggedIn = !!user;
-      setIsLoggedIn(loggedIn);
-      setIsLoading(false);
-
-      if (!loggedIn) {
+    const init = async () => {
+      const sessionRes = await supabase.auth.getSession();
+      const session = sessionRes.data.session;
+  
+      if (!session) {
         router.push("/sign-in");
         return;
       }
-
-      // Fetch policies
-      await fetchPolicies();
+  
+      setIsLoggedIn(true);
+      setIsLoading(false);
+  
+      await fetchPolicies(session.access_token);
     };
-
-    checkAuth();
+  
+    init();
   }, [router]);
+  
 
-  const fetchPolicies = async () => {
+  const fetchPolicies = async (token: string) => {
     try {
       setLoadingPolicies(true);
-      const res = await fetch("/api/policies");
-      if (res.ok) {
-        const data = await res.json();
-        setExternalPolicies(data.filter((p: Policy) => p.policy_type === "External"));
-        setInternalPolicies(data.filter((p: Policy) => p.policy_type === "Internal"));
+  
+      const res = await fetch("http://localhost:3001/api/policies", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+  
+      if (!res.ok) {
+        throw new Error("Unauthorized");
       }
+  
+      const data = await res.json();
+      setExternalPolicies(data.filter((p: Policy) => p.policy_type === "External"));
+      setInternalPolicies(data.filter((p: Policy) => p.policy_type === "Internal"));
     } catch (err) {
       console.error("Error fetching policies:", err);
     } finally {
       setLoadingPolicies(false);
     }
   };
+  
 
   const handleLogout = async () => {
-    await signOutAction();
+    await supabase.auth.signOut();
     router.push("/");
   };
 

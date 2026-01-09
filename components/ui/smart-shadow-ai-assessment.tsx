@@ -22,8 +22,39 @@ import {
   FileText
 } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/utils/supabase/client";
 import type { ShadowAIAssessment, SystemLinkSuggestion, DiscoveryPrioritization } from '../../../ai-governance-backend/services/compliance/smart-shadow-ai-discovery';
 import type { DiscoveredAIAsset } from '../../../ai-governance-backend/types/discovery';
+
+async function backendFetch(
+  path: string,
+  options: RequestInit = {}
+) {
+  const { data } = await supabase.auth.getSession();
+
+  const accessToken = data.session?.access_token;
+
+  if (!accessToken) {
+    console.error('❌ No access token found in Supabase session');
+    throw new Error("User not authenticated");
+  }
+
+  console.log('✅ Frontend: Sending token (first 50 chars):', accessToken.substring(0, 50) + '...');
+
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+
+  return fetch(
+    `${process.env.NEXT_PUBLIC_BACKEND_URL}${normalizedPath}`,
+    {
+      ...options,
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    }
+  );
+}
 
 interface SmartShadowAIAssessmentProps {
   asset: DiscoveredAIAsset;
@@ -66,10 +97,9 @@ export function SmartShadowAIAssessment({
   const generateAssessment = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/discovery/smart-assessment', {
+      const response = await backendFetch('/api/discovery/smart-assessment', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           asset_id: asset.id,
           organization_context: {
             compliance_focus: 'EU' // Could be dynamic based on org settings
@@ -113,10 +143,9 @@ export function SmartShadowAIAssessment({
   const generateLinkSuggestions = async () => {
     setLoadingLinks(true);
     try {
-      const response = await fetch('/api/discovery/link-suggestions', {
+      const response = await backendFetch('/api/discovery/link-suggestions', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           asset_id: asset.id,
           max_suggestions: 5
         })

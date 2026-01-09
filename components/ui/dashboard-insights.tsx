@@ -24,7 +24,38 @@ import {
   ChevronDown,
   ChevronUp
 } from "lucide-react";
-import type { DashboardInsights, ComplianceInsight, SystemInsights } from "@/ai-governance-backend/services/dashboard/dashboard-insights";
+import { supabase } from "@/utils/supabase/client";
+import type { DashboardInsights, ComplianceInsight, SystemInsights } from "@/types/dashboard-insights";
+
+async function backendFetch(
+  path: string,
+  options: RequestInit = {}
+) {
+  const { data } = await supabase.auth.getSession();
+
+  const accessToken = data.session?.access_token;
+
+  if (!accessToken) {
+    console.error('❌ No access token found in Supabase session');
+    throw new Error("User not authenticated");
+  }
+
+  console.log('✅ Frontend: Sending token (first 50 chars):', accessToken.substring(0, 50) + '...');
+
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+
+  return fetch(
+    `${process.env.NEXT_PUBLIC_BACKEND_URL}${normalizedPath}`,
+    {
+      ...options,
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    }
+  );
+}
 
 interface DashboardInsightsProps {
   systemsData: any[];
@@ -63,9 +94,8 @@ export function DashboardInsightsPanel({
     setError(null);
 
     try {
-      const response = await fetch('/api/dashboard/insights', {
+      const response = await backendFetch('/api/dashboard/insights', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           systemsData,
           regulationType
@@ -294,9 +324,8 @@ export function SystemInsightsCard({
     setError(null);
 
     try {
-      const response = await fetch('/api/dashboard/system-insights', {
+      const response = await backendFetch('/api/dashboard/system-insights', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           systemData,
           regulationType

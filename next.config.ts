@@ -14,6 +14,11 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+
+  // Ensure rewrites take precedence over built-in API handling
+  experimental: {
+    serverComponentsExternalPackages: ['knex'],
+  },
   // Webpack configuration (for --webpack flag)
   webpack: (config, { isServer }) => {
     if (!isServer) {

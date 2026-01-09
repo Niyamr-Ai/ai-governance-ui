@@ -20,13 +20,44 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { ExternalLink, AlertTriangle, CheckCircle2, Clock, FileText, XCircle, Send, User, Shield, AlertCircle } from "lucide-react";
-import type { RiskAssessment, RiskLevel, MitigationStatus, AssessmentStatus } from "@/ai-governance-backend/types/risk-assessment";
+import type { RiskAssessment, RiskLevel, MitigationStatus, AssessmentStatus } from "@/types/risk-assessment";
 import { format } from "date-fns";
 import { useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { isActionDisabled, getDisabledReason } from "@/lib/lifecycle-governance-helpers";
-import type { LifecycleStage } from "@/ai-governance-backend/services/governance/lifecycle-governance";
+import type { LifecycleStage } from "@/types/lifecycle";
+import { supabase } from "@/utils/supabase/client";
+
+async function backendFetch(
+  path: string,
+  options: RequestInit = {}
+) {
+  const { data } = await supabase.auth.getSession();
+
+  const accessToken = data.session?.access_token;
+
+  if (!accessToken) {
+    console.error('❌ No access token found in Supabase session');
+    throw new Error("User not authenticated");
+  }
+
+  console.log('✅ Frontend: Sending token (first 50 chars):', accessToken.substring(0, 50) + '...');
+
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+
+  return fetch(
+    `${process.env.NEXT_PUBLIC_BACKEND_URL}${normalizedPath}`,
+    {
+      ...options,
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    }
+  );
+}
 
 interface RiskDetailProps {
   assessment: RiskAssessment;
@@ -58,7 +89,7 @@ export default function RiskDetail({
   const isCreator = currentUserId && assessment.assessed_by === currentUserId;
   const getRiskBadge = (level: RiskLevel) => {
     const variants = {
-      low: "bg-emerald-900/50 text-emerald-300 border-emerald-700/50",
+      low: "bg-emerald-900/50 text-emerald-600 border-emerald-700/50",
       medium: "bg-amber-900/50 text-amber-300 border-amber-700/50",
       high: "bg-red-900/50 text-red-300 border-red-700/50",
     };
@@ -71,9 +102,9 @@ export default function RiskDetail({
 
   const getMitigationBadge = (status: MitigationStatus) => {
     const variants = {
-      not_started: "bg-slate-800/50 text-slate-400 border-slate-700/50",
-      in_progress: "bg-blue-900/50 text-blue-300 border-blue-700/50",
-      mitigated: "bg-emerald-900/50 text-emerald-300 border-emerald-700/50",
+      not_started: "bg-background text-muted-foreground border-border",
+      in_progress: "bg-blue-900/50 text-blue-600 border-blue-700/50",
+      mitigated: "bg-emerald-900/50 text-emerald-600 border-emerald-700/50",
     };
 
     const icons = {
@@ -108,9 +139,9 @@ export default function RiskDetail({
 
   const getStatusBadge = (status: AssessmentStatus) => {
     const variants = {
-      draft: "bg-slate-800/50 text-slate-400 border-slate-700/50",
+      draft: "bg-background text-muted-foreground border-border",
       submitted: "bg-amber-900/50 text-amber-300 border-amber-700/50",
-      approved: "bg-emerald-900/50 text-emerald-300 border-emerald-700/50",
+      approved: "bg-emerald-900/50 text-emerald-600 border-emerald-700/50",
       rejected: "bg-red-900/50 text-red-300 border-red-700/50",
     };
 
@@ -141,9 +172,8 @@ export default function RiskDetail({
       setIsSubmitting(true);
       setError(null);
 
-      const res = await fetch(`/api/risk-assessments/${assessment.id}/submit`, {
+      const res = await backendFetch(`/api/risk-assessments/${assessment.id}/submit`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
       });
 
       if (!res.ok) {
@@ -165,9 +195,8 @@ export default function RiskDetail({
       setIsApproving(true);
       setError(null);
 
-      const res = await fetch(`/api/risk-assessments/${assessment.id}/approve`, {
+      const res = await backendFetch(`/api/risk-assessments/${assessment.id}/approve`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({}),
       });
 
@@ -195,9 +224,8 @@ export default function RiskDetail({
       setIsRejecting(true);
       setError(null);
 
-      const res = await fetch(`/api/risk-assessments/${assessment.id}/reject`, {
+      const res = await backendFetch(`/api/risk-assessments/${assessment.id}/reject`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ review_comment: rejectComment }),
       });
 
@@ -220,9 +248,8 @@ export default function RiskDetail({
       setIsUpdatingMitigation(true);
       setError(null);
 
-      const res = await fetch(`/api/risk-assessments/${assessment.id}/mitigation-status`, {
+      const res = await backendFetch(`/api/risk-assessments/${assessment.id}/mitigation-status`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ mitigation_status: newStatus }),
       });
 
@@ -242,7 +269,7 @@ export default function RiskDetail({
   const renderMetrics = () => {
     if (!assessment.metrics || Object.keys(assessment.metrics).length === 0) {
       return (
-        <p className="text-slate-400 italic">No metrics provided</p>
+        <p className="text-muted-foreground italic">No metrics provided</p>
       );
     }
 
@@ -251,12 +278,12 @@ export default function RiskDetail({
         {Object.entries(assessment.metrics).map(([key, value]) => (
           <div
             key={key}
-            className="flex justify-between items-center py-2 border-b border-slate-700/50"
+            className="flex justify-between items-center py-2 border-b border-border/50"
           >
-            <span className="text-slate-300 font-medium capitalize">
+            <span className="text-muted-foreground font-medium capitalize">
               {key.replace(/_/g, " ")}:
             </span>
-            <span className="text-white">
+            <span className="text-foreground">
               {typeof value === "boolean" ? (value ? "Yes" : "No") : String(value)}
             </span>
           </div>
@@ -266,21 +293,21 @@ export default function RiskDetail({
   };
 
   return (
-    <Card className="bg-slate-900/60 backdrop-blur-sm border-slate-700/50 shadow-2xl">
+    <Card className="glass-card shadow-premium rounded-2xl border-0 bg-gradient-to-br from-white/90 via-white/80 to-white/70 backdrop-blur-xl">
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="text-white">
+            <CardTitle className="text-foreground">
               {getCategoryLabel(assessment.category)}
             </CardTitle>
-            <CardDescription className="text-slate-300 mt-1">
+            <CardDescription className="text-muted-foreground mt-1">
               Assessment ID: {assessment.id.substring(0, 8)}...
             </CardDescription>
           </div>
           <Button
             variant="ghost"
             onClick={onClose}
-            className="text-slate-400 hover:text-white"
+            className="text-muted-foreground hover:text-foreground"
           >
             ×
           </Button>
@@ -290,15 +317,15 @@ export default function RiskDetail({
         {/* Status, Risk Level and Mitigation Status */}
         <div className="flex gap-4 flex-wrap">
           <div>
-            <p className="text-sm text-slate-400 mb-2">Status</p>
+            <p className="text-sm text-muted-foreground mb-2">Status</p>
             {getStatusBadge(assessment.status)}
           </div>
           <div>
-            <p className="text-sm text-slate-400 mb-2">Risk Level</p>
+            <p className="text-sm text-muted-foreground mb-2">Risk Level</p>
             {getRiskBadge(assessment.risk_level)}
           </div>
           <div>
-            <p className="text-sm text-slate-400 mb-2">Mitigation Status</p>
+            <p className="text-sm text-muted-foreground mb-2">Mitigation Status</p>
             <div className="flex items-center gap-2">
               {getMitigationBadge(assessment.mitigation_status)}
               {/* Allow updating mitigation status for approved/submitted assessments */}
@@ -312,17 +339,17 @@ export default function RiskDetail({
                     onValueChange={(value) => handleMitigationStatusChange(value as MitigationStatus)}
                     disabled={isUpdatingMitigation || mitigationDisabled}
                   >
-                  <SelectTrigger className="w-[140px] h-8 bg-slate-800/50 border-slate-700/50 text-white text-xs">
+                  <SelectTrigger className="w-[140px] h-8 bg-background border-border text-foreground text-xs">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-slate-800 border-slate-700">
-                    <SelectItem value="not_started" className="text-slate-300 hover:bg-slate-700">
+                  <SelectContent className="bg-background border-border">
+                    <SelectItem value="not_started" className="text-foreground hover:bg-accent">
                       Not Started
                     </SelectItem>
-                    <SelectItem value="in_progress" className="text-blue-300 hover:bg-slate-700">
+                    <SelectItem value="in_progress" className="text-blue-600 hover:bg-accent">
                       In Progress
                     </SelectItem>
-                    <SelectItem value="mitigated" className="text-emerald-300 hover:bg-slate-700">
+                    <SelectItem value="mitigated" className="text-emerald-600 hover:bg-accent">
                       Mitigated
                     </SelectItem>
                   </SelectContent>
@@ -353,37 +380,37 @@ export default function RiskDetail({
         {/* Assessment Metadata */}
         <div className="space-y-2">
           <div>
-            <p className="text-sm text-slate-400 mb-1">Assessed At</p>
-            <p className="text-white">
+            <p className="text-sm text-muted-foreground mb-1">Assessed At</p>
+            <p className="text-foreground">
               {format(new Date(assessment.assessed_at), "MMMM dd, yyyy 'at' HH:mm")}
             </p>
           </div>
           {assessment.assessed_by && (
             <div>
-              <p className="text-sm text-slate-400 mb-1 flex items-center gap-1">
+              <p className="text-sm text-muted-foreground mb-1 flex items-center gap-1">
                 <User className="h-3 w-3" />
                 Created By
               </p>
-              <p className="text-white text-sm">
+              <p className="text-foreground text-sm">
                 {assessment.assessed_by.substring(0, 8)}...
               </p>
             </div>
           )}
           {assessment.reviewed_by && (
             <div>
-              <p className="text-sm text-slate-400 mb-1 flex items-center gap-1">
+              <p className="text-sm text-muted-foreground mb-1 flex items-center gap-1">
                 <Shield className="h-3 w-3" />
                 Reviewed By
               </p>
-              <p className="text-white text-sm">
+              <p className="text-foreground text-sm">
                 {assessment.reviewed_by.substring(0, 8)}...
               </p>
             </div>
           )}
           {assessment.reviewed_at && (
             <div>
-              <p className="text-sm text-slate-400 mb-1">Reviewed At</p>
-              <p className="text-white text-sm">
+              <p className="text-sm text-muted-foreground mb-1">Reviewed At</p>
+              <p className="text-foreground text-sm">
                 {format(new Date(assessment.reviewed_at), "MMMM dd, yyyy 'at' HH:mm")}
               </p>
             </div>
@@ -392,16 +419,16 @@ export default function RiskDetail({
 
         {/* Summary */}
         <div>
-          <p className="text-sm text-slate-400 mb-2 font-semibold">Summary</p>
-          <p className="text-slate-200 whitespace-pre-wrap leading-relaxed">
+          <p className="text-sm text-muted-foreground mb-2 font-semibold">Summary</p>
+          <p className="text-foreground/80 whitespace-pre-wrap leading-relaxed">
             {assessment.summary}
           </p>
         </div>
 
         {/* Metrics */}
         <div>
-          <p className="text-sm text-slate-400 mb-3 font-semibold">Metrics</p>
-          <div className="bg-slate-800/30 rounded-lg p-4 border border-slate-700/50">
+          <p className="text-sm text-muted-foreground mb-3 font-semibold">Metrics</p>
+          <div className="bg-background/50 rounded-lg p-4 border border-border">
             {renderMetrics()}
           </div>
         </div>
@@ -409,7 +436,7 @@ export default function RiskDetail({
         {/* Evidence Links */}
         {assessment.evidence_links && assessment.evidence_links.length > 0 && (
           <div>
-            <p className="text-sm text-slate-400 mb-3 font-semibold">
+            <p className="text-sm text-muted-foreground mb-3 font-semibold">
               Evidence Links
             </p>
             <div className="space-y-2">
@@ -432,7 +459,7 @@ export default function RiskDetail({
         {/* Review Comment (if rejected) */}
         {assessment.status === 'rejected' && assessment.review_comment && (
           <div>
-            <p className="text-sm text-slate-400 mb-2 font-semibold">Review Comment</p>
+            <p className="text-sm text-muted-foreground mb-2 font-semibold">Review Comment</p>
             <Alert variant="destructive" className="bg-red-900/20 border-red-700/50">
               <AlertDescription className="text-red-300">
                 {assessment.review_comment}
@@ -442,13 +469,13 @@ export default function RiskDetail({
         )}
 
         {/* Workflow Actions */}
-        <div className="pt-4 border-t border-slate-700/50 space-y-3">
+        <div className="pt-4 border-t border-border space-y-3">
           {/* User Actions: Submit for Review */}
           {userRole === 'user' && isCreator && assessment.status === 'draft' && (
             <Button
               onClick={handleSubmit}
               disabled={isSubmitting}
-              className="w-full bg-amber-600 hover:bg-amber-700 text-white border border-amber-500/50"
+              className="w-full bg-amber-600 hover:bg-amber-700 text-foreground border border-amber-500/50"
             >
               <Send className="h-4 w-4 mr-2" />
               {isSubmitting ? "Submitting..." : "Submit for Review"}
@@ -463,7 +490,7 @@ export default function RiskDetail({
                   <Button
                     onClick={handleApprove}
                     disabled={isApproving}
-                    className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-500/50"
+                    className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-foreground border border-emerald-500/50"
                   >
                     <CheckCircle2 className="h-4 w-4 mr-2" />
                     {isApproving ? "Approving..." : "Approve"}
@@ -472,7 +499,7 @@ export default function RiskDetail({
                     onClick={() => setShowRejectForm(true)}
                     disabled={isRejecting}
                     variant="destructive"
-                    className="flex-1 bg-red-600 hover:bg-red-700 text-white border border-red-500/50"
+                    className="flex-1 bg-red-600 hover:bg-red-700 text-foreground border border-red-500/50"
                   >
                     <XCircle className="h-4 w-4 mr-2" />
                     Reject
@@ -481,7 +508,7 @@ export default function RiskDetail({
               ) : (
                 <div className="space-y-3">
                   <div>
-                    <Label htmlFor="reject-comment" className="text-white">
+                    <Label htmlFor="reject-comment" className="text-foreground">
                       Rejection Reason *
                     </Label>
                     <Textarea
@@ -489,7 +516,7 @@ export default function RiskDetail({
                       value={rejectComment}
                       onChange={(e) => setRejectComment(e.target.value)}
                       placeholder="Explain why this assessment is being rejected..."
-                      className="bg-slate-800/50 border-slate-700/50 text-white placeholder:text-slate-400 focus:border-red-500/50 mt-2"
+                      className="bg-background border-border text-foreground placeholder:text-muted-foreground focus:border-red-500/50 mt-2"
                       rows={3}
                     />
                   </div>
@@ -498,7 +525,7 @@ export default function RiskDetail({
                       onClick={handleReject}
                       disabled={isRejecting || !rejectComment.trim()}
                       variant="destructive"
-                      className="flex-1 bg-red-600 hover:bg-red-700 text-white border border-red-500/50"
+                      className="flex-1 bg-red-600 hover:bg-red-700 text-foreground border border-red-500/50"
                     >
                       <XCircle className="h-4 w-4 mr-2" />
                       {isRejecting ? "Rejecting..." : "Confirm Rejection"}
@@ -509,7 +536,7 @@ export default function RiskDetail({
                         setRejectComment("");
                       }}
                       variant="outline"
-                      className="border-slate-700/50 bg-slate-800/50 text-slate-300 hover:bg-slate-700/50"
+                      className="border-border bg-background text-muted-foreground hover:bg-accent/50"
                     >
                       Cancel
                     </Button>
@@ -526,7 +553,7 @@ export default function RiskDetail({
             </p>
           )}
           {assessment.status === 'approved' && (
-            <p className="text-sm text-emerald-300 text-center">
+            <p className="text-sm text-emerald-600 text-center">
               ✓ Assessment approved - counts toward overall risk level
             </p>
           )}
@@ -546,7 +573,7 @@ export default function RiskDetail({
         </div>
 
         {/* Metadata */}
-        <div className="pt-4 border-t border-slate-700/50">
+        <div className="pt-4 border-t border-border">
           <p className="text-xs text-slate-500">
             Created: {format(new Date(assessment.created_at), "MMM dd, yyyy")}
             {assessment.updated_at !== assessment.created_at && (

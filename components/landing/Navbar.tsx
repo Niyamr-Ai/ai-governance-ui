@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from "next/navigation";
-import { createClient } from "@/utils/supabase/client";
+import { supabase } from "@/utils/supabase/client";
 
 
 export default function Navbar() {
@@ -25,7 +25,6 @@ export default function Navbar() {
 
   useEffect(() => {
     const checkAuth = async () => {
-      const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       const loggedIn = !!user;
       setIsLoggedIn(loggedIn);

@@ -2,11 +2,11 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { hasEnvVars } from "@/ai-governance-backend/utils/supabase/check-env-vars";
+import { hasEnvVars } from "@/utils/supabase/check-env-vars";
 import Link from "next/link";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
-import { createClient } from "@/ai-governance-backend/utils/supabase/client";
+import { supabase } from "@/utils/supabase/client";
 
 export default function HeaderAuth() {
   const [user, setUser] = useState<any>(null);
@@ -14,8 +14,6 @@ export default function HeaderAuth() {
   const router = useRouter();
 
   useEffect(() => {
-    const supabase = createClient();
-
     // Check initial auth state
     const checkUser = async () => {
       const { data: { user: currentUser } } = await supabase.auth.getUser();

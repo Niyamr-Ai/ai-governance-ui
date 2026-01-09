@@ -18,7 +18,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Switch } from "@/components/ui/switch";
 import { Loader2, Shield } from "lucide-react";
 import Sidebar from "@/components/sidebar";
-import { createClient } from "@/utils/supabase/client";
+import { supabase } from "@/utils/supabase/client";
 
 const EU_COUNTRIES = [
   "Austria", "Belgium", "Bulgaria", "Croatia", "Cyprus", "Czechia",
@@ -289,7 +289,6 @@ export default function AssessmentChooserPage() {
   // Check authentication status
   useEffect(() => {
     const checkAuth = async () => {
-      const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       setIsLoggedIn(!!user);
     };
@@ -297,7 +296,6 @@ export default function AssessmentChooserPage() {
   }, []);
 
   const handleLogout = async () => {
-    const supabase = createClient();
     await supabase.auth.signOut();
     router.push("/");
   };

@@ -28,7 +28,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Plus, X, AlertCircle } from "lucide-react";
-import type { CreateRiskAssessmentInput, RiskCategory, RiskLevel } from "@/ai-governance-backend/types/risk-assessment";
+import type { CreateRiskAssessmentInput, RiskCategory, RiskLevel } from "@/types/risk-assessment";
 import { RiskGuidancePanel, FieldGuidance } from "@/components/ui/risk-guidance";
 
 interface RiskFormProps {

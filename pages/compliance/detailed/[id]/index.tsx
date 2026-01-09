@@ -9,14 +9,43 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, RadialBarChart, RadialBar } from "recharts";
 import { CheckCircle2, XCircle, Shield, Database, FileText, Eye, Lock, ClipboardCheck, TrendingUp, AlertTriangle } from "lucide-react";
 import Sidebar from "@/components/sidebar";
-import { signOutAction } from "@/app/actions";
-import { createClient } from "@/ai-governance-backend/utils/supabase/client";
+import { supabase } from "@/utils/supabase/client";
 
 const getStatusClasses = (fulfilled: boolean) => {
   return fulfilled 
     ? "bg-emerald-50 text-emerald-700 border-emerald-200" 
     : "bg-red-50 text-red-700 border-red-200";
 };
+
+async function backendFetch(
+  path: string,
+  options: RequestInit = {}
+) {
+  const { data } = await supabase.auth.getSession();
+
+  const accessToken = data.session?.access_token;
+
+  if (!accessToken) {
+    console.error('❌ No access token found in Supabase session');
+    throw new Error("User not authenticated");
+  }
+
+  console.log('✅ Frontend: Sending token (first 50 chars):', accessToken.substring(0, 50) + '...');
+
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+
+  return fetch(
+    `${process.env.NEXT_PUBLIC_BACKEND_URL}${normalizedPath}`,
+    {
+      ...options,
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    }
+  );
+}
 
 const getStatusIcon = (fulfilled: boolean) => {
   return fulfilled 
@@ -41,6 +70,8 @@ export default function DetailedViewPage() {
   const params = useParams();
   const router = useRouter();
   const id = params?.id as string;
+  console.log("🔍 Detailed view page: params:", params);
+  console.log("🔍 Detailed view page: extracted id:", id);
   const [result, setResult] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -49,7 +80,6 @@ export default function DetailedViewPage() {
   // Check authentication status
   useEffect(() => {
     const checkAuth = async () => {
-      const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       setIsLoggedIn(!!user);
     };
@@ -57,7 +87,7 @@ export default function DetailedViewPage() {
   }, []);
 
   const handleLogout = async () => {
-    await signOutAction();
+    await supabase.auth.signOut();
     router.push("/");
   };
 
@@ -65,7 +95,7 @@ export default function DetailedViewPage() {
     if (!id) return;
     const fetchData = async () => {
       try {
-        const res = await fetch(`/api/compliance/detailed?id=${id}`);
+        const res = await backendFetch(`/api/compliance/detailed?id=${id}`);
         if (res.status === 404) {
           // 404 means detailed assessment doesn't exist yet - this is expected, not an error
           setResult(null);

@@ -10,8 +10,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, Loader2, Save } from "lucide-react";
 import Sidebar from "@/components/sidebar";
-import { signOutAction } from "@/app/actions";
-import type { CreateInternalPolicyInput } from "@/ai-governance-backend/types/policy";
+import type {
+  Policy,
+} from "../../../types/policy";
+
+import { supabase } from "@/utils/supabase/client";
 
 export default function CreateInternalPolicyPage() {
   const router = useRouter();
@@ -33,8 +36,6 @@ export default function CreateInternalPolicyPage() {
 
   useEffect(() => {
     const checkAuth = async () => {
-      const { createClient } = await import("@/ai-governance-backend/utils/supabase/client");
-      const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       const loggedIn = !!user;
       setIsLoggedIn(loggedIn);
@@ -76,7 +77,7 @@ export default function CreateInternalPolicyPage() {
   };
 
   const handleLogout = async () => {
-    await signOutAction();
+    await supabase.auth.signOut();
     router.push("/");
   };
 

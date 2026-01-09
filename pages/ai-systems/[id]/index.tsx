@@ -1,4 +1,4 @@
-"use client";
+
 
 /**
  * AI System Detail Page
@@ -19,18 +19,22 @@ import { Plus, ArrowLeft, Loader2, AlertCircle, Info, AlertTriangle as AlertTria
 import RiskTable from "./components/RiskAssessments/RiskTable";
 import RiskForm from "./components/RiskAssessments/RiskForm";
 import RiskDetail from "./components/RiskAssessments/RiskDetail";
-import DocumentationTab from "../../../ai-governance-ui/components/Documentation/DocumentationTab";
-import type { RiskAssessment, CreateRiskAssessmentInput } from "@/ai-governance-backend/types/risk-assessment";
-import type { GovernanceTask } from "@/ai-governance-backend/types/governance-task";
-import { calculateOverallRiskLevel } from "@/ai-governance-backend/services/risk-assessment";
-import { getLifecycleWarnings, canCreateRiskAssessment, type LifecycleStage } from "@/ai-governance-backend/services/governance/lifecycle-governance";
-import { getLifecycleConstraints, canEditRiskAssessment } from "@/ai-governance-backend/services/governance/lifecycle-governance-rules";
+import DocumentationTab from "./components/Documentation/DocumentationTab"
+import type { RiskAssessment, CreateRiskAssessmentInput } from "@/types/risk-assessment";
+import type { GovernanceTask } from "@/types/governance-task";
+import type { LifecycleStage } from "@/types/lifecycle";
+import { calculateOverallRiskLevel } from "@/lib/risk";
+import {
+  canCreateRiskAssessment,
+  getLifecycleWarnings,
+  getLifecycleConstraints
+} from "@/lib/lifecycle";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import TasksTab from "./components/Tasks/TasksTab";
 import PoliciesTab from "./components/Policies/PoliciesTab";
 import Sidebar from "@/components/sidebar";
-import { signOutAction } from "@/app/actions";
+import { supabase } from "@/utils/supabase/client";
 
 export default function AISystemDetailPage() {
   const params = useParams();
@@ -58,16 +62,43 @@ export default function AISystemDetailPage() {
   // Check authentication
   useEffect(() => {
     const checkAuth = async () => {
-      const { createClient } = await import("@/ai-governance-backend/utils/supabase/client");
-      const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       setIsLoggedIn(!!user);
     };
     checkAuth();
   }, []);
 
+  async function backendFetch(
+    path: string,
+    options: RequestInit = {}
+  ) {
+    const { data } = await supabase.auth.getSession();
+  
+    const accessToken = data.session?.access_token;
+  
+    if (!accessToken) {
+      console.error('❌ No access token found in Supabase session');
+      throw new Error("User not authenticated");
+    }
+  
+    console.log('✅ Frontend: Sending token (first 50 chars):', accessToken.substring(0, 50) + '...');
+  
+    const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  
+    return fetch(
+      `${process.env.NEXT_PUBLIC_BACKEND_URL}${normalizedPath}`,
+      {
+        ...options,
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+          ...options.headers,
+        },
+      }
+    );
+  }
+
   const handleLogout = async () => {
-    await signOutAction();
     router.push("/");
   };
 
@@ -82,19 +113,34 @@ export default function AISystemDetailPage() {
 
       // Get user role
       const fetchUserRole = async () => {
+        console.log("🔍 [FRONTEND] fetchUserRole called");
         try {
-          const res = await fetch('/api/user/role');
+          console.log("🔍 [FRONTEND] Calling backendFetch('/api/user/role')");
+          const res = await backendFetch('/api/user/role');
+          console.log("🔍 [FRONTEND] Response received, status:", res.status);
+
           if (res.ok) {
+            console.log("✅ [FRONTEND] Response OK, parsing JSON");
             const data = await res.json();
+            console.log("🔍 [FRONTEND] Response data:", data);
+
             if (data.userId) {
+              console.log("🔍 [FRONTEND] Setting user ID:", data.userId);
               setCurrentUserId(data.userId);
             }
             if (data.role === 'admin') {
+              console.log("🔍 [FRONTEND] Setting user role to admin");
               setUserRole('admin');
+            } else {
+              console.log("🔍 [FRONTEND] User role is:", data.role);
             }
+          } else {
+            console.log("❌ [FRONTEND] Response not OK, status:", res.status);
+            const errorText = await res.text();
+            console.log("❌ [FRONTEND] Error response:", errorText);
           }
         } catch (err) {
-          console.error("Error fetching user role:", err);
+          console.error("❌ [FRONTEND] Error fetching user role:", err);
         }
       };
       fetchUserRole();
@@ -108,7 +154,7 @@ export default function AISystemDetailPage() {
     try {
       setLoading(true);
       setError(null);
-      const res = await fetch(`/api/ai-systems/${systemId}/risk-assessments`);
+      const res = await backendFetch(`/api/ai-systems/${systemId}/risk-assessments`);
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -131,7 +177,7 @@ export default function AISystemDetailPage() {
 
     try {
       setLoadingTasks(true);
-      const res = await fetch(`/api/ai-systems/${systemId}/tasks`);
+      const res = await backendFetch(`/api/ai-systems/${systemId}/tasks`);
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.error || "Failed to fetch tasks");
@@ -161,7 +207,7 @@ export default function AISystemDetailPage() {
 
       try {
         setLoadingCompliance(true);
-        const res = await fetch(`/api/ai-systems/${systemId}/compliance-data`);
+        const res = await backendFetch(`/api/ai-systems/${systemId}/compliance-data`);
 
         if (res.ok) {
           const data = await res.json();
@@ -199,7 +245,7 @@ export default function AISystemDetailPage() {
       }
 
       try {
-        const res = await fetch(`/api/ai-systems/${systemId}/lifecycle`);
+        const res = await backendFetch(`/api/ai-systems/${systemId}/lifecycle`);
         if (res.ok) {
           const data = await res.json();
           setLifecycleStage((data.lifecycle_stage as LifecycleStage) || 'Draft');
@@ -237,10 +283,9 @@ export default function AISystemDetailPage() {
       setUpdatingLifecycle(true);
       setError(null); // Clear previous errors
       
-      const res = await fetch(`/api/ai-systems/${systemId}/lifecycle`, {
+      const res = await backendFetch(`/api/ai-systems/${systemId}/lifecycle`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           lifecycle_stage: newStage,
           change_reason: `Transition from ${currentStage} to ${newStage}`
         }),
@@ -258,7 +303,7 @@ export default function AISystemDetailPage() {
         }
         
         // Refresh compliance data to get updated lifecycle stage
-        const complianceRes = await fetch(`/api/ai-systems/${systemId}/compliance-data`);
+        const complianceRes = await backendFetch(`/api/ai-systems/${systemId}/compliance-data`);
         if (complianceRes.ok) {
           const data = await complianceRes.json();
           setSystemInfo(data.systemInfo);
@@ -294,9 +339,8 @@ export default function AISystemDetailPage() {
       setSubmitting(true);
       setError(null);
 
-      const res = await fetch(`/api/ai-systems/${systemId}/risk-assessments`, {
+      const res = await backendFetch(`/api/ai-systems/${systemId}/risk-assessments`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
 
@@ -469,10 +513,9 @@ export default function AISystemDetailPage() {
                 {/* Lifecycle Warnings - Only for EU AI Act */}
                 {systemInfo?.type === 'EU AI Act' && lifecycleStage && (() => {
                   const hasApprovedAssessments = assessments.some(a => a.status === 'approved');
-                  const warnings = getLifecycleWarnings(
+                  const warnings: Array<{type: 'error' | 'warning' | 'info', message: string, action?: string}> = getLifecycleWarnings(
                     lifecycleStage as LifecycleStage,
-                    hasApprovedAssessments,
-                    assessments.length
+                    hasApprovedAssessments
                   );
                   
                   return warnings.length > 0 && (

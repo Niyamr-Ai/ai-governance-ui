@@ -13,7 +13,38 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Loader2, ArrowLeft } from "lucide-react";
-import type { MasAssessmentResult, MasComplianceStatus, MasRiskLevel } from "@/ai-governance-backend/types";
+import type { MasAssessmentResult, MasComplianceStatus, MasRiskLevel } from "@/types/mas";
+import { supabase } from "@/utils/supabase/client";
+
+async function backendFetch(
+  path: string,
+  options: RequestInit = {}
+) {
+  const { data } = await supabase.auth.getSession();
+
+  const accessToken = data.session?.access_token;
+
+  if (!accessToken) {
+    console.error('❌ No access token found in Supabase session');
+    throw new Error("User not authenticated");
+  }
+
+  console.log('✅ Frontend: Sending token (first 50 chars):', accessToken.substring(0, 50) + '...');
+
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+
+  return fetch(
+    `${process.env.NEXT_PUBLIC_BACKEND_URL}${normalizedPath}`,
+    {
+      ...options,
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    }
+  );
+}
 
 const pillarOrder: Array<keyof MasAssessmentResult> = [
   "governance",
@@ -56,7 +87,7 @@ export default function MasAssessmentDetailPage() {
   useEffect(() => {
     const fetchAssessment = async () => {
       try {
-        const res = await fetch(`/api/mas-compliance/${id}`);
+        const res = await backendFetch(`/api/mas-compliance/${id}`);
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
           throw new Error(err.error || "Failed to load assessment");

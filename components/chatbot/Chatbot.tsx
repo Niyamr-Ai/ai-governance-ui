@@ -16,9 +16,9 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { MessageCircle, X, Send, Loader2, AlertCircle } from 'lucide-react';
-import type { ChatMessage, PageContext, ChatResponse } from '@/ai-governance-backend/types/chatbot';
-import { CHATBOT_MODES } from '@/ai-governance-backend/services/ai/chatbot/constants';
-import { createClient } from '@/ai-governance-backend/utils/supabase/client';
+import type { ChatMessage, PageContext, ChatResponse } from '@/types/chatbot';
+import { CHATBOT_MODES } from '@/lib/chatbot-constants';
+import { supabase } from '@/utils/supabase/client';
 
 export default function Chatbot() {
   const [isOpen, setIsOpen] = useState(false);
@@ -34,22 +34,45 @@ export default function Chatbot() {
   const pathname = usePathname();
   const params = useParams();
 
-  // Check authentication status
+  // Check authentication status and listen for changes
   useEffect(() => {
+    let mounted = true;
+
     const checkAuth = async () => {
       try {
-        const supabase = createClient();
-        const { data: { user } } = await supabase.auth.getUser();
-        setIsAuthenticated(!!user);
+        const { data: { session } } = await supabase.auth.getSession();
+        console.log('🤖 Chatbot auth check - session exists:', !!session);
+        if (mounted) {
+          setIsAuthenticated(!!session);
+          setCheckingAuth(false);
+        }
       } catch (err) {
         console.error('Error checking auth:', err);
-        setIsAuthenticated(false);
-      } finally {
-        setCheckingAuth(false);
+        if (mounted) {
+          setIsAuthenticated(false);
+          setCheckingAuth(false);
+        }
       }
     };
 
+    // Initial check
     checkAuth();
+
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log('🤖 Chatbot auth state change:', event, !!session);
+        if (mounted) {
+          setIsAuthenticated(!!session);
+          setCheckingAuth(false);
+        }
+      }
+    );
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   // Auto-scroll to bottom when new messages arrive
@@ -194,7 +217,7 @@ export default function Chatbot() {
       {/* Floating Chat Button */}
       <Button
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-50 hover:scale-110 transition-transform"
+        className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-50 hover:scale-105 transition-transform bg-blue-600 text-white hover:bg-blue-600 hover:text-white"
         size="icon"
         variant="default"
         aria-label="Open AI Governance Copilot"
@@ -272,7 +295,7 @@ export default function Chatbot() {
                       }`}
                     >
                       <p className="whitespace-pre-wrap">{message.content}</p>
-                      {message.mode && (
+                      {message.mode && message.mode !== 'ACTION' && (
                         <Badge
                           variant="outline"
                           className="mt-2 text-xs"

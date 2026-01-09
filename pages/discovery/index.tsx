@@ -1,5 +1,3 @@
-"use client";
-
 /**
  * Discovery Dashboard Page
  * 
@@ -7,7 +5,7 @@
  */
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "next/router";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -43,9 +41,11 @@ import {
   Zap,
 } from "lucide-react";
 import Link from "next/link";
-import { createClient } from "@/utils/supabase/client";
+import { supabase } from "@/utils/supabase/client";
 import Sidebar from "@/components/sidebar";
-import { SmartShadowAIAssessment } from "@/components/ui/smart-shadow-ai-assessment";
+import type {
+  DiscoveredAIAssetWithTimestamps
+} from "@/types/discovery";
 import {
   Dialog,
   DialogContent,
@@ -64,8 +64,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { SmartShadowAIAssessment } from "../../components/ui/smart-shadow-ai-assessment";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import type { DiscoveredAIAsset } from "../../../ai-governance-backend/types/discovery";
+import type { BaseDiscoveredAIAsset  } from "../../types/discovery";
+import type { DiscoveredAIAsset } from '../../../ai-governance-backend/types/discovery';
 
 interface DiscoveryStats {
   total: number;
@@ -78,7 +80,6 @@ async function backendFetch(
   path: string,
   options: RequestInit = {}
 ) {
-  const supabase = createClient();
   const { data } = await supabase.auth.getSession();
 
   const accessToken = data.session?.access_token;
@@ -108,7 +109,7 @@ async function backendFetch(
 
 export default function DiscoveryDashboard() {
   const router = useRouter();
-  const [assets, setAssets] = useState<DiscoveredAIAsset[]>([]);
+  const [assets, setAssets] = useState<DiscoveredAIAssetWithTimestamps[]>([]);
   const [stats, setStats] = useState<DiscoveryStats>({
     total: 0,
     potential_shadow: 0,
@@ -118,14 +119,13 @@ export default function DiscoveryDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showAddDialog, setShowAddDialog] = useState(false);
-  const [selectedAsset, setSelectedAsset] = useState<DiscoveredAIAsset | null>(null);
+  const [selectedAsset, setSelectedAsset] = useState<DiscoveredAIAssetWithTimestamps | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   // Check authentication status
   useEffect(() => {
     const checkAuth = async () => {
-      const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       setIsLoggedIn(!!user);
     };
@@ -133,7 +133,6 @@ export default function DiscoveryDashboard() {
   }, []);
 
   const handleLogout = async () => {
-    const supabase = createClient();
     await supabase.auth.signOut();
     router.push("/");
   };
@@ -609,7 +608,7 @@ export default function DiscoveryDashboard() {
               </DialogHeader>
               <div className="mt-4">
                 <SmartShadowAIAssessment
-                  asset={selectedAsset}
+                  asset={selectedAsset as DiscoveredAIAsset}
                   onAssessmentComplete={(assessment) => {
                     console.log('Assessment completed:', assessment);
                     // Could update the asset in the table with assessment results

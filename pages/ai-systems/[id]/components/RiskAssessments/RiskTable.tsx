@@ -18,7 +18,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Eye, AlertTriangle, CheckCircle2, Clock, FileText, XCircle } from "lucide-react";
-import type { RiskAssessment, RiskLevel, MitigationStatus, AssessmentStatus } from "@/ai-governance-backend/types/risk-assessment";
+import type { RiskAssessment, RiskLevel, MitigationStatus, AssessmentStatus } from "@/types/risk-assessment";
 import { format } from "date-fns";
 
 interface RiskTableProps {

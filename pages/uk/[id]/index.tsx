@@ -12,12 +12,41 @@ import {
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Shield, CheckCircle2, XCircle, AlertTriangle } from "lucide-react";
-import type { UKAssessmentResult } from "@/ai-governance-backend/types/uk";
+import type { UKAssessmentResult } from "@/types/uk";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import Sidebar from "@/components/sidebar";
-import { signOutAction } from "@/app/actions";
-import { createClient } from "@/ai-governance-backend/utils/supabase/client";
+import { supabase } from "@/utils/supabase/client";
+
+async function backendFetch(
+  path: string,
+  options: RequestInit = {}
+) {
+  const { data } = await supabase.auth.getSession();
+
+  const accessToken = data.session?.access_token;
+
+  if (!accessToken) {
+    console.error('❌ No access token found in Supabase session');
+    throw new Error("User not authenticated");
+  }
+
+  console.log('✅ Frontend: Sending token (first 50 chars):', accessToken.substring(0, 50) + '...');
+
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+
+  return fetch(
+    `${process.env.NEXT_PUBLIC_BACKEND_URL}${normalizedPath}`,
+    {
+      ...options,
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    }
+  );
+}
 
 export default function UKAssessmentDetailPage() {
   const params = useParams();
@@ -31,7 +60,6 @@ export default function UKAssessmentDetailPage() {
   // Check authentication status
   useEffect(() => {
     const checkAuth = async () => {
-      const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       setIsLoggedIn(!!user);
     };
@@ -39,7 +67,7 @@ export default function UKAssessmentDetailPage() {
   }, []);
 
   const handleLogout = async () => {
-    await signOutAction();
+    await supabase.auth.signOut();
     router.push("/");
   };
 
@@ -52,7 +80,7 @@ export default function UKAssessmentDetailPage() {
       }
       
       try {
-        const res = await fetch(`/api/uk-compliance/${id}`);
+        const res = await backendFetch(`/api/uk-compliance/${id}`);
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
           throw new Error(err.error || "Failed to load assessment");
