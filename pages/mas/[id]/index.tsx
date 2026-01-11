@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useRouter } from "next/router";
 import {
   Card,
   CardContent,
@@ -77,16 +77,21 @@ const pillarLabels: Record<string, string> = {
 };
 
 export default function MasAssessmentDetailPage() {
-  const params = useParams();
   const router = useRouter();
-  const id = params.id as string;
+  const id = router.query.id as string | undefined;
   const [data, setData] = useState<MasAssessmentResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Wait for router to be ready and id to be available
+    if (!router.isReady || !id) {
+      return;
+    }
+
     const fetchAssessment = async () => {
       try {
+        setLoading(true);
         const res = await backendFetch(`/api/mas-compliance/${id}`);
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
@@ -94,14 +99,16 @@ export default function MasAssessmentDetailPage() {
         }
         const body = await res.json();
         setData(body);
+        setError(null);
       } catch (err: any) {
         setError(err.message || "Failed to load assessment");
       } finally {
         setLoading(false);
       }
     };
-    if (id) fetchAssessment();
-  }, [id]);
+    
+    fetchAssessment();
+  }, [router.isReady, id]);
 
   if (loading) {
     return (
@@ -126,9 +133,9 @@ export default function MasAssessmentDetailPage() {
               <Button 
                 variant="outline" 
                 className="border-gray-300 bg-white text-gray-900 hover:bg-gray-100 hover:text-gray-900"
-                onClick={() => router.push("/mas/dashboard")}
+                onClick={() => router.push("/dashboard")}
               >
-          Back to dashboard
+          Back to Dashboard
         </Button>
             </CardContent>
           </Card>
@@ -151,9 +158,9 @@ export default function MasAssessmentDetailPage() {
         <Button
           variant="outline"
             className="border-gray-300 bg-white text-gray-900 hover:bg-gray-100 hover:text-gray-900"
-          onClick={() => router.push("/mas/dashboard")}
+          onClick={() => router.push("/dashboard")}
         >
-          Dashboard
+          Back to Dashboard
         </Button>
       </div>
 
