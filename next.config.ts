@@ -4,7 +4,14 @@ const nextConfig: NextConfig = {
   /* config options here */
   serverExternalPackages: ["knex"],
   // Turbopack configuration (Next.js 16 default)
-  turbopack: {},
+  turbopack: {
+    root: process.cwd(), // Explicitly set root to silence warning
+    resolveAlias: {
+      // Ensure pdfjs-dist resolves correctly
+      "pdfjs-dist": "pdfjs-dist",
+    },
+    resolveExtensions: [".mjs", ".js", ".ts", ".tsx", ".json"],
+  },
   // Proxy API calls to Express backend
   async rewrites() {
     return [

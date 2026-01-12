@@ -4,7 +4,7 @@ import { Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { supabase } from "@/utils/supabase/client";
 
 
@@ -14,6 +14,7 @@ export default function Navbar() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -30,20 +31,21 @@ export default function Navbar() {
       setIsLoggedIn(loggedIn);
       setIsLoading(false);
 
-      // Redirect logged-in users to dashboard
-      if (loggedIn) {
+      // Only redirect on initial load if user is logged in AND on the landing page
+      // Don't redirect if already on an authenticated page
+      if (loggedIn && pathname === '/') {
         router.push("/dashboard");
         return;
       }
 
-      // Listen for auth state changes
+      // Listen for auth state changes - only update state, don't redirect
+      // Redirects should only happen on initial page load, not on auth state changes
+      // This prevents unwanted redirects when switching tabs
       const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
         const isLoggedIn = !!session?.user;
         setIsLoggedIn(isLoggedIn);
-        // Redirect if user logs in
-        if (isLoggedIn) {
-          router.push("/dashboard");
-        }
+        // Do NOT redirect here - only update state
+        // Redirects should only happen on initial page load
       });
 
       return () => {
@@ -52,7 +54,7 @@ export default function Navbar() {
     };
 
     checkAuth();
-  }, [router]);
+  }, [router, pathname]);
 
   // Show loading state while checking auth or redirecting
   if (isLoading || isLoggedIn) {
