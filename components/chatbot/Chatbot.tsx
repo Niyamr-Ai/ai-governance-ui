@@ -18,6 +18,7 @@ import { MessageCircle, X, Send, Loader2, AlertCircle } from 'lucide-react';
 import type { ChatMessage, PageContext, ChatResponse } from '@/types/chatbot';
 import { supabase } from '@/utils/supabase/client';
 import ReactMarkdown from 'react-markdown';
+import { extractSystemNames } from '@/lib/extract-system-name';
 
 export default function Chatbot() {
   const [isOpen, setIsOpen] = useState(false);
@@ -143,7 +144,35 @@ export default function Chatbot() {
     setIsLoading(true);
 
     try {
-      const pageContext = getPageContext();
+      let pageContext = getPageContext();
+
+      // If no systemId in context, try to extract and lookup system name from message
+      if (!pageContext.systemId) {
+        const systemNames = extractSystemNames(userMessage);
+        
+        // Try to lookup systemId for each extracted name
+        for (const systemName of systemNames) {
+          try {
+            const lookupResponse = await backendFetch(`/api/ai-systems/lookup-by-name?name=${encodeURIComponent(systemName)}`);
+            
+            if (lookupResponse.ok) {
+              const lookupData = await lookupResponse.json();
+              if (lookupData.systemId) {
+                // Update page context with found systemId
+                pageContext = {
+                  ...pageContext,
+                  systemId: lookupData.systemId
+                };
+                console.log(`🤖 Found system: ${lookupData.name} (${lookupData.systemId})`);
+                break; // Use the first match
+              }
+            }
+          } catch (lookupError) {
+            // Silently continue if lookup fails - we'll proceed without systemId
+            console.log(`🤖 Could not lookup system "${systemName}":`, lookupError);
+          }
+        }
+      }
 
       const response = await backendFetch('/api/chat', {
         method: 'POST',
@@ -155,8 +184,20 @@ export default function Chatbot() {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to send message');
+        let errorMessage = 'Failed to send message';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorData.message || `Server error (${response.status})`;
+        } catch {
+          // If response is not JSON, try to get text
+          try {
+            const errorText = await response.text();
+            errorMessage = errorText || `Server error (${response.status})`;
+          } catch {
+            errorMessage = `Server error (${response.status} ${response.statusText})`;
+          }
+        }
+        throw new Error(errorMessage);
       }
 
       const data: ChatResponse = await response.json();
