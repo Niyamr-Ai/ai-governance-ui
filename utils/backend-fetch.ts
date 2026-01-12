@@ -35,13 +35,20 @@ export const backendFetch = async (endpoint: string, options: RequestInit = {}):
   console.log("🔍 [FRONTEND] Making request to:", fullUrl);
   console.log("🔍 [FRONTEND] Request options:", { ...options, headers: { ...options.headers, Authorization: '[REDACTED]' } });
 
+  // Don't set Content-Type for FormData - browser will set it with boundary
+  const isFormData = options.body instanceof FormData;
+  const headers: HeadersInit = {
+    'Authorization': `Bearer ${session.access_token}`,
+    ...options.headers,
+  };
+  
+  if (!isFormData && !options.headers?.['Content-Type']) {
+    headers['Content-Type'] = 'application/json';
+  }
+
   const response = await fetch(fullUrl, {
     ...options,
-    headers: {
-      'Authorization': `Bearer ${session.access_token}`,
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
+    headers,
   });
 
   console.log("🔍 [FRONTEND] Response status:", response.status);
