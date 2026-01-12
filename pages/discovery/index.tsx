@@ -128,9 +128,28 @@ export default function DiscoveryDashboard() {
     const checkAuth = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       setIsLoggedIn(!!user);
+      console.log('🔍 Discovery: Auth check - user:', !!user, 'pathname:', window.location.pathname);
     };
     checkAuth();
-  }, []);
+    
+    // Listen for route changes to debug redirects
+    const handleRouteChange = (url: string) => {
+      console.log('🔍 Discovery: Route changed to:', url);
+      if (url !== '/discovery' && url !== window.location.pathname) {
+        console.warn('⚠️ Discovery: Unexpected route change detected!', {
+          from: window.location.pathname,
+          to: url,
+          stack: new Error().stack
+        });
+      }
+    };
+    
+    router.events?.on('routeChangeStart', handleRouteChange);
+    
+    return () => {
+      router.events?.off('routeChangeStart', handleRouteChange);
+    };
+  }, [router]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();

@@ -251,7 +251,7 @@ const masInitialState = {
   owner: "",
   jurisdiction: "",
   sector: "",
-  system_status: "development",
+  system_status: "envision",
   business_use_case: "",
   data_types: "",
   uses_personal_data: false,
@@ -710,14 +710,14 @@ export default function AssessmentChooserPage() {
                         value={masAnswers.system_status}
                         onValueChange={(v) => handleMasChange("system_status", v)}
                       >
-                        <SelectTrigger className="rounded-xl">
+                        <SelectTrigger className="rounded-xl bg-white">
                           <SelectValue placeholder="Select status" />
                         </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="development">Development - Still being built</SelectItem>
-                          <SelectItem value="staging">Staging - Testing before launch</SelectItem>
-                          <SelectItem value="production">Production - Live and in use</SelectItem>
-                          <SelectItem value="deprecated">Deprecated - No longer active</SelectItem>
+                        <SelectContent className="bg-white">
+                          <SelectItem value="envision" className="bg-white hover:bg-gray-50">Envision</SelectItem>
+                          <SelectItem value="development" className="bg-white hover:bg-gray-50">Development</SelectItem>
+                          <SelectItem value="staging" className="bg-white hover:bg-gray-50">Staging</SelectItem>
+                          <SelectItem value="production" className="bg-white hover:bg-gray-50">Production</SelectItem>
                         </SelectContent>
                       </Select>
                       <p className="text-xs text-muted-foreground">Current stage of your AI system</p>
@@ -774,6 +774,7 @@ export default function AssessmentChooserPage() {
                         <Switch
                           checked={masAnswers.uses_personal_data}
                           onCheckedChange={(checked) => handleMasChange("uses_personal_data", checked)}
+                          className="data-[state=checked]:bg-green-500"
                         />
                       </div>
                       <div className="flex items-center justify-between p-3 border border-border rounded-xl glass-panel">
@@ -784,6 +785,7 @@ export default function AssessmentChooserPage() {
                         <Switch
                           checked={masAnswers.uses_special_category_data}
                           onCheckedChange={(checked) => handleMasChange("uses_special_category_data", checked)}
+                          className="data-[state=checked]:bg-green-500"
                         />
                       </div>
                       <div className="flex items-center justify-between p-3 border border-border rounded-xl glass-panel">
@@ -794,6 +796,7 @@ export default function AssessmentChooserPage() {
                         <Switch
                           checked={masAnswers.uses_third_party_ai}
                           onCheckedChange={(checked) => handleMasChange("uses_third_party_ai", checked)}
+                          className="data-[state=checked]:bg-green-500"
                         />
                       </div>
                     </div>
@@ -817,6 +820,7 @@ export default function AssessmentChooserPage() {
                       <Switch
                         checked={masAnswers.governance_policy}
                         onCheckedChange={(checked) => handleMasChange("governance_policy", checked)}
+                        className="data-[state=checked]:bg-green-500"
                       />
                     </div>
                     <div className="flex items-center justify-between p-3 border border-border rounded-xl glass-panel">
@@ -827,6 +831,7 @@ export default function AssessmentChooserPage() {
                       <Switch
                         checked={masAnswers.inventory_recorded}
                         onCheckedChange={(checked) => handleMasChange("inventory_recorded", checked)}
+                        className="data-[state=checked]:bg-green-500"
                       />
                     </div>
                     <div className="flex items-center justify-between p-3 border border-border rounded-xl glass-panel">
@@ -837,6 +842,7 @@ export default function AssessmentChooserPage() {
                       <Switch
                         checked={masAnswers.data_quality_checks}
                         onCheckedChange={(checked) => handleMasChange("data_quality_checks", checked)}
+                        className="data-[state=checked]:bg-green-500"
                       />
                     </div>
                     <div className="flex items-center justify-between p-3 border border-border rounded-xl glass-panel">
@@ -847,6 +853,7 @@ export default function AssessmentChooserPage() {
                       <Switch
                         checked={masAnswers.transparency_docs}
                         onCheckedChange={(checked) => handleMasChange("transparency_docs", checked)}
+                        className="data-[state=checked]:bg-green-500"
                       />
                     </div>
                     <div className="flex items-center justify-between p-3 border border-border rounded-xl glass-panel">
@@ -857,6 +864,7 @@ export default function AssessmentChooserPage() {
                       <Switch
                         checked={masAnswers.fairness_testing}
                         onCheckedChange={(checked) => handleMasChange("fairness_testing", checked)}
+                        className="data-[state=checked]:bg-green-500"
                       />
                     </div>
                     <div className="flex items-center justify-between p-3 border border-border rounded-xl glass-panel">
@@ -867,6 +875,7 @@ export default function AssessmentChooserPage() {
                       <Switch
                         checked={masAnswers.human_oversight}
                         onCheckedChange={(checked) => handleMasChange("human_oversight", checked)}
+                        className="data-[state=checked]:bg-green-500"
                       />
                     </div>
                     <div className="flex items-center justify-between p-3 border border-border rounded-xl glass-panel">
@@ -877,6 +886,7 @@ export default function AssessmentChooserPage() {
                       <Switch
                         checked={masAnswers.third_party_controls}
                         onCheckedChange={(checked) => handleMasChange("third_party_controls", checked)}
+                        className="data-[state=checked]:bg-green-500"
                       />
                     </div>
                     <div className="flex items-center justify-between p-3 border border-border rounded-xl glass-panel">
@@ -887,6 +897,7 @@ export default function AssessmentChooserPage() {
                       <Switch
                         checked={masAnswers.algo_documented}
                         onCheckedChange={(checked) => handleMasChange("algo_documented", checked)}
+                        className="data-[state=checked]:bg-green-500"
                       />
                     </div>
                     <div className="flex items-center justify-between p-3 border border-border rounded-xl glass-panel">
@@ -897,6 +908,7 @@ export default function AssessmentChooserPage() {
                       <Switch
                         checked={masAnswers.evaluation_testing}
                         onCheckedChange={(checked) => handleMasChange("evaluation_testing", checked)}
+                        className="data-[state=checked]:bg-green-500"
                       />
                     </div>
                     <div className="flex items-center justify-between p-3 border border-border rounded-xl glass-panel">
@@ -907,6 +919,7 @@ export default function AssessmentChooserPage() {
                       <Switch
                         checked={masAnswers.security_measures}
                         onCheckedChange={(checked) => handleMasChange("security_measures", checked)}
+                        className="data-[state=checked]:bg-green-500"
                       />
                     </div>
                     <div className="flex items-center justify-between p-3 border border-border rounded-xl glass-panel">
@@ -917,6 +930,7 @@ export default function AssessmentChooserPage() {
                       <Switch
                         checked={masAnswers.monitoring_plan}
                         onCheckedChange={(checked) => handleMasChange("monitoring_plan", checked)}
+                        className="data-[state=checked]:bg-green-500"
                       />
                     </div>
                     <div className="flex items-center justify-between p-3 border border-border rounded-xl glass-panel">
@@ -927,6 +941,7 @@ export default function AssessmentChooserPage() {
                       <Switch
                         checked={masAnswers.capability_training}
                         onCheckedChange={(checked) => handleMasChange("capability_training", checked)}
+                        className="data-[state=checked]:bg-green-500"
                       />
                     </div>
                   </CardContent>
