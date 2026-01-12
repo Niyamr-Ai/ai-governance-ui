@@ -243,7 +243,7 @@ export default function DetailedPage() {
 function DetailedPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const complianceId = searchParams.get("id");
+  const complianceId = searchParams?.get("id");
   console.log("📋 Detailed assessment page loaded with complianceId:", complianceId);
 
   const [currentCategoryIndex, setCurrentCategoryIndex] = useState(0);
@@ -379,7 +379,7 @@ function DetailedPageContent() {
         method: "POST",
         body: JSON.stringify(requestBody),
       });
-      
+
       const data = await res.json();
       console.log(data);
 
@@ -431,251 +431,241 @@ function DetailedPageContent() {
         <div className="w-full max-w-4xl">
           <Card className="glass-panel border-border/50 shadow-elevated rounded-2xl">
             <CardHeader className="bg-gradient-to-r from-primary/10 to-accent/10 rounded-t-2xl p-8 border-b border-border/50">
-            <div className="flex items-center justify-center gap-3 mb-2">
+              <div className="flex items-center justify-center gap-3 mb-2">
                 <ClipboardCheck className="h-8 w-8 text-primary" />
                 <CardTitle className="text-4xl font-bold text-center text-foreground">
-                Detailed Compliance Questionnaire
-              </CardTitle>
-            </div>
+                  Detailed Compliance Questionnaire
+                </CardTitle>
+              </div>
               <CardDescription className="text-muted-foreground text-center text-lg mt-2">
-              Complete detailed assessment for each compliance category
-            </CardDescription>
-          </CardHeader>
+                Complete detailed assessment for each compliance category
+              </CardDescription>
+            </CardHeader>
             <CardContent className="p-8 sm:p-10 bg-secondary/20">
-            {/* Progress indicator */}
-            <div className="mb-8">
-              <div className="flex justify-between items-center mb-4">
-                <span className="text-sm font-semibold text-foreground bg-secondary/50 border border-border/50 px-4 py-2 rounded-xl">
-                  Step {currentCategoryIndex + 1} of {categories.length}
-                </span>
-                <span className="text-sm font-semibold text-foreground bg-secondary/50 border border-border/50 px-4 py-2 rounded-xl">
-                  {Math.round(
-                    ((currentCategoryIndex + 1) / categories.length) * 100
-                  )}
-                  % Complete
-                </span>
-              </div>
-              <div className="w-full bg-secondary/50 rounded-full h-3 shadow-inner border border-border/50">
-                <div
-                  className="bg-gradient-to-r from-primary to-accent h-3 rounded-full transition-all duration-500 shadow-lg shadow-primary/30"
-                  style={{
-                    width: `${((currentCategoryIndex + 1) / categories.length) * 100}%`,
-                  }}
-                ></div>
-              </div>
-            </div>
-
-            {/* Category title */}
-            <div className="mb-8 text-center p-6 rounded-xl glass-panel border-border/50">
-              <div className="flex items-center justify-center gap-3 mb-2">
-                <CategoryIcon className="h-8 w-8 text-primary" />
-                <h2 className="text-3xl font-bold text-foreground">
-                  {currentCategory.title}
-                </h2>
-              </div>
-              <p className="text-muted-foreground font-medium">
-                Please answer all questions in this category to proceed.
-              </p>
-            </div>
-
-            {/* Questions */}
-            <div className="space-y-6 mb-10">
-              {currentCategory.questions.map((question, qIndex) => (
-                <div
-                  key={question.id}
-                  className="glass-panel border-border/50 p-6 rounded-xl shadow-sm hover:shadow-lg hover:shadow-primary/20 transition-all duration-200"
-                >
-                  <label className="flex items-start gap-3 text-lg font-semibold text-foreground mb-4">
-                    <span className="flex-shrink-0 w-7 h-7 rounded-full bg-gradient-to-br from-primary to-accent text-white flex items-center justify-center text-sm font-bold mt-0.5 shadow-lg shadow-primary/30">
-                      {qIndex + 1}
-                    </span>
-                    <span className="flex-1">
-                      {question.question}
-                      <span className="text-red-600 ml-1.5">*</span>
-                    </span>
-                  </label>
-
-                  {question.type === "checkbox" ? (
-                    <div className="space-y-3 ml-10">
-                      <label
-                        className={`flex items-center space-x-4 rounded-xl border p-4 cursor-pointer transition-all duration-200 ${
-                          getAnswer(question.question) === true
-                            ? "border-emerald-500/50 bg-emerald-50 shadow-md ring-2 ring-emerald-500/30"
-                            : "border-border/50 bg-secondary/30 hover:border-emerald-500/50 hover:bg-emerald-50/50"
-                        }`}
-                      >
-                        <div className="relative flex items-center justify-center">
-                          <input
-                            type="radio"
-                            id={`${question.id}-yes`}
-                            name={question.id}
-                            value="true"
-                            checked={getAnswer(question.question) === true}
-                            onChange={() =>
-                              updateAnswer(question.id, question.question, true)
-                            }
-                            className="sr-only"
-                          />
-                          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
-                            getAnswer(question.question) === true
-                              ? "border-emerald-600 bg-emerald-600"
-                              : "border-gray-400 bg-gray-200"
-                          }`}>
-                            {getAnswer(question.question) === true && (
-                              <div className="w-2.5 h-2.5 rounded-full bg-white"></div>
-                            )}
-                          </div>
-                        </div>
-                        <span className={`flex-1 font-medium ${
-                          getAnswer(question.question) === true ? "text-emerald-700" : "text-foreground"
-                        }`}>
-                          Yes
-                        </span>
-                        {getAnswer(question.question) === true && (
-                          <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-                        )}
-                      </label>
-                      <label
-                        className={`flex items-center space-x-4 rounded-xl border p-4 cursor-pointer transition-all duration-200 ${
-                          getAnswer(question.question) === false
-                            ? "border-red-500/50 bg-red-50 shadow-md ring-2 ring-red-500/30"
-                            : "border-border/50 bg-secondary/30 hover:border-red-500/50 hover:bg-red-50/50"
-                        }`}
-                      >
-                        <div className="relative flex items-center justify-center">
-                          <input
-                            type="radio"
-                            id={`${question.id}-no`}
-                            name={question.id}
-                            value="false"
-                            checked={getAnswer(question.question) === false}
-                            onChange={() =>
-                              updateAnswer(question.id, question.question, false)
-                            }
-                            className="sr-only"
-                          />
-                          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
-                            getAnswer(question.question) === false
-                              ? "border-red-600 bg-red-600"
-                              : "border-gray-400 bg-gray-200"
-                          }`}>
-                            {getAnswer(question.question) === false && (
-                              <div className="w-2.5 h-2.5 rounded-full bg-white"></div>
-                            )}
-                          </div>
-                        </div>
-                        <span className={`flex-1 font-medium ${
-                          getAnswer(question.question) === false ? "text-red-700" : "text-foreground"
-                        }`}>
-                          No
-                        </span>
-                        {getAnswer(question.question) === false && (
-                          <AlertCircle className="h-5 w-5 text-red-600" />
-                        )}
-                      </label>
-                    </div>
-                  ) : (
-                    <div className="ml-10">
-                      <textarea
-                        value={(getAnswer(question.question) as string) || ""}
-                        onChange={(e) =>
-                          updateAnswer(question.id, question.question, e.target.value)
-                        }
-                        rows={5}
-                        className="block w-full p-4 border-2 border-border/50 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-base resize-y transition-all duration-200 bg-background hover:border-primary/50 focus:shadow-md text-foreground placeholder:text-muted-foreground"
-                        placeholder="Enter your detailed response here..."
-                      />
-                    </div>
-                  )}
+              {/* Progress indicator */}
+              <div className="mb-8">
+                <div className="flex justify-between items-center mb-4">
+                  <span className="text-sm font-semibold text-foreground bg-secondary/50 border border-border/50 px-4 py-2 rounded-xl">
+                    Step {currentCategoryIndex + 1} of {categories.length}
+                  </span>
+                  <span className="text-sm font-semibold text-foreground bg-secondary/50 border border-border/50 px-4 py-2 rounded-xl">
+                    {Math.round(
+                      ((currentCategoryIndex + 1) / categories.length) * 100
+                    )}
+                    % Complete
+                  </span>
                 </div>
-              ))}
-            </div>
+                <div className="w-full bg-secondary/50 rounded-full h-3 shadow-inner border border-border/50">
+                  <div
+                    className="bg-gradient-to-r from-primary to-accent h-3 rounded-full transition-all duration-500 shadow-lg shadow-primary/30"
+                    style={{
+                      width: `${((currentCategoryIndex + 1) / categories.length) * 100}%`,
+                    }}
+                  ></div>
+                </div>
+              </div>
 
-            {/* Navigation buttons */}
-            <div className="flex justify-between items-center pt-6 border-t-2 border-border/50">
-              <Button
-                onClick={handlePrevious}
-                disabled={isFirstCategory}
-                variant="outline"
-                className={`px-6 py-3 rounded-xl font-semibold transition-all duration-200 flex items-center gap-2 ${
-                  isFirstCategory
-                    ? "opacity-50 cursor-not-allowed"
-                    : ""
-                }`}
-              >
-                <ChevronLeft className="h-5 w-5" />
-                Previous
-              </Button>
+              {/* Category title */}
+              <div className="mb-8 text-center p-6 rounded-xl glass-panel border-border/50">
+                <div className="flex items-center justify-center gap-3 mb-2">
+                  <CategoryIcon className="h-8 w-8 text-primary" />
+                  <h2 className="text-3xl font-bold text-foreground">
+                    {currentCategory.title}
+                  </h2>
+                </div>
+                <p className="text-muted-foreground font-medium">
+                  Please answer all questions in this category to proceed.
+                </p>
+              </div>
 
-              {isLastCategory ? (
+              {/* Questions */}
+              <div className="space-y-6 mb-10">
+                {currentCategory.questions.map((question, qIndex) => (
+                  <div
+                    key={question.id}
+                    className="glass-panel border-border/50 p-6 rounded-xl shadow-sm hover:shadow-lg hover:shadow-primary/20 transition-all duration-200"
+                  >
+                    <label className="flex items-start gap-3 text-lg font-semibold text-foreground mb-4">
+                      <span className="flex-shrink-0 w-7 h-7 rounded-full bg-gradient-to-br from-primary to-accent text-white flex items-center justify-center text-sm font-bold mt-0.5 shadow-lg shadow-primary/30">
+                        {qIndex + 1}
+                      </span>
+                      <span className="flex-1">
+                        {question.question}
+                        <span className="text-red-600 ml-1.5">*</span>
+                      </span>
+                    </label>
+
+                    {question.type === "checkbox" ? (
+                      <div className="space-y-3 ml-10">
+                        <label
+                          className={`flex items-center space-x-4 rounded-xl border p-4 cursor-pointer transition-all duration-200 ${getAnswer(question.question) === true
+                              ? "border-emerald-500/50 bg-emerald-50 shadow-md ring-2 ring-emerald-500/30"
+                              : "border-border/50 bg-secondary/30 hover:border-emerald-500/50 hover:bg-emerald-50/50"
+                            }`}
+                        >
+                          <div className="relative flex items-center justify-center">
+                            <input
+                              type="radio"
+                              id={`${question.id}-yes`}
+                              name={question.id}
+                              value="true"
+                              checked={getAnswer(question.question) === true}
+                              onChange={() =>
+                                updateAnswer(question.id, question.question, true)
+                              }
+                              className="sr-only"
+                            />
+                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${getAnswer(question.question) === true
+                                ? "border-emerald-600 bg-emerald-600"
+                                : "border-gray-400 bg-gray-200"
+                              }`}>
+                              {getAnswer(question.question) === true && (
+                                <div className="w-2.5 h-2.5 rounded-full bg-white"></div>
+                              )}
+                            </div>
+                          </div>
+                          <span className={`flex-1 font-medium ${getAnswer(question.question) === true ? "text-emerald-700" : "text-foreground"
+                            }`}>
+                            Yes
+                          </span>
+                          {getAnswer(question.question) === true && (
+                            <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+                          )}
+                        </label>
+                        <label
+                          className={`flex items-center space-x-4 rounded-xl border p-4 cursor-pointer transition-all duration-200 ${getAnswer(question.question) === false
+                              ? "border-red-500/50 bg-red-50 shadow-md ring-2 ring-red-500/30"
+                              : "border-border/50 bg-secondary/30 hover:border-red-500/50 hover:bg-red-50/50"
+                            }`}
+                        >
+                          <div className="relative flex items-center justify-center">
+                            <input
+                              type="radio"
+                              id={`${question.id}-no`}
+                              name={question.id}
+                              value="false"
+                              checked={getAnswer(question.question) === false}
+                              onChange={() =>
+                                updateAnswer(question.id, question.question, false)
+                              }
+                              className="sr-only"
+                            />
+                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${getAnswer(question.question) === false
+                                ? "border-red-600 bg-red-600"
+                                : "border-gray-400 bg-gray-200"
+                              }`}>
+                              {getAnswer(question.question) === false && (
+                                <div className="w-2.5 h-2.5 rounded-full bg-white"></div>
+                              )}
+                            </div>
+                          </div>
+                          <span className={`flex-1 font-medium ${getAnswer(question.question) === false ? "text-red-700" : "text-foreground"
+                            }`}>
+                            No
+                          </span>
+                          {getAnswer(question.question) === false && (
+                            <AlertCircle className="h-5 w-5 text-red-600" />
+                          )}
+                        </label>
+                      </div>
+                    ) : (
+                      <div className="ml-10">
+                        <textarea
+                          value={(getAnswer(question.question) as string) || ""}
+                          onChange={(e) =>
+                            updateAnswer(question.id, question.question, e.target.value)
+                          }
+                          rows={5}
+                          className="block w-full p-4 border-2 border-border/50 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-base resize-y transition-all duration-200 bg-background hover:border-primary/50 focus:shadow-md text-foreground placeholder:text-muted-foreground"
+                          placeholder="Enter your detailed response here..."
+                        />
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Navigation buttons */}
+              <div className="flex justify-between items-center pt-6 border-t-2 border-border/50">
                 <Button
-                  onClick={handleSubmit}
-                  disabled={!isCategoryComplete() || isSubmitting}
-                  variant="hero"
-                  className={`px-8 py-3 rounded-xl font-bold text-lg transition-all duration-300 flex items-center gap-2 ${
-                  !isCategoryComplete() || isSubmitting
-                    ? "opacity-50 cursor-not-allowed"
-                    : ""
-                  }`}
-                >
-                  {isSubmitting ? (
-                    <>
-                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      <span>Submitting...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Send className="h-5 w-5" />
-                      <span>Submit Questionnaire</span>
-                    </>
-                  )}
-                </Button>
-              ) : (
-                <Button
-                  onClick={handleNext}
-                  disabled={!isCategoryComplete()}
-                  variant="hero"
-                  className={`px-8 py-3 rounded-xl font-semibold transition-all duration-300 flex items-center gap-2 ${
-                    !isCategoryComplete()
+                  onClick={handlePrevious}
+                  disabled={isFirstCategory}
+                  variant="outline"
+                  className={`px-6 py-3 rounded-xl font-semibold transition-all duration-200 flex items-center gap-2 ${isFirstCategory
                       ? "opacity-50 cursor-not-allowed"
                       : ""
-                  }`}
+                    }`}
                 >
-                  Next
-                  <ChevronRight className="h-5 w-5" />
+                  <ChevronLeft className="h-5 w-5" />
+                  Previous
                 </Button>
-              )}
-            </div>
 
-            {/* Completion status */}
-            {!isCategoryComplete() && (
-              <div className="mt-6 flex items-center justify-center gap-2 text-sm text-amber-700 bg-amber-50 p-4 rounded-xl border border-amber-200">
-                <AlertCircle className="h-4 w-4 text-amber-600" />
-                <span className="font-medium">Please complete all questions in this category to proceed</span>
+                {isLastCategory ? (
+                  <Button
+                    onClick={handleSubmit}
+                    disabled={!isCategoryComplete() || isSubmitting}
+                    variant="hero"
+                    className={`px-8 py-3 rounded-xl font-bold text-lg transition-all duration-300 flex items-center gap-2 ${!isCategoryComplete() || isSubmitting
+                        ? "opacity-50 cursor-not-allowed"
+                        : ""
+                      }`}
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        <span>Submitting...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Send className="h-5 w-5" />
+                        <span>Submit Questionnaire</span>
+                      </>
+                    )}
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={handleNext}
+                    disabled={!isCategoryComplete()}
+                    variant="hero"
+                    className={`px-8 py-3 rounded-xl font-semibold transition-all duration-300 flex items-center gap-2 ${!isCategoryComplete()
+                        ? "opacity-50 cursor-not-allowed"
+                        : ""
+                      }`}
+                  >
+                    Next
+                    <ChevronRight className="h-5 w-5" />
+                  </Button>
+                )}
               </div>
-            )}
 
-            {/* Submit message */}
-            {submitMessage && (
-              <div
-                className={`mt-6 p-5 rounded-xl text-center text-base font-medium shadow-md ${
-                  submitMessage.includes("Error") || submitMessage.includes("error")
-                    ? "bg-red-50 text-red-700 border border-red-200"
-                    : "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                }`}
-              >
-                <div className="flex items-center justify-center gap-2">
-                  {submitMessage.includes("Error") || submitMessage.includes("error") ? (
-                    <AlertCircle className="h-5 w-5 text-red-600" />
-                  ) : (
-                    <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-                  )}
-                  <span>{submitMessage}</span>
+              {/* Completion status */}
+              {!isCategoryComplete() && (
+                <div className="mt-6 flex items-center justify-center gap-2 text-sm text-amber-700 bg-amber-50 p-4 rounded-xl border border-amber-200">
+                  <AlertCircle className="h-4 w-4 text-amber-600" />
+                  <span className="font-medium">Please complete all questions in this category to proceed</span>
                 </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+              )}
+
+              {/* Submit message */}
+              {submitMessage && (
+                <div
+                  className={`mt-6 p-5 rounded-xl text-center text-base font-medium shadow-md ${submitMessage.includes("Error") || submitMessage.includes("error")
+                      ? "bg-red-50 text-red-700 border border-red-200"
+                      : "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                    }`}
+                >
+                  <div className="flex items-center justify-center gap-2">
+                    {submitMessage.includes("Error") || submitMessage.includes("error") ? (
+                      <AlertCircle className="h-5 w-5 text-red-600" />
+                    ) : (
+                      <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+                    )}
+                    <span>{submitMessage}</span>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </div>
     </main>
