@@ -1580,11 +1580,6 @@ export default function AssessmentChooserPage() {
                             }`} />
                           </button>
                         </div>
-                        <Switch
-                          checked={masAnswers.uses_personal_data}
-                          onCheckedChange={(checked) => handleMasChange("uses_personal_data", checked)}
-                          className="data-[state=checked]:bg-green-500"
-                        />
                       </div>
                       {ukAnswers.robustness_testing && (
                         <div className="ml-8 space-y-3">
@@ -1633,22 +1628,35 @@ export default function AssessmentChooserPage() {
                             )}
                           </div>
                         </div>
-                        <Switch
-                          checked={masAnswers.uses_special_category_data}
-                          onCheckedChange={(checked) => handleMasChange("uses_special_category_data", checked)}
-                          className="data-[state=checked]:bg-green-500"
-                        />
-                      </div>
-                      <div className="flex items-center justify-between p-3 border border-border rounded-xl glass-panel">
-                        <div className="space-y-0.5">
-                          <Label className="text-base font-medium text-foreground">Does your system use third-party AI services?</Label>
-                          <p className="text-sm text-muted-foreground">External AI APIs, cloud AI services, or pre-built AI models from vendors</p>
+                      )}
+                    </div>
+
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-base font-semibold flex-1">Red-teaming or adversarial testing</Label>
+                        <div className="ml-4 flex items-center gap-2">
+                          <span className={`text-xs font-bold px-2 py-1 rounded ${
+                            ukAnswers.red_teaming 
+                              ? "text-emerald-900 bg-emerald-300" 
+                              : "text-slate-400 bg-slate-700"
+                          }`}>
+                            {ukAnswers.red_teaming ? "YES" : "NO"}
+                          </span>
+                          <button
+                            type="button"
+                            role="switch"
+                            aria-checked={ukAnswers.red_teaming}
+                            onClick={() => setUkAnswers({...ukAnswers, red_teaming: !ukAnswers.red_teaming})}
+                            className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${
+                              ukAnswers.red_teaming ? "bg-emerald-600 border-emerald-500" : "bg-gray-400 border-gray-500"
+                            }`}
+                            style={{ backgroundColor: ukAnswers.red_teaming ? '#10b981' : '#9ca3af' }}
+                          >
+                            <span className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform ${
+                              ukAnswers.red_teaming ? "translate-x-5" : "translate-x-0"
+                            }`} />
+                          </button>
                         </div>
-                        <Switch
-                          checked={masAnswers.uses_third_party_ai}
-                          onCheckedChange={(checked) => handleMasChange("uses_third_party_ai", checked)}
-                          className="data-[state=checked]:bg-green-500"
-                        />
                       </div>
                       {ukAnswers.red_teaming && (
                         <div className="ml-8 space-y-3">
@@ -1727,11 +1735,28 @@ export default function AssessmentChooserPage() {
                           </button>
                         </div>
                       </div>
-                      <Switch
-                        checked={masAnswers.governance_policy}
-                        onCheckedChange={(checked) => handleMasChange("governance_policy", checked)}
-                        className="data-[state=checked]:bg-green-500"
-                      />
+                      {ukAnswers.misuse_prevention && (
+                        <div className="ml-8 space-y-3">
+                          <div className="space-y-2">
+                            <Label>What specific measures are in place?</Label>
+                            <Textarea
+                              value={ukAnswers.misuse_prevention_measures || ""}
+                              onChange={(e) => setUkAnswers({...ukAnswers, misuse_prevention_measures: e.target.value})}
+                              placeholder="e.g., Access controls, usage monitoring, rate limiting"
+                              className="rounded-xl"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>How do you monitor for misuse?</Label>
+                            <Textarea
+                              value={ukAnswers.misuse_monitoring || ""}
+                              onChange={(e) => setUkAnswers({...ukAnswers, misuse_monitoring: e.target.value})}
+                              placeholder="Describe monitoring processes"
+                              className="rounded-xl"
+                            />
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     <div className="space-y-4">
@@ -1761,11 +1786,54 @@ export default function AssessmentChooserPage() {
                           </button>
                         </div>
                       </div>
-                      <Switch
-                        checked={masAnswers.inventory_recorded}
-                        onCheckedChange={(checked) => handleMasChange("inventory_recorded", checked)}
-                        className="data-[state=checked]:bg-green-500"
-                      />
+                      {ukAnswers.cybersecurity && (
+                        <div className="ml-8 space-y-3">
+                          <div className="space-y-2">
+                            <Label>What cybersecurity controls are implemented?</Label>
+                            <Textarea
+                              value={ukAnswers.cybersecurity_controls || ""}
+                              onChange={(e) => setUkAnswers({...ukAnswers, cybersecurity_controls: e.target.value})}
+                              placeholder="e.g., Encryption, authentication, network security"
+                              className="rounded-xl"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Incident response plan</Label>
+                            <Textarea
+                              value={ukAnswers.cybersecurity_incident_response || ""}
+                              onChange={(e) => setUkAnswers({...ukAnswers, cybersecurity_incident_response: e.target.value})}
+                              placeholder="Describe your incident response procedures"
+                              className="rounded-xl"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Monitoring approach</Label>
+                            <Textarea
+                              value={ukAnswers.cybersecurity_monitoring || ""}
+                              onChange={(e) => setUkAnswers({...ukAnswers, cybersecurity_monitoring: e.target.value})}
+                              placeholder="How do you monitor for security threats?"
+                              className="rounded-xl"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="text-sm font-medium text-foreground">Evidence: Upload cybersecurity documentation or security assessment reports</Label>
+                            <Input
+                              type="file"
+                              accept=".pdf,.png,.jpg,.jpeg,.txt"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                handleEvidenceFileChange("uk_cybersecurity_evidence", file || null);
+                              }}
+                              className="file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-slate-700 file:text-slate-100 hover:file:bg-slate-600"
+                            />
+                            {evidenceContent.uk_cybersecurity_evidence && (
+                              <p className="text-xs text-emerald-400 mt-1">
+                                ✓ File processed ({evidenceContent.uk_cybersecurity_evidence.length} characters extracted via OCR)
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     <div className="space-y-4">
@@ -1795,44 +1863,45 @@ export default function AssessmentChooserPage() {
                           </button>
                         </div>
                       </div>
-                      <Switch
-                        checked={masAnswers.data_quality_checks}
-                        onCheckedChange={(checked) => handleMasChange("data_quality_checks", checked)}
-                        className="data-[state=checked]:bg-green-500"
-                      />
-                    </div>
-                    <div className="flex items-center justify-between p-3 border border-border rounded-xl glass-panel">
-                      <div className="space-y-0.5">
-                        <Label className="text-base font-medium text-foreground">Transparency & Explainability</Label>
-                        <p className="text-sm text-muted-foreground">Do you have documentation explaining how the system works to users or stakeholders?</p>
-                      </div>
-                      <Switch
-                        checked={masAnswers.transparency_docs}
-                        onCheckedChange={(checked) => handleMasChange("transparency_docs", checked)}
-                        className="data-[state=checked]:bg-green-500"
-                      />
-                    </div>
-                    <div className="flex items-center justify-between p-3 border border-border rounded-xl glass-panel">
-                      <div className="space-y-0.5">
-                        <Label className="text-base font-medium text-foreground">Fairness & Bias Testing</Label>
-                        <p className="text-sm text-muted-foreground">Have you performed bias or discrimination testing on your system?</p>
-                      </div>
-                      <Switch
-                        checked={masAnswers.fairness_testing}
-                        onCheckedChange={(checked) => handleMasChange("fairness_testing", checked)}
-                        className="data-[state=checked]:bg-green-500"
-                      />
-                    </div>
-                    <div className="flex items-center justify-between p-3 border border-border rounded-xl glass-panel">
-                      <div className="space-y-0.5">
-                        <Label className="text-base font-medium text-foreground">Human Oversight</Label>
-                        <p className="text-sm text-muted-foreground">Do you have human-in-the-loop (HITL) or human-on-the-loop (HOTL) processes defined?</p>
-                      </div>
-                      <Switch
-                        checked={masAnswers.human_oversight}
-                        onCheckedChange={(checked) => handleMasChange("human_oversight", checked)}
-                        className="data-[state=checked]:bg-green-500"
-                      />
+                      {ukAnswers.safety_testing && (
+                        <div className="ml-8 space-y-3">
+                          <div className="space-y-2">
+                            <Label>What safety testing protocols do you use?</Label>
+                            <Textarea
+                              value={ukAnswers.safety_testing_protocols || ""}
+                              onChange={(e) => setUkAnswers({...ukAnswers, safety_testing_protocols: e.target.value})}
+                              placeholder="Describe your safety testing approach"
+                              className="rounded-xl"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Validation methods</Label>
+                            <Textarea
+                              value={ukAnswers.safety_validation_methods || ""}
+                              onChange={(e) => setUkAnswers({...ukAnswers, safety_validation_methods: e.target.value})}
+                              placeholder="How do you validate safety?"
+                              className="rounded-xl"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="text-sm font-medium text-foreground">Evidence: Upload safety testing reports or documentation</Label>
+                            <Input
+                              type="file"
+                              accept=".pdf,.png,.jpg,.jpeg,.txt"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                handleEvidenceFileChange("uk_safety_testing_evidence", file || null);
+                              }}
+                              className="file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-slate-700 file:text-slate-100 hover:file:bg-slate-600"
+                            />
+                            {evidenceContent.uk_safety_testing_evidence && (
+                              <p className="text-xs text-emerald-400 mt-1">
+                                ✓ File processed ({evidenceContent.uk_safety_testing_evidence.length} characters extracted via OCR)
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -1875,11 +1944,54 @@ export default function AssessmentChooserPage() {
                           </button>
                         </div>
                       </div>
-                      <Switch
-                        checked={masAnswers.third_party_controls}
-                        onCheckedChange={(checked) => handleMasChange("third_party_controls", checked)}
-                        className="data-[state=checked]:bg-green-500"
-                      />
+                      {ukAnswers.user_disclosure && (
+                        <div className="ml-8 space-y-3">
+                          <div className="space-y-2">
+                            <Label>How do you disclose AI usage?</Label>
+                            <Textarea
+                              value={ukAnswers.user_disclosure_how || ""}
+                              onChange={(e) => setUkAnswers({...ukAnswers, user_disclosure_how: e.target.value})}
+                              placeholder="e.g., In-app notifications, terms of service, user interface labels"
+                              className="rounded-xl"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>When is disclosure made?</Label>
+                            <Input
+                              value={ukAnswers.user_disclosure_when || ""}
+                              onChange={(e) => setUkAnswers({...ukAnswers, user_disclosure_when: e.target.value})}
+                              placeholder="e.g., Before first use, at login, continuously"
+                              className="rounded-xl"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Format of disclosure</Label>
+                            <Textarea
+                              value={ukAnswers.user_disclosure_format || ""}
+                              onChange={(e) => setUkAnswers({...ukAnswers, user_disclosure_format: e.target.value})}
+                              placeholder="Describe the format and content"
+                              className="rounded-xl"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="text-sm font-medium text-foreground">Evidence: Upload disclosure documentation or screenshots</Label>
+                            <Input
+                              type="file"
+                              accept=".pdf,.png,.jpg,.jpeg,.txt"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                handleEvidenceFileChange("uk_user_disclosure_evidence", file || null);
+                              }}
+                              className="file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-slate-700 file:text-slate-100 hover:file:bg-slate-600"
+                            />
+                            {evidenceContent.uk_user_disclosure_evidence && (
+                              <p className="text-xs text-emerald-400 mt-1">
+                                ✓ File processed ({evidenceContent.uk_user_disclosure_evidence.length} characters extracted via OCR)
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     <div className="space-y-4">
@@ -1909,11 +2021,54 @@ export default function AssessmentChooserPage() {
                           </button>
                         </div>
                       </div>
-                      <Switch
-                        checked={masAnswers.algo_documented}
-                        onCheckedChange={(checked) => handleMasChange("algo_documented", checked)}
-                        className="data-[state=checked]:bg-green-500"
-                      />
+                      {ukAnswers.explainability && (
+                        <div className="ml-8 space-y-3">
+                          <div className="space-y-2">
+                            <Label>What explainability methods do you use?</Label>
+                            <Textarea
+                              value={ukAnswers.explainability_methods || ""}
+                              onChange={(e) => setUkAnswers({...ukAnswers, explainability_methods: e.target.value})}
+                              placeholder="e.g., SHAP values, LIME, feature importance, decision trees"
+                              className="rounded-xl"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Technical details</Label>
+                            <Textarea
+                              value={ukAnswers.explainability_technical_details || ""}
+                              onChange={(e) => setUkAnswers({...ukAnswers, explainability_technical_details: e.target.value})}
+                              placeholder="Technical implementation details"
+                              className="rounded-xl"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>How do you explain to different user types?</Label>
+                            <Textarea
+                              value={ukAnswers.explainability_user_types || ""}
+                              onChange={(e) => setUkAnswers({...ukAnswers, explainability_user_types: e.target.value})}
+                              placeholder="e.g., Technical explanations for developers, simple explanations for end users"
+                              className="rounded-xl"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="text-sm font-medium text-foreground">Evidence: Upload explainability documentation or examples</Label>
+                            <Input
+                              type="file"
+                              accept=".pdf,.png,.jpg,.jpeg,.txt"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                handleEvidenceFileChange("uk_explainability_evidence", file || null);
+                              }}
+                              className="file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-slate-700 file:text-slate-100 hover:file:bg-slate-600"
+                            />
+                            {evidenceContent.uk_explainability_evidence && (
+                              <p className="text-xs text-emerald-400 mt-1">
+                                ✓ File processed ({evidenceContent.uk_explainability_evidence.length} characters extracted via OCR)
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     <div className="space-y-4">
@@ -1943,11 +2098,37 @@ export default function AssessmentChooserPage() {
                           </button>
                         </div>
                       </div>
-                      <Switch
-                        checked={masAnswers.evaluation_testing}
-                        onCheckedChange={(checked) => handleMasChange("evaluation_testing", checked)}
-                        className="data-[state=checked]:bg-green-500"
-                      />
+                      {ukAnswers.documentation && (
+                        <div className="ml-8 space-y-3">
+                          <div className="space-y-2">
+                            <Label>What types of documentation exist?</Label>
+                            <Textarea
+                              value={ukAnswers.documentation_types || ""}
+                              onChange={(e) => setUkAnswers({...ukAnswers, documentation_types: e.target.value})}
+                              placeholder="e.g., API docs, user guides, technical specifications"
+                              className="rounded-xl"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Where is documentation stored?</Label>
+                            <Input
+                              value={ukAnswers.documentation_storage || ""}
+                              onChange={(e) => setUkAnswers({...ukAnswers, documentation_storage: e.target.value})}
+                              placeholder="e.g., Confluence, GitHub wiki, internal portal"
+                              className="rounded-xl"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>How frequently is documentation updated?</Label>
+                            <Input
+                              value={ukAnswers.documentation_update_frequency || ""}
+                              onChange={(e) => setUkAnswers({...ukAnswers, documentation_update_frequency: e.target.value})}
+                              placeholder="e.g., With each release, quarterly, as needed"
+                              className="rounded-xl"
+                            />
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     <div className="space-y-4">
@@ -1977,33 +2158,37 @@ export default function AssessmentChooserPage() {
                           </button>
                         </div>
                       </div>
-                      <Switch
-                        checked={masAnswers.security_measures}
-                        onCheckedChange={(checked) => handleMasChange("security_measures", checked)}
-                        className="data-[state=checked]:bg-green-500"
-                      />
-                    </div>
-                    <div className="flex items-center justify-between p-3 border border-border rounded-xl glass-panel">
-                      <div className="space-y-0.5">
-                        <Label className="text-base font-medium text-foreground">Monitoring & Change Management</Label>
-                        <p className="text-sm text-muted-foreground">Do you have drift monitoring, incident management, and version control processes?</p>
-                      </div>
-                      <Switch
-                        checked={masAnswers.monitoring_plan}
-                        onCheckedChange={(checked) => handleMasChange("monitoring_plan", checked)}
-                        className="data-[state=checked]:bg-green-500"
-                      />
-                    </div>
-                    <div className="flex items-center justify-between p-3 border border-border rounded-xl glass-panel">
-                      <div className="space-y-0.5">
-                        <Label className="text-base font-medium text-foreground">Capability & Capacity</Label>
-                        <p className="text-sm text-muted-foreground">Does your team have the necessary skills, training, and infrastructure to manage this AI system?</p>
-                      </div>
-                      <Switch
-                        checked={masAnswers.capability_training}
-                        onCheckedChange={(checked) => handleMasChange("capability_training", checked)}
-                        className="data-[state=checked]:bg-green-500"
-                      />
+                      {ukAnswers.transparency_reports && (
+                        <div className="ml-8 space-y-3">
+                          <div className="space-y-2">
+                            <Label>What content is included in transparency reports?</Label>
+                            <Textarea
+                              value={ukAnswers.transparency_reports_content || ""}
+                              onChange={(e) => setUkAnswers({...ukAnswers, transparency_reports_content: e.target.value})}
+                              placeholder="Describe the content and scope"
+                              className="rounded-xl"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Publication frequency</Label>
+                            <Input
+                              value={ukAnswers.transparency_reports_frequency || ""}
+                              onChange={(e) => setUkAnswers({...ukAnswers, transparency_reports_frequency: e.target.value})}
+                              placeholder="e.g., Quarterly, annually"
+                              className="rounded-xl"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Where are reports published?</Label>
+                            <Input
+                              value={ukAnswers.transparency_reports_publication || ""}
+                              onChange={(e) => setUkAnswers({...ukAnswers, transparency_reports_publication: e.target.value})}
+                              placeholder="e.g., Company website, public repository"
+                              className="rounded-xl"
+                            />
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
