@@ -5,13 +5,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { 
-  Brain, 
-  ChevronDown, 
-  ChevronUp, 
-  Loader2, 
-  AlertTriangle, 
-  CheckCircle, 
+import {
+  Brain,
+  ChevronDown,
+  ChevronUp,
+  Loader2,
+  AlertTriangle,
+  CheckCircle,
   Shield,
   ArrowRight,
   Zap,
@@ -23,8 +23,7 @@ import {
 } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/utils/supabase/client";
-import type { ShadowAIAssessment, SystemLinkSuggestion, DiscoveryPrioritization } from '../../../ai-governance-backend/services/compliance/smart-shadow-ai-discovery';
-import type { DiscoveredAIAsset } from '../../../ai-governance-backend/types/discovery';
+import type { ShadowAIAssessment, SystemLinkSuggestion, DiscoveryPrioritization, DiscoveredAIAsset } from '@/types/compliance';
 
 async function backendFetch(
   path: string,
@@ -270,7 +269,7 @@ export function SmartShadowAIAssessment({
             {/* Overview Section */}
             <Card className="border border-border/50">
               <CardContent className="p-4">
-                <div 
+                <div
                   className="flex items-center justify-between cursor-pointer"
                   onClick={() => toggleSection('overview')}
                 >
@@ -343,7 +342,7 @@ export function SmartShadowAIAssessment({
             {assessment.compliance_gaps.length > 0 && (
               <Card className="border border-border/50">
                 <CardContent className="p-4">
-                  <div 
+                  <div
                     className="flex items-center justify-between cursor-pointer"
                     onClick={() => toggleSection('compliance')}
                   >
@@ -391,7 +390,7 @@ export function SmartShadowAIAssessment({
             {assessment.recommended_actions.length > 0 && (
               <Card className="border border-border/50">
                 <CardContent className="p-4">
-                  <div 
+                  <div
                     className="flex items-center justify-between cursor-pointer"
                     onClick={() => toggleSection('actions')}
                   >
@@ -417,20 +416,20 @@ export function SmartShadowAIAssessment({
                           return priorityOrder[a.priority] - priorityOrder[b.priority];
                         })
                         .map((action, index) => (
-                        <div key={index} className="bg-muted/30 p-3 rounded-lg">
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-1">
-                                <Badge className={`${priorityStyles[action.priority].badge} rounded-xl`}>
-                                  {priorityStyles[action.priority].label}
-                                </Badge>
+                          <div key={index} className="bg-muted/30 p-3 rounded-lg">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <Badge className={`${priorityStyles[action.priority].badge} rounded-xl`}>
+                                    {priorityStyles[action.priority].label}
+                                  </Badge>
+                                </div>
+                                <h5 className="font-medium text-foreground mb-1">{action.action}</h5>
+                                <p className="text-sm text-muted-foreground">{action.rationale}</p>
                               </div>
-                              <h5 className="font-medium text-foreground mb-1">{action.action}</h5>
-                              <p className="text-sm text-muted-foreground">{action.rationale}</p>
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        ))}
                     </div>
                   )}
                 </CardContent>

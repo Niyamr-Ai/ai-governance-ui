@@ -12,7 +12,8 @@ import { ArrowLeft, Loader2, Save } from "lucide-react";
 import Sidebar from "@/components/sidebar";
 import type {
   Policy,
-} from "../../../types/policy";
+  CreateInternalPolicyInput,
+} from "@/types/policy";
 
 import { supabase } from "@/utils/supabase/client";
 
@@ -22,7 +23,7 @@ export default function CreateInternalPolicyPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   const [formData, setFormData] = useState<CreateInternalPolicyInput>({
     name: "",
     description: "",
@@ -95,7 +96,7 @@ export default function CreateInternalPolicyPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-indigo-950 to-purple-950">
       <Sidebar onLogout={handleLogout} />
-      
+
       <div className={`p-6 lg:p-8 ${isLoggedIn ? 'lg:pl-72' : ''}`}>
         <div className="max-w-4xl mx-auto space-y-6">
           {/* Header */}

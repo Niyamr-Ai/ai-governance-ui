@@ -40,7 +40,16 @@ export type Policy = {
 
   requirements?: PolicyRequirement[];
 };
-
+export interface CreateInternalPolicyInput {
+  name: string;
+  description: string;
+  applies_to: "All AI" | "High-risk only" | "Specific systems";
+  enforcement_level: "Mandatory" | "Advisory";
+  owner: string;
+  effective_date: string;
+  version: string;
+  document_url: string;
+}
 export type SystemPolicyMapping = {
   id: string;
   policy_id: string;
