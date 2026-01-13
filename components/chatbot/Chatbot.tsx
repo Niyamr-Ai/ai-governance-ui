@@ -14,11 +14,10 @@ import { backendFetch } from '@/utils/backend-fetch';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { MessageCircle, X, Send, Loader2, AlertCircle } from 'lucide-react';
 import type { ChatMessage, PageContext, ChatResponse } from '@/types/chatbot';
-import { CHATBOT_MODES } from '@/lib/chatbot-constants';
 import { supabase } from '@/utils/supabase/client';
+import ReactMarkdown from 'react-markdown';
 import { extractSystemNames } from '@/lib/extract-system-name';
 
 export default function Chatbot() {
@@ -363,14 +362,28 @@ export default function Chatbot() {
                           : 'bg-muted'
                       }`}
                     >
-                      <p className="whitespace-pre-wrap">{message.content}</p>
-                      {message.mode && message.mode !== 'ACTION' && (
-                        <Badge
-                          variant="outline"
-                          className="mt-2 text-xs"
-                        >
-                          {CHATBOT_MODES[message.mode].label}
-                        </Badge>
+                      {message.role === 'user' ? (
+                        <p className="whitespace-pre-wrap">{message.content}</p>
+                      ) : (
+                        <div className="prose prose-sm max-w-none dark:prose-invert">
+                          <ReactMarkdown
+                            components={{
+                              h1: ({node, ...props}) => <h1 className="text-lg font-bold mb-2 mt-2" {...props} />,
+                              h2: ({node, ...props}) => <h2 className="text-base font-bold mb-2 mt-2" {...props} />,
+                              h3: ({node, ...props}) => <h3 className="text-sm font-bold mb-1 mt-1" {...props} />,
+                              p: ({node, ...props}) => <p className="mb-2 last:mb-0" {...props} />,
+                              ul: ({node, ...props}) => <ul className="list-disc mb-2 space-y-1 pl-6" {...props} />,
+                              ol: ({node, ...props}) => <ol className="list-decimal mb-2 space-y-1 pl-6" {...props} />,
+                              li: ({node, ...props}) => <li className="leading-relaxed" {...props} />,
+                              strong: ({node, ...props}) => <strong className="font-semibold" {...props} />,
+                              em: ({node, ...props}) => <em className="italic" {...props} />,
+                              code: ({node, ...props}) => <code className="bg-secondary px-1 py-0.5 rounded text-xs" {...props} />,
+                              blockquote: ({node, ...props}) => <blockquote className="border-l-4 border-primary pl-2 italic my-2" {...props} />,
+                            }}
+                          >
+                            {message.content}
+                          </ReactMarkdown>
+                        </div>
                       )}
                     </div>
                     <span className="text-xs text-muted-foreground">

@@ -122,10 +122,10 @@ export default function UKAssessmentDetailPage() {
               </Alert>
               <Button 
                 variant="outline" 
-                className="border-border/50 mt-4 rounded-xl"
-                onClick={() => router.push("/assessment")}
+                className="border-gray-300 bg-white text-gray-900 hover:bg-gray-100 hover:text-gray-900 mt-4 rounded-xl"
+                onClick={() => router.push("/dashboard")}
               >
-                Back to Assessment
+                Back to Dashboard
               </Button>
             </CardContent>
           </Card>
@@ -218,17 +218,10 @@ export default function UKAssessmentDetailPage() {
         <div className="flex gap-3">
           <Button 
             variant="outline" 
-            className="border-border/50 rounded-xl"
-            onClick={() => router.push("/uk/dashboard")}
+            className="border-gray-300 bg-white text-gray-900 hover:bg-gray-100 hover:text-gray-900"
+            onClick={() => router.push("/dashboard")}
           >
-            Dashboard
-          </Button>
-          <Button 
-            variant="hero"
-            className="rounded-xl"
-            onClick={() => router.push("/assessment")}
-          >
-            New Assessment
+            Back to Dashboard
           </Button>
         </div>
         </div>

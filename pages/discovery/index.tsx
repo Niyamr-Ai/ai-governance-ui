@@ -66,8 +66,8 @@ import {
 } from "@/components/ui/select";
 import { SmartShadowAIAssessment } from "../../components/ui/smart-shadow-ai-assessment";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import type { BaseDiscoveredAIAsset  } from "../../types/discovery";
-import type { DiscoveredAIAsset } from '../../../ai-governance-backend/types/discovery';
+import type { BaseDiscoveredAIAsset } from "../../types/discovery";
+import type { DiscoveredAIAsset } from "@/types/discovery";
 
 interface DiscoveryStats {
   total: number;
@@ -131,7 +131,7 @@ export default function DiscoveryDashboard() {
       console.log('🔍 Discovery: Auth check - user:', !!user, 'pathname:', window.location.pathname);
     };
     checkAuth();
-    
+
     // Listen for route changes to debug redirects
     const handleRouteChange = (url: string) => {
       console.log('🔍 Discovery: Route changed to:', url);
@@ -143,9 +143,9 @@ export default function DiscoveryDashboard() {
         });
       }
     };
-    
+
     router.events?.on('routeChangeStart', handleRouteChange);
-    
+
     return () => {
       router.events?.off('routeChangeStart', handleRouteChange);
     };
@@ -376,7 +376,7 @@ export default function DiscoveryDashboard() {
                 <AlertTriangle className="h-5 w-5 text-red-500 flex-shrink-0" />
                 <div className="flex-1">
                   <p className="text-red-700 font-semibold">
-                    {stats.confirmed_shadow} confirmed Shadow AI system{stats.confirmed_shadow !== 1 ? 's' : ''} detected. 
+                    {stats.confirmed_shadow} confirmed Shadow AI system{stats.confirmed_shadow !== 1 ? 's' : ''} detected.
                     Unregistered AI usage may block compliance approvals.
                   </p>
                 </div>

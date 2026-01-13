@@ -2,10 +2,16 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /* config options here */
-  serverExternalPackages: ["knex"],
+  serverExternalPackages: [
+    "knex",
+    "tesseract.js",
+    "canvas",
+    "pdfjs-dist",
+    "pdf-parse",
+    "formidable"
+  ],
   // Turbopack configuration (Next.js 16 default)
   turbopack: {
-    root: process.cwd(), // Explicitly set root to silence warning
     resolveAlias: {
       // Ensure pdfjs-dist resolves correctly
       "pdfjs-dist": "pdfjs-dist",
@@ -20,11 +26,6 @@ const nextConfig: NextConfig = {
         destination: 'http://localhost:3001/api/:path*',
       },
     ];
-  },
-
-  // Ensure rewrites take precedence over built-in API handling
-  experimental: {
-    serverComponentsExternalPackages: ['knex'],
   },
   // Webpack configuration (for --webpack flag)
   webpack: (config, { isServer }) => {

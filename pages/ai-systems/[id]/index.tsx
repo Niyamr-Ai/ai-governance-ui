@@ -16,10 +16,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Plus, ArrowLeft, Loader2, AlertCircle, Info, AlertTriangle as AlertTriangleIcon, ShieldCheck } from "lucide-react";
-import RiskTable from "./components/RiskAssessments/RiskTable";
-import RiskForm from "./components/RiskAssessments/RiskForm";
-import RiskDetail from "./components/RiskAssessments/RiskDetail";
-import DocumentationTab from "./components/Documentation/DocumentationTab"
+import RiskTable from "@/components/ai-systems-details/RiskAssessments/RiskTable";
+import RiskForm from "@/components/ai-systems-details/RiskAssessments/RiskForm";
+import RiskDetail from "@/components/ai-systems-details/RiskAssessments/RiskDetail";
+import DocumentationTab from "@/components/ai-systems-details/Documentation/DocumentationTab"
 import type { RiskAssessment, CreateRiskAssessmentInput } from "@/types/risk-assessment";
 import type { GovernanceTask } from "@/types/governance-task";
 import type { LifecycleStage } from "@/types/lifecycle";
@@ -31,8 +31,8 @@ import {
 } from "@/lib/lifecycle";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import TasksTab from "./components/Tasks/TasksTab";
-import PoliciesTab from "./components/Policies/PoliciesTab";
+import TasksTab from "@/components/ai-systems-details/Tasks/TasksTab";
+import PoliciesTab from "@/components/ai-systems-details/Policies/PoliciesTab";
 import Sidebar from "@/components/sidebar";
 import { supabase } from "@/utils/supabase/client";
 
@@ -40,7 +40,7 @@ export default function AISystemDetailPage() {
   const params = useParams();
   const router = useRouter();
   const systemId = params?.id as string;
-  
+
   const [assessments, setAssessments] = useState<RiskAssessment[]>([]);
   const [selectedAssessment, setSelectedAssessment] = useState<RiskAssessment | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -73,18 +73,18 @@ export default function AISystemDetailPage() {
     options: RequestInit = {}
   ) {
     const { data } = await supabase.auth.getSession();
-  
+
     const accessToken = data.session?.access_token;
-  
+
     if (!accessToken) {
       console.error('❌ No access token found in Supabase session');
       throw new Error("User not authenticated");
     }
-  
+
     console.log('✅ Frontend: Sending token (first 50 chars):', accessToken.substring(0, 50) + '...');
-  
+
     const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-  
+
     return fetch(
       `${process.env.NEXT_PUBLIC_BACKEND_URL}${normalizedPath}`,
       {
@@ -262,7 +262,7 @@ export default function AISystemDetailPage() {
   // Handle lifecycle stage change - Only for EU AI Act
   const handleLifecycleChange = async (newStage: LifecycleStage) => {
     if (!systemId || systemInfo?.type !== 'EU AI Act' || newStage === lifecycleStage) return;
-    
+
     const currentStage = lifecycleStage || 'Draft';
 
     // Show confirmation for Production (Deployed) transitions
@@ -282,7 +282,7 @@ export default function AISystemDetailPage() {
     try {
       setUpdatingLifecycle(true);
       setError(null); // Clear previous errors
-      
+
       const res = await backendFetch(`/api/ai-systems/${systemId}/lifecycle`, {
         method: 'PUT',
         body: JSON.stringify({
@@ -295,20 +295,20 @@ export default function AISystemDetailPage() {
 
       if (res.ok) {
         setLifecycleStage(newStage);
-        
+
         // Show warnings if any
         if (responseData.warnings && responseData.warnings.length > 0) {
           const warningMsg = "Lifecycle updated, but please note:\n" + responseData.warnings.join("\n");
           alert(warningMsg);
         }
-        
+
         // Refresh compliance data to get updated lifecycle stage
         const complianceRes = await backendFetch(`/api/ai-systems/${systemId}/compliance-data`);
         if (complianceRes.ok) {
           const data = await complianceRes.json();
           setSystemInfo(data.systemInfo);
         }
-        
+
         // Refresh assessments to update UI state
         await fetchAssessments();
         await fetchTasks();
@@ -316,7 +316,7 @@ export default function AISystemDetailPage() {
         // Show validation error
         const errorMsg = responseData.reason || responseData.error || 'Failed to update lifecycle stage';
         setError(errorMsg);
-        
+
         // Show detailed error in alert for better visibility
         if (responseData.warnings && responseData.warnings.length > 0) {
           alert(errorMsg + "\n\nAdditional warnings:\n" + responseData.warnings.join("\n"));
@@ -347,8 +347,8 @@ export default function AISystemDetailPage() {
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         // Show detailed error message if available
-        const errorMsg = err.details 
-          ? `${err.error}: ${err.details}` 
+        const errorMsg = err.details
+          ? `${err.error}: ${err.details}`
           : err.error || "Failed to create risk assessment";
         throw new Error(errorMsg);
       }
@@ -436,8 +436,8 @@ export default function AISystemDetailPage() {
                     overallRisk === "high"
                       ? "bg-gradient-to-r from-red-50 to-red-100/80 text-red-700 border border-red-200/60 font-semibold px-4 py-2 rounded-full shadow-md hover:shadow-lg transition-all text-sm"
                       : overallRisk === "medium"
-                      ? "bg-gradient-to-r from-amber-50 to-amber-100/80 text-amber-700 border border-amber-200/60 font-semibold px-4 py-2 rounded-full shadow-md hover:shadow-lg transition-all text-sm"
-                      : "bg-gradient-to-r from-emerald-50 to-emerald-100/80 text-emerald-700 border border-emerald-200/60 font-semibold px-4 py-2 rounded-full shadow-md hover:shadow-lg transition-all text-sm"
+                        ? "bg-gradient-to-r from-amber-50 to-amber-100/80 text-amber-700 border border-amber-200/60 font-semibold px-4 py-2 rounded-full shadow-md hover:shadow-lg transition-all text-sm"
+                        : "bg-gradient-to-r from-emerald-50 to-emerald-100/80 text-emerald-700 border border-emerald-200/60 font-semibold px-4 py-2 rounded-full shadow-md hover:shadow-lg transition-all text-sm"
                   }
                 >
                   {overallRisk.charAt(0).toUpperCase() + overallRisk.slice(1)} Risk
@@ -513,11 +513,11 @@ export default function AISystemDetailPage() {
                 {/* Lifecycle Warnings - Only for EU AI Act */}
                 {systemInfo?.type === 'EU AI Act' && lifecycleStage && (() => {
                   const hasApprovedAssessments = assessments.some(a => a.status === 'approved');
-                  const warnings: Array<{type: 'error' | 'warning' | 'info', message: string, action?: string}> = getLifecycleWarnings(
+                  const warnings: Array<{ type: 'error' | 'warning' | 'info', message: string, action?: string }> = getLifecycleWarnings(
                     lifecycleStage as LifecycleStage,
                     hasApprovedAssessments
                   );
-                  
+
                   return warnings.length > 0 && (
                     <div className="space-y-3">
                       {warnings.map((warning, idx) => (
@@ -527,8 +527,8 @@ export default function AISystemDetailPage() {
                             warning.type === 'error'
                               ? 'bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3 glass-panel'
                               : warning.type === 'warning'
-                              ? 'bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-center gap-3 glass-panel'
-                              : 'bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center gap-3 glass-panel'
+                                ? 'bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-center gap-3 glass-panel'
+                                : 'bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center gap-3 glass-panel'
                           }
                         >
                           {warning.type === 'error' ? (
@@ -543,8 +543,8 @@ export default function AISystemDetailPage() {
                               warning.type === 'error'
                                 ? 'text-red-700'
                                 : warning.type === 'warning'
-                                ? 'text-amber-700'
-                                : 'text-blue-700'
+                                  ? 'text-amber-700'
+                                  : 'text-blue-700'
                             }>
                               {warning.message}
                               {warning.action && (
@@ -618,29 +618,29 @@ export default function AISystemDetailPage() {
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent className="glass-panel border-border/50 rounded-xl shadow-lg">
-                              <SelectItem 
-                                value="Draft" 
+                              <SelectItem
+                                value="Draft"
                                 className="text-foreground rounded-lg"
                                 disabled={lifecycleStage === 'Monitoring'}
                               >
                                 Draft
                               </SelectItem>
-                              <SelectItem 
-                                value="Development" 
+                              <SelectItem
+                                value="Development"
                                 className="text-foreground rounded-lg"
                                 disabled={lifecycleStage === 'Monitoring'}
                               >
                                 Development
                               </SelectItem>
-                              <SelectItem 
-                                value="Testing" 
+                              <SelectItem
+                                value="Testing"
                                 className="text-foreground rounded-lg"
                                 disabled={lifecycleStage === 'Monitoring'}
                               >
                                 Testing
                               </SelectItem>
-                              <SelectItem 
-                                value="Deployed" 
+                              <SelectItem
+                                value="Deployed"
                                 className="text-foreground rounded-lg"
                                 disabled={lifecycleStage === 'Monitoring'}
                               >
@@ -704,8 +704,8 @@ export default function AISystemDetailPage() {
                               overallRisk === "high"
                                 ? "bg-gradient-to-r from-red-50 to-red-100/80 text-red-700 border border-red-200/60 font-semibold px-4 py-2 rounded-full shadow-md hover:shadow-lg transition-all"
                                 : overallRisk === "medium"
-                                ? "bg-gradient-to-r from-amber-50 to-amber-100/80 text-amber-700 border border-amber-200/60 font-semibold px-4 py-2 rounded-full shadow-md hover:shadow-lg transition-all"
-                                : "bg-gradient-to-r from-emerald-50 to-emerald-100/80 text-emerald-700 border border-emerald-200/60 font-semibold px-4 py-2 rounded-full shadow-md hover:shadow-lg transition-all"
+                                  ? "bg-gradient-to-r from-amber-50 to-amber-100/80 text-amber-700 border border-amber-200/60 font-semibold px-4 py-2 rounded-full shadow-md hover:shadow-lg transition-all"
+                                  : "bg-gradient-to-r from-emerald-50 to-emerald-100/80 text-emerald-700 border border-emerald-200/60 font-semibold px-4 py-2 rounded-full shadow-md hover:shadow-lg transition-all"
                             }
                           >
                             {overallRisk.charAt(0).toUpperCase() + overallRisk.slice(1)}
@@ -753,7 +753,7 @@ export default function AISystemDetailPage() {
               {!showForm && (
                 // For EU AI Act: check lifecycle stage
                 // For other regulations: always allow
-                (systemInfo?.type === 'EU AI Act' 
+                (systemInfo?.type === 'EU AI Act'
                   ? (lifecycleStage ? canCreateRiskAssessment(lifecycleStage as LifecycleStage) : true)
                   : true
                 ) && (
@@ -822,8 +822,8 @@ export default function AISystemDetailPage() {
                             complianceData?.eu?.compliance_status === "Compliant"
                               ? "bg-gradient-to-r from-emerald-50 to-emerald-100/80 text-emerald-700 border border-emerald-200/60 font-semibold px-4 py-2 rounded-full shadow-md hover:shadow-lg transition-all"
                               : complianceData?.eu?.compliance_status === "Partially compliant"
-                              ? "bg-gradient-to-r from-amber-50 to-amber-100/80 text-amber-700 border border-amber-200/60 font-semibold px-4 py-2 rounded-full shadow-md hover:shadow-lg transition-all"
-                              : "bg-gradient-to-r from-red-50 to-red-100/80 text-red-700 border border-red-200/60 font-semibold px-4 py-2 rounded-full shadow-md hover:shadow-lg transition-all"
+                                ? "bg-gradient-to-r from-amber-50 to-amber-100/80 text-amber-700 border border-amber-200/60 font-semibold px-4 py-2 rounded-full shadow-md hover:shadow-lg transition-all"
+                                : "bg-gradient-to-r from-red-50 to-red-100/80 text-red-700 border border-red-200/60 font-semibold px-4 py-2 rounded-full shadow-md hover:shadow-lg transition-all"
                           }
                         >
                           {complianceData?.eu?.compliance_status || "Unknown"}
@@ -932,8 +932,8 @@ export default function AISystemDetailPage() {
                             complianceData?.uk?.overall_assessment === "Compliant"
                               ? "bg-gradient-to-r from-emerald-50 to-emerald-100/80 text-emerald-700 border border-emerald-200/60 font-semibold px-4 py-2 rounded-full shadow-md hover:shadow-lg transition-all"
                               : complianceData?.uk?.overall_assessment === "Partially compliant"
-                              ? "bg-gradient-to-r from-amber-50 to-amber-100/80 text-amber-700 border border-amber-200/60 font-semibold px-4 py-2 rounded-full shadow-md hover:shadow-lg transition-all"
-                              : "bg-gradient-to-r from-red-50 to-red-100/80 text-red-700 border border-red-200/60 font-semibold px-4 py-2 rounded-full shadow-md hover:shadow-lg transition-all"
+                                ? "bg-gradient-to-r from-amber-50 to-amber-100/80 text-amber-700 border border-amber-200/60 font-semibold px-4 py-2 rounded-full shadow-md hover:shadow-lg transition-all"
+                                : "bg-gradient-to-r from-red-50 to-red-100/80 text-red-700 border border-red-200/60 font-semibold px-4 py-2 rounded-full shadow-md hover:shadow-lg transition-all"
                           }
                         >
                           {complianceData?.uk?.overall_assessment || "Unknown"}
@@ -1019,8 +1019,8 @@ export default function AISystemDetailPage() {
 
           {/* Documentation Tab */}
           <TabsContent value="documentation">
-            <DocumentationTab 
-              systemId={systemId} 
+            <DocumentationTab
+              systemId={systemId}
               systemType={systemInfo?.type || null}
             />
           </TabsContent>
