@@ -299,7 +299,7 @@ export default function Chatbot() {
 
       {/* Chat Panel */}
       {isOpen && (
-        <Card className="fixed bottom-24 right-6 w-96 h-[600px] flex flex-col shadow-2xl z-50 border-2">
+        <Card className="fixed bottom-24 right-6 w-1/2 h-[600px] flex flex-col shadow-2xl z-50 border-2">
           {/* Header */}
           <div className="p-4 border-b flex items-center justify-between bg-primary/5">
             <div className="flex items-center gap-2">
@@ -332,9 +332,9 @@ export default function Chatbot() {
           <ScrollArea className="flex-1 p-4">
             {messages.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground">
-                <MessageCircle className="h-12 w-12 mb-4 opacity-50" />
-                <p className="text-sm mb-2">AI Governance Copilot</p>
-                <p className="text-xs">
+                <MessageCircle className="h-32 w-32 mb-6 mt-5 opacity-50" />
+                <p className="text-base mb-2">AI Governance Copilot</p>
+                <p className="text-sm mb-4">
                   Ask me about regulations, analyze your systems, or get actionable next steps.
                 </p>
                 <div className="mt-4 space-y-2 text-xs">
