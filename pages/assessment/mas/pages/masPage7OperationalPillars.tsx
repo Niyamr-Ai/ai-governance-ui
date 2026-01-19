@@ -11,21 +11,21 @@ import { Input } from "@/components/ui/input";
 import { useFormikContext } from "formik";
 
 type EvidenceContent = Record<string, string>;
-  
-  
-  type Props = {
-    masCurrentPage: number;
-    handleEvidenceFileChange: (key: string, file: File | null) => void;
-    evidenceContent: EvidenceContent;
-  };
 
-  
+
+type Props = {
+  masCurrentPage: number;
+  handleEvidenceFileChange: (key: string, file: File | null) => void;
+  evidenceContent: EvidenceContent;
+};
+
+
 export default function MasPage7OperationalPillars({
   masCurrentPage,
-    handleEvidenceFileChange,
-    evidenceContent,
-  }: Props) {
-    const { values, setFieldValue } = useFormikContext<any>();
+  handleEvidenceFileChange,
+  evidenceContent,
+}: Props) {
+  const { values, setFieldValue } = useFormikContext<any>();
   if (masCurrentPage !== 6) return null;
 
   return (
@@ -53,11 +53,10 @@ export default function MasPage7OperationalPillars({
               </div>
               <div className="ml-4 flex items-center gap-2">
                 <span
-                  className={`text-xs font-bold px-2 py-1 rounded ${
-                    values.third_party_controls
-                      ? "text-emerald-900 bg-emerald-300"
-                      : "text-slate-400 bg-slate-700"
-                  }`}
+                  className={`text-xs font-bold px-2 py-1 rounded ${values.third_party_controls
+                    ? "text-blue-500 bg-emerald-300"
+                    : "text-red-500 bg-blue-400"
+                    }`}
                 >
                   {values.third_party_controls ? "YES" : "NO"}
                 </span>
@@ -71,11 +70,10 @@ export default function MasPage7OperationalPillars({
                       !values.third_party_controls
                     )
                   }
-                  className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${
-                    values.third_party_controls
-                      ? "bg-emerald-600 border-emerald-500"
-                      : "bg-gray-400 border-gray-500"
-                  }`}
+                  className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${values.third_party_controls
+                    ? "text-blue-500 bg-emerald-300"
+                    : "text-red-500 bg-blue-400"
+                    }`}
                   style={{
                     backgroundColor: values.third_party_controls
                       ? "#10b981"
@@ -83,11 +81,10 @@ export default function MasPage7OperationalPillars({
                   }}
                 >
                   <span
-                    className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform ${
-                      values.third_party_controls
-                        ? "translate-x-5"
-                        : "translate-x-0"
-                    }`}
+                    className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform ${values.third_party_controls
+                      ? "translate-x-5"
+                      : "translate-x-0"
+                      }`}
                   />
                 </button>
               </div>
@@ -125,26 +122,55 @@ export default function MasPage7OperationalPillars({
                     required={values.third_party_controls}
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-foreground">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-foreground">
                     Evidence: Upload vendor due diligence reports or contracts
-                  </Label>
-                  <Input
-                    type="file"
-                    accept=".pdf,.doc,.docx"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        handleEvidenceFileChange(
-                          "third_party_controls_evidence",
-                          file || null
-                        );
-                      }
-                    }}
-                    className="file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-slate-700 file:text-slate-100 hover:file:bg-slate-600"
-                  />
+                    </Label>
+
+                    <div className="relative flex items-center gap-3">
+                      {/* Hidden File Input */}
+                      <Input
+                        id="third_party_controls_evidence"
+                        type="file"
+                        accept=".pdf,.doc,.docx,.txt"
+                        className="hidden"
+                        onChange={(e) =>
+                          handleEvidenceFileChange(
+                            "third_party_controls_evidence",
+                            e.target.files?.[0] || null
+                          )
+                        }
+                      />
+
+                      {/* Custom Upload Button */}
+                      <label
+                        htmlFor="third_party_controls_evidence"
+                        className="
+        inline-flex cursor-pointer items-center gap-2 rounded-xl
+        border border-border bg-background px-4 py-2 text-sm
+        text-foreground shadow-sm transition
+        hover:bg-accent hover:text-accent-foreground
+        focus-visible:outline-none focus-visible:ring-2
+        focus-visible:ring-ring focus-visible:ring-offset-2
+      "
+                      >
+                        📎 Upload file
+                      </label>
+
+                      {/* File Status */}
+                      {evidenceContent.third_party_controls_evidence ? (
+                        <span className="text-xs text-emerald-400">
+                          ✓ File processed ({evidenceContent.third_party_controls_evidence.length} chars)
+                        </span>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">
+                          PDF, DOC, DOCX, TXT
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
                 </div>
-              </div>
             )}
           </div>
 
@@ -332,11 +358,10 @@ export default function MasPage7OperationalPillars({
               </div>
               <div className="ml-4 flex items-center gap-2">
                 <span
-                  className={`text-xs font-bold px-2 py-1 rounded ${
-                    values.algo_documented
-                      ? "text-emerald-900 bg-emerald-300"
-                      : "text-slate-400 bg-slate-700"
-                  }`}
+                  className={`text-xs font-bold px-2 py-1 rounded ${values.algo_documented
+                    ? "text-blue-500 bg-emerald-300"
+                    : "text-red-500 bg-blue-400"
+                    }`}
                 >
                   {values.algo_documented ? "YES" : "NO"}
                 </span>
@@ -350,11 +375,10 @@ export default function MasPage7OperationalPillars({
                       !values.algo_documented
                     )
                   }
-                  className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${
-                    values.algo_documented
-                      ? "bg-emerald-600 border-emerald-500"
-                      : "bg-gray-400 border-gray-500"
-                  }`}
+                  className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${values.algo_documented
+                    ? "text-blue-500 bg-emerald-300"
+                    : "text-red-500 bg-blue-400"
+                    }`}
                   style={{
                     backgroundColor: values.algo_documented
                       ? "#10b981"
@@ -362,11 +386,10 @@ export default function MasPage7OperationalPillars({
                   }}
                 >
                   <span
-                    className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform ${
-                      values.algo_documented
-                        ? "translate-x-5"
-                        : "translate-x-0"
-                    }`}
+                    className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform ${values.algo_documented
+                      ? "translate-x-5"
+                      : "translate-x-0"
+                      }`}
                   />
                 </button>
               </div>
@@ -410,21 +433,50 @@ export default function MasPage7OperationalPillars({
                     Evidence: Upload algorithm selection documentation or
                     feature engineering notes
                   </Label>
-                  <Input
-                    type="file"
-                    accept=".pdf,.doc,.docx,.ipynb"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
+
+                  <div className="relative flex items-center gap-3">
+                    {/* Hidden File Input */}
+                    <Input
+                      id="algo_documentation_evidence"
+                      type="file"
+                      accept=".pdf,.doc,.docx,.txt"
+                      className="hidden"
+                      onChange={(e) =>
                         handleEvidenceFileChange(
                           "algo_documentation_evidence",
-                          file || null
-                        );
+                          e.target.files?.[0] || null
+                        )
                       }
-                    }}
-                    className="file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-slate-700 file:text-slate-100 hover:file:bg-slate-600"
-                  />
+                    />
+
+                    {/* Custom Upload Button */}
+                    <label
+                      htmlFor="algo_documentation_evidence"
+                      className="
+        inline-flex cursor-pointer items-center gap-2 rounded-xl
+        border border-border bg-background px-4 py-2 text-sm
+        text-foreground shadow-sm transition
+        hover:bg-accent hover:text-accent-foreground
+        focus-visible:outline-none focus-visible:ring-2
+        focus-visible:ring-ring focus-visible:ring-offset-2
+      "
+                    >
+                      📎 Upload file
+                    </label>
+
+                    {/* File Status */}
+                    {evidenceContent.algo_documentation_evidence ? (
+                      <span className="text-xs text-emerald-400">
+                        ✓ File processed ({evidenceContent.algo_documentation_evidence.length} chars)
+                      </span>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">
+                        PDF, DOC, DOCX, TXT
+                      </span>
+                    )}
+                  </div>
                 </div>
+
               </div>
             )}
           </div>
@@ -542,11 +594,10 @@ export default function MasPage7OperationalPillars({
               </div>
               <div className="ml-4 flex items-center gap-2">
                 <span
-                  className={`text-xs font-bold px-2 py-1 rounded ${
-                    values.algo_ab_testing
-                      ? "text-emerald-900 bg-emerald-300"
-                      : "text-slate-400 bg-slate-700"
-                  }`}
+                  className={`text-xs font-bold px-2 py-1 rounded ${values.algo_ab_testing
+                    ? "text-blue-500 bg-emerald-300"
+                    : "text-red-500 bg-blue-400"
+                    }`}
                 >
                   {values.algo_ab_testing ? "YES" : "NO"}
                 </span>
@@ -560,11 +611,10 @@ export default function MasPage7OperationalPillars({
                       !values.algo_ab_testing
                     )
                   }
-                  className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${
-                    values.algo_ab_testing
-                      ? "bg-emerald-600 border-emerald-500"
-                      : "bg-gray-400 border-gray-500"
-                  }`}
+                  className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${values.algo_ab_testing
+                    ? "text-blue-500 bg-emerald-300"
+                    : "text-red-500 bg-blue-400"
+                    }`}
                   style={{
                     backgroundColor: values.algo_ab_testing
                       ? "#10b981"
@@ -572,11 +622,10 @@ export default function MasPage7OperationalPillars({
                   }}
                 >
                   <span
-                    className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform ${
-                      values.algo_ab_testing
-                        ? "translate-x-5"
-                        : "translate-x-0"
-                    }`}
+                    className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform ${values.algo_ab_testing
+                      ? "translate-x-5"
+                      : "translate-x-0"
+                      }`}
                   />
                 </button>
               </div>
@@ -634,11 +683,10 @@ export default function MasPage7OperationalPillars({
               </div>
               <div className="ml-4 flex items-center gap-2">
                 <span
-                  className={`text-xs font-bold px-2 py-1 rounded ${
-                    values.evaluation_testing
-                      ? "text-emerald-900 bg-emerald-300"
-                      : "text-slate-400 bg-slate-700"
-                  }`}
+                  className={`text-xs font-bold px-2 py-1 rounded ${values.evaluation_testing
+                    ? "text-blue-500 bg-emerald-300"
+                    : "text-red-500 bg-blue-400"
+                    }`}
                 >
                   {values.evaluation_testing ? "YES" : "NO"}
                 </span>
@@ -652,11 +700,10 @@ export default function MasPage7OperationalPillars({
                       !values.evaluation_testing
                     )
                   }
-                  className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${
-                    values.evaluation_testing
-                      ? "bg-emerald-600 border-emerald-500"
-                      : "bg-gray-400 border-gray-500"
-                  }`}
+                  className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${values.evaluation_testing
+                    ? "text-blue-500 bg-emerald-300"
+                    : "text-red-500 bg-blue-400"
+                    }`}
                   style={{
                     backgroundColor: values.evaluation_testing
                       ? "#10b981"
@@ -664,11 +711,10 @@ export default function MasPage7OperationalPillars({
                   }}
                 >
                   <span
-                    className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform ${
-                      values.evaluation_testing
-                        ? "translate-x-5"
-                        : "translate-x-0"
-                    }`}
+                    className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform ${values.evaluation_testing
+                      ? "translate-x-5"
+                      : "translate-x-0"
+                      }`}
                   />
                 </button>
               </div>
@@ -710,21 +756,50 @@ export default function MasPage7OperationalPillars({
                   <Label className="text-sm font-medium text-foreground">
                     Evidence: Upload testing reports or test results
                   </Label>
-                  <Input
-                    type="file"
-                    accept=".pdf,.doc,.docx,.xlsx"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
+
+                  <div className="relative flex items-center gap-3">
+                    {/* Hidden File Input */}
+                    <Input
+                      id="evaluation_evidence"
+                      type="file"
+                      accept=".pdf,.doc,.docx,.txt"
+                      className="hidden"
+                      onChange={(e) =>
                         handleEvidenceFileChange(
                           "evaluation_evidence",
-                          file || null
-                        );
+                          e.target.files?.[0] || null
+                        )
                       }
-                    }}
-                    className="file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-slate-700 file:text-slate-100 hover:file:bg-slate-600"
-                  />
+                    />
+
+                    {/* Custom Upload Button */}
+                    <label
+                      htmlFor="evaluation_evidence"
+                      className="
+        inline-flex cursor-pointer items-center gap-2 rounded-xl
+        border border-border bg-background px-4 py-2 text-sm
+        text-foreground shadow-sm transition
+        hover:bg-accent hover:text-accent-foreground
+        focus-visible:outline-none focus-visible:ring-2
+        focus-visible:ring-ring focus-visible:ring-offset-2
+      "
+                    >
+                      📎 Upload file
+                    </label>
+
+                    {/* File Status */}
+                    {evidenceContent.evaluation_evidence ? (
+                      <span className="text-xs text-emerald-400">
+                        ✓ File processed ({evidenceContent.evaluation_evidence.length} chars)
+                      </span>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">
+                        PDF, DOC, DOCX, TXT
+                      </span>
+                    )}
+                  </div>
                 </div>
+
               </div>
             )}
           </div>
@@ -788,11 +863,10 @@ export default function MasPage7OperationalPillars({
               </div>
               <div className="ml-4 flex items-center gap-2">
                 <span
-                  className={`text-xs font-bold px-2 py-1 rounded ${
-                    values.evaluation_regression_testing
-                      ? "text-emerald-900 bg-emerald-300"
-                      : "text-slate-400 bg-slate-700"
-                  }`}
+                  className={`text-xs font-bold px-2 py-1 rounded ${values.evaluation_regression_testing
+                    ? "text-blue-500 bg-emerald-300"
+                    : "text-red-500 bg-blue-400"
+                    }`}
                 >
                   {values.evaluation_regression_testing ? "YES" : "NO"}
                 </span>
@@ -806,11 +880,10 @@ export default function MasPage7OperationalPillars({
                       !values.evaluation_regression_testing
                     )
                   }
-                  className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${
-                    values.evaluation_regression_testing
-                      ? "bg-emerald-600 border-emerald-500"
-                      : "bg-gray-400 border-gray-500"
-                  }`}
+                  className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${values.evaluation_regression_testing
+                    ? "text-blue-500 bg-emerald-300"
+                    : "text-red-500 bg-blue-400"
+                    }`}
                   style={{
                     backgroundColor: values.evaluation_regression_testing
                       ? "#10b981"
@@ -818,11 +891,10 @@ export default function MasPage7OperationalPillars({
                   }}
                 >
                   <span
-                    className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform ${
-                      values.evaluation_regression_testing
-                        ? "translate-x-5"
-                        : "translate-x-0"
-                    }`}
+                    className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform ${values.evaluation_regression_testing
+                      ? "translate-x-5"
+                      : "translate-x-0"
+                      }`}
                   />
                 </button>
               </div>
@@ -862,11 +934,10 @@ export default function MasPage7OperationalPillars({
               </div>
               <div className="ml-4 flex items-center gap-2">
                 <span
-                  className={`text-xs font-bold px-2 py-1 rounded ${
-                    values.evaluation_stress_testing
-                      ? "text-emerald-900 bg-emerald-300"
-                      : "text-slate-400 bg-slate-700"
-                  }`}
+                  className={`text-xs font-bold px-2 py-1 rounded ${values.evaluation_stress_testing
+                    ? "text-blue-500 bg-emerald-300"
+                    : "text-red-500 bg-blue-400"
+                    }`}
                 >
                   {values.evaluation_stress_testing ? "YES" : "NO"}
                 </span>
@@ -880,11 +951,10 @@ export default function MasPage7OperationalPillars({
                       !values.evaluation_stress_testing
                     )
                   }
-                  className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${
-                    values.evaluation_stress_testing
-                      ? "bg-emerald-600 border-emerald-500"
-                      : "bg-gray-400 border-gray-500"
-                  }`}
+                  className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${values.evaluation_stress_testing
+                    ? "text-blue-500 bg-emerald-300"
+                    : "text-red-500 bg-blue-400"
+                    }`}
                   style={{
                     backgroundColor: values.evaluation_stress_testing
                       ? "#10b981"
@@ -892,11 +962,10 @@ export default function MasPage7OperationalPillars({
                   }}
                 >
                   <span
-                    className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform ${
-                      values.evaluation_stress_testing
-                        ? "translate-x-5"
-                        : "translate-x-0"
-                    }`}
+                    className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform ${values.evaluation_stress_testing
+                      ? "translate-x-5"
+                      : "translate-x-0"
+                      }`}
                   />
                 </button>
               </div>

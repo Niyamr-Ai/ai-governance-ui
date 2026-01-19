@@ -48,11 +48,10 @@ export default function MasPage3GovernanceOversight({
 
               <div className="ml-4 flex items-center gap-2">
                 <span
-                  className={`text-xs font-bold px-2 py-1 rounded ${
-                    values.governance_policy
-                      ? "text-emerald-900 bg-emerald-300"
-                      : "text-slate-400 bg-slate-700"
-                  }`}
+                  className={`text-xs font-bold px-2 py-1 rounded ${values.governance_policy
+                    ? "text-blue-500 bg-emerald-300"
+                    : "text-red-500 bg-blue-400"
+                    }`}
                 >
                   {values.governance_policy ? "YES" : "NO"}
                 </span>
@@ -75,11 +74,10 @@ export default function MasPage3GovernanceOversight({
                   }}
                 >
                   <span
-                    className={`inline-block h-6 w-6 transform rounded-full bg-white transition ${
-                      values.governance_policy
-                        ? "translate-x-5"
-                        : "translate-x-0"
-                    }`}
+                    className={`inline-block h-6 w-6 transform rounded-full bg-white transition ${values.governance_policy
+                      ? "translate-x-5"
+                      : "translate-x-0"
+                      }`}
                   />
                 </button>
               </div>
@@ -144,16 +142,54 @@ export default function MasPage3GovernanceOversight({
                   className="min-h-[100px] rounded-xl"
                 />
 
-                <Input
-                  type="file"
-                  accept=".pdf,.doc,.docx,.txt"
-                  onChange={(e) =>
-                    handleEvidenceFileChange(
-                      "governance_evidence",
-                      e.target.files?.[0] || null
-                    )
-                  }
-                />
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-foreground">
+                    Upload Governance Evidence
+                  </Label>
+
+                  <div className="relative flex items-center gap-3">
+                    {/* Hidden File Input */}
+                    <Input
+                      id="governance-evidence"
+                      type="file"
+                      accept=".pdf,.doc,.docx,.txt"
+                      className="hidden"
+                      onChange={(e) =>
+                        handleEvidenceFileChange(
+                          "governance_evidence",
+                          e.target.files?.[0] || null
+                        )
+                      }
+                    />
+
+                    {/* Custom Upload Button */}
+                    <label
+                      htmlFor="governance-evidence"
+                      className="
+        inline-flex cursor-pointer items-center gap-2 rounded-xl
+        border border-border bg-background px-4 py-2 text-sm
+        text-foreground shadow-sm transition
+        hover:bg-accent hover:text-accent-foreground
+        focus-visible:outline-none focus-visible:ring-2
+        focus-visible:ring-ring focus-visible:ring-offset-2
+      "
+                    >
+                      📎 Upload file
+                    </label>
+
+                    {/* File Status */}
+                    {evidenceContent.governance_evidence ? (
+                      <span className="text-xs text-emerald-400">
+                        ✓ File processed ({evidenceContent.governance_evidence.length} chars)
+                      </span>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">
+                        PDF, DOC, DOCX, TXT
+                      </span>
+                    )}
+                  </div>
+                </div>
+
 
                 {evidenceContent.governance_evidence && (
                   <p className="text-xs text-emerald-400">
@@ -203,6 +239,7 @@ export default function MasPage3GovernanceOversight({
               Policy Review Frequency
             </Label>
             <Input
+              className="rounded-xl"
               value={values.governance_policy_review_frequency || ""}
               onChange={(e) =>
                 setFieldValue(

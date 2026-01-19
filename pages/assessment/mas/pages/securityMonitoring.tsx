@@ -13,12 +13,12 @@ import { Input } from "@/components/ui/input";
 import { useFormikContext } from "formik";
 
 type EvidenceContent = Record<string, string>;
-  
-  
-  type Props = {
-    masCurrentPage: number;
-    handleEvidenceFileChange: (key: string, file: File | null) => void;
-  };
+
+
+type Props = {
+  masCurrentPage: number;
+  handleEvidenceFileChange: (key: string, file: File | null) => void;
+};
 
 export default function SecurityMonitoring({
   masCurrentPage,
@@ -66,7 +66,7 @@ export default function SecurityMonitoring({
                     }
                     placeholder="e.g., Encryption, access controls, authentication, network security, API security..."
                     className="min-h-[100px] rounded-xl"
-                    required={values.security_measures}
+                    // required={values.security_measures}
                   />
                 </div>
 
@@ -83,7 +83,7 @@ export default function SecurityMonitoring({
                       )
                     }
                     className="min-h-[100px] rounded-xl"
-                    required={values.security_measures}
+                    // required={values.security_measures}
                   />
                 </div>
 
@@ -97,7 +97,7 @@ export default function SecurityMonitoring({
                       setFieldValue("security_data_leakage", e.target.value)
                     }
                     className="min-h-[100px] rounded-xl"
-                    required={values.security_measures}
+                    // required={values.security_measures}
                   />
                 </div>
 
@@ -226,11 +226,10 @@ export default function SecurityMonitoring({
                 </div>
                 <div className="ml-4 flex items-center gap-2">
                   <span
-                    className={`text-xs font-bold px-2 py-1 rounded ${
-                      values.security_penetration_testing
-                        ? "text-emerald-900 bg-emerald-300"
-                        : "text-slate-400 bg-slate-700"
-                    }`}
+                    className={`text-xs font-bold px-2 py-1 rounded ${values.security_penetration_testing
+                        ? "text-blue-500 bg-emerald-300"
+                        : "text-red-500 bg-blue-400"
+                      }`}
                   >
                     {values.security_penetration_testing ? "YES" : "NO"}
                   </span>
@@ -244,11 +243,10 @@ export default function SecurityMonitoring({
                         !values.security_penetration_testing
                       )
                     }
-                    className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${
-                      values.security_penetration_testing
-                        ? "bg-emerald-600 border-emerald-500"
-                        : "bg-gray-400 border-gray-500"
-                    }`}
+                    className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${values.security_penetration_testing
+                        ? "text-blue-500 bg-emerald-300"
+                        : "text-red-500 bg-blue-400"
+                      }`}
                     style={{
                       backgroundColor: values.security_penetration_testing
                         ? "#10b981"
@@ -256,11 +254,10 @@ export default function SecurityMonitoring({
                     }}
                   >
                     <span
-                      className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform ${
-                        values.security_penetration_testing
+                      className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform ${values.security_penetration_testing
                           ? "translate-x-5"
                           : "translate-x-0"
-                      }`}
+                        }`}
                     />
                   </button>
                 </div>
@@ -344,11 +341,10 @@ export default function SecurityMonitoring({
                 </div>
                 <div className="ml-4 flex items-center gap-2">
                   <span
-                    className={`text-xs font-bold px-2 py-1 rounded ${
-                      values.monitoring_plan
-                        ? "text-emerald-900 bg-emerald-300"
-                        : "text-slate-400 bg-slate-700"
-                    }`}
+                    className={`text-xs font-bold px-2 py-1 rounded ${values.monitoring_plan
+                        ? "text-blue-500 bg-emerald-300"
+                        : "text-red-500 bg-blue-400"
+                      }`}
                   >
                     {values.monitoring_plan ? "YES" : "NO"}
                   </span>
@@ -362,11 +358,10 @@ export default function SecurityMonitoring({
                         !values.monitoring_plan
                       )
                     }
-                    className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${
-                      values.monitoring_plan
-                        ? "bg-emerald-600 border-emerald-500"
-                        : "bg-gray-400 border-gray-500"
-                    }`}
+                    className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${values.monitoring_plan
+                        ? "text-blue-500 bg-emerald-300"
+                        : "text-red-500 bg-blue-400"
+                      }`}
                     style={{
                       backgroundColor: values.monitoring_plan
                         ? "#10b981"
@@ -374,11 +369,10 @@ export default function SecurityMonitoring({
                     }}
                   >
                     <span
-                      className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform ${
-                        values.monitoring_plan
+                      className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform ${values.monitoring_plan
                           ? "translate-x-5"
                           : "translate-x-0"
-                      }`}
+                        }`}
                     />
                   </button>
                 </div>
@@ -400,7 +394,7 @@ export default function SecurityMonitoring({
                       }
                       placeholder="Describe: Drift detection methods, monitoring metrics, alerting thresholds, how often you check for drift, tools used, etc."
                       className="min-h-[100px] rounded-xl"
-                      required={values.monitoring_plan}
+                      // required={values.monitoring_plan}
                     />
                   </div>
                   <div className="space-y-2">
@@ -417,7 +411,7 @@ export default function SecurityMonitoring({
                       }
                       placeholder="Describe: Incident detection, reporting procedures, escalation process, response team, incident resolution, post-incident review, etc."
                       className="min-h-[100px] rounded-xl"
-                      required={values.monitoring_plan}
+                      // required={values.monitoring_plan}
                     />
                   </div>
                   <div className="space-y-2">
@@ -434,7 +428,7 @@ export default function SecurityMonitoring({
                       }
                       placeholder="Describe: Version control system, model versioning strategy, change approval process, rollback procedures, testing before deployment, etc."
                       className="min-h-[100px] rounded-xl"
-                      required={values.monitoring_plan}
+                      // required={values.monitoring_plan}
                     />
                   </div>
                   <div className="space-y-2">
@@ -442,20 +436,13 @@ export default function SecurityMonitoring({
                       Evidence: Upload monitoring plans or incident management
                       procedures
                     </Label>
-                    <Input
-                      type="file"
-                      accept=".pdf,.doc,.docx"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          handleEvidenceFileChange(
-                            "monitoring_evidence",
-                            file || null
-                          );
-                        }
-                      }}
-                      className="file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-slate-700 file:text-slate-100 hover:file:bg-slate-600"
-                    />
+                    <EvidenceUpload
+                  label="Upload security documentation or security assessment reports"
+                  accept=".pdf,.doc,.docx"
+                  onFileSelect={(file) =>
+                    handleEvidenceFileChange("security_evidence", file)
+                  }
+                />
                   </div>
                 </div>
               )}
@@ -629,11 +616,10 @@ export default function SecurityMonitoring({
                 </div>
                 <div className="ml-4 flex items-center gap-2">
                   <span
-                    className={`text-xs font-bold px-2 py-1 rounded ${
-                      values.monitoring_kill_switch
-                        ? "text-emerald-900 bg-emerald-300"
-                        : "text-slate-400 bg-slate-700"
-                    }`}
+                    className={`text-xs font-bold px-2 py-1 rounded ${values.monitoring_kill_switch
+                        ? "text-blue-500 bg-emerald-300"
+                        : "text-red-500 bg-blue-400"
+                      }`}
                   >
                     {values.monitoring_kill_switch ? "YES" : "NO"}
                   </span>
@@ -647,11 +633,10 @@ export default function SecurityMonitoring({
                         !values.monitoring_kill_switch
                       )
                     }
-                    className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${
-                      values.monitoring_kill_switch
-                        ? "bg-emerald-600 border-emerald-500"
-                        : "bg-gray-400 border-gray-500"
-                    }`}
+                    className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${values.monitoring_kill_switch
+                        ? "text-blue-500 bg-emerald-300"
+                        : "text-red-500 bg-blue-400"
+                      }`}
                     style={{
                       backgroundColor: values.monitoring_kill_switch
                         ? "#10b981"
@@ -659,11 +644,10 @@ export default function SecurityMonitoring({
                     }}
                   >
                     <span
-                      className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform ${
-                        values.monitoring_kill_switch
+                      className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform ${values.monitoring_kill_switch
                           ? "translate-x-5"
                           : "translate-x-0"
-                      }`}
+                        }`}
                     />
                   </button>
                 </div>
@@ -704,11 +688,10 @@ export default function SecurityMonitoring({
                 </div>
                 <div className="ml-4 flex items-center gap-2">
                   <span
-                    className={`text-xs font-bold px-2 py-1 rounded ${
-                      values.capability_training
-                        ? "text-emerald-900 bg-emerald-300"
-                        : "text-slate-400 bg-slate-700"
-                    }`}
+                    className={`text-xs font-bold px-2 py-1 rounded ${values.capability_training
+                        ? "text-blue-500 bg-emerald-300"
+                        : "text-red-500 bg-blue-400"
+                      }`}
                   >
                     {values.capability_training ? "YES" : "NO"}
                   </span>
@@ -722,11 +705,10 @@ export default function SecurityMonitoring({
                         !values.capability_training
                       )
                     }
-                    className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${
-                      values.capability_training
-                        ? "bg-emerald-600 border-emerald-500"
-                        : "bg-gray-400 border-gray-500"
-                    }`}
+                    className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${values.capability_training
+                        ? "text-blue-500 bg-emerald-300"
+                        : "text-red-500 bg-blue-400"
+                      }`}
                     style={{
                       backgroundColor: values.capability_training
                         ? "#10b981"
@@ -734,11 +716,10 @@ export default function SecurityMonitoring({
                     }}
                   >
                     <span
-                      className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform ${
-                        values.capability_training
+                      className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform ${values.capability_training
                           ? "translate-x-5"
                           : "translate-x-0"
-                      }`}
+                        }`}
                     />
                   </button>
                 </div>
@@ -759,7 +740,7 @@ export default function SecurityMonitoring({
                       }
                       placeholder="Describe: Team members' AI/ML expertise, data science skills, compliance knowledge, risk management experience, certifications, etc."
                       className="min-h-[100px] rounded-xl"
-                      required={values.capability_training}
+                      // required={values.capability_training}
                     />
                   </div>
                   <div className="space-y-2">
@@ -776,7 +757,7 @@ export default function SecurityMonitoring({
                       }
                       placeholder="e.g., AI ethics training, MAS guidelines training, risk assessment workshops, model monitoring courses, compliance certifications, etc."
                       className="min-h-[100px] rounded-xl"
-                      required={values.capability_training}
+                      // required={values.capability_training}
                     />
                   </div>
                   <div className="space-y-2">
@@ -794,7 +775,7 @@ export default function SecurityMonitoring({
                       }
                       placeholder="Describe: Monitoring tools, model versioning systems, data quality tools, compliance management platforms, risk assessment tools, etc."
                       className="min-h-[100px] rounded-xl"
-                      required={values.capability_training}
+                      // required={values.capability_training}
                     />
                   </div>
                   <div className="space-y-2">
@@ -802,20 +783,13 @@ export default function SecurityMonitoring({
                       Evidence: Upload training certificates or infrastructure
                       documentation
                     </Label>
-                    <Input
-                      type="file"
-                      accept=".pdf,.doc,.docx"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          handleEvidenceFileChange(
-                            "capability_evidence",
-                            file || null
-                          );
-                        }
-                      }}
-                      className="file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-slate-700 file:text-slate-100 hover:file:bg-slate-600"
-                    />
+                    <EvidenceUpload
+                  label="Upload security documentation or security assessment reports"
+                  accept=".pdf,.doc,.docx"
+                  onFileSelect={(file) =>
+                    handleEvidenceFileChange("security_evidence", file)
+                  }
+                />
                   </div>
                 </div>
               )}

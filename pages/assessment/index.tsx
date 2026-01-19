@@ -610,7 +610,7 @@ export default function AssessmentChooserPage() {
     sector: Yup.string().required("Sector is required"),
     description: Yup.string().required("Description is required"),
   });
-  
+
 
   const ukPageSchemas = [
     // Page 0
@@ -647,14 +647,61 @@ export default function AssessmentChooserPage() {
       description: Yup.string().required("Description is required"),
     }),
 
+
     // Page 1 – Data & Dependencies
     Yup.object({
       uses_personal_data: Yup.boolean(),
+
       personal_data_types: Yup.string().when("uses_personal_data", {
         is: true,
-        then: (s) => s.required("Required when personal data is used"),
+        then: (s) =>
+          s.required("What kind of personal data are you using is required"),
+        otherwise: (s) => s.notRequired(),
+      }),
+
+      personal_data_logged_where: Yup.string().when("uses_personal_data", {
+        is: true,
+        then: (s) =>
+          s.required("Where the personal data is stored is required"),
+        otherwise: (s) => s.notRequired(),
+      }),
+
+      personal_data_use_cases: Yup.string().when("uses_personal_data", {
+        is: true,
+        then: (s) =>
+          s.required("Personal data use cases are required"),
+        otherwise: (s) => s.notRequired(),
+      }),
+
+      sensitive_data_types: Yup.string().when("uses_special_category_data", {
+        is: true,
+        then: (s) =>
+          s.required("sensitive data types are required"),
+        otherwise: (s) => s.notRequired(),
+      }),
+
+      sensitive_data_logged_where: Yup.string().when("uses_special_category_data", {
+        is: true,
+        then: (s) =>
+          s.required("Where the sensitive data is stored is required"),
+        otherwise: (s) => s.notRequired(),
+      }),
+
+      third_party_services_list: Yup.string().when("uses_third_party_ai", {
+        is: true,
+        then: (s) =>
+          s.required("sensitive data types are required"),
+        otherwise: (s) => s.notRequired(),
+      }),
+
+      third_party_services_safety: Yup.string().when("uses_third_party_ai", {
+        is: true,
+        then: (s) =>
+          s.required("List of Third Party services are required"),
+        otherwise: (s) => s.notRequired(),
       }),
     }),
+
 
     // Page 2 – Governance
     Yup.object({
@@ -833,27 +880,27 @@ export default function AssessmentChooserPage() {
         delete updated[key];
         return updated;
       });
-  
+
       setEvidenceContent((prev) => {
         const updated = { ...prev };
         delete updated[key];
         return updated;
       });
-  
+
       return;
     }
-  
+
     setEvidenceFiles((prev) => ({ ...prev, [key]: file }));
-  
+
     try {
       const formData = new FormData();
       formData.append("files", file);
-  
+
       const res = await backendFetch("/api/process-evidence", {
         method: "POST",
         body: formData,
       });
-  
+
       if (res.ok) {
         const data = await res.json();
         if (data.files?.[file.name]) {
@@ -867,8 +914,8 @@ export default function AssessmentChooserPage() {
       console.error("Error processing evidence file:", error);
     }
   };
-  
-  
+
+
 
 
 
@@ -1205,7 +1252,7 @@ export default function AssessmentChooserPage() {
               }
               onSubmit={handleFormSubmit}
             >
-              {({ handleSubmit, validateForm, setTouched, errors, setFieldValue }) => {
+              {({ handleSubmit, validateForm, setTouched, errors, setFieldValue, submitForm }) => {
 
                 const handleMasNext = async () => {
                   const errors = await validateForm();
@@ -1215,8 +1262,8 @@ export default function AssessmentChooserPage() {
                       acc[key] = true;
                       return acc;
                     }, {} as Record<string, boolean>);
-                    
-                    setTouched(touched);                    
+
+                    setTouched(touched);
                     return; // 🚫 BLOCK navigation
                   }
 
@@ -1232,9 +1279,9 @@ export default function AssessmentChooserPage() {
                       acc[key] = true;
                       return acc;
                     }, {} as Record<string, boolean>);
-                    
+
                     setTouched(touched);
-                    
+
                     return; // 🚫 BLOCK navigation
                   }
 
@@ -1461,24 +1508,16 @@ export default function AssessmentChooserPage() {
                               </Button>
                             ) : (
                               <Button
-                                type="submit"
+                                type="button"
                                 disabled={isSubmitting}
-                                variant="hero"
-                                onClick={(e) => {
-                                  console.log("[MAS Form] Submit button clicked on page", masCurrentPage);
-                                  // Let form onSubmit handle it
+                                onClick={() => {
+                                  console.log("[MAS Form] Manual submit triggered");
+                                  submitForm();
                                 }}
-                                className="rounded-xl bg-green-600 hover:bg-green-700 text-white"
                               >
-                                {isSubmitting ? (
-                                  <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Submitting...
-                                  </>
-                                ) : (
-                                  "Submit Assessment"
-                                )}
+                                Submit Assessment
                               </Button>
+
                             )}
                           </div>
                         </>

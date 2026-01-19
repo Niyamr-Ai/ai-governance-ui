@@ -44,8 +44,8 @@ export default function MasPage2DataDependencies({
                           <div className="ml-4 flex items-center gap-2">
                             <span className={`text-xs font-bold px-2 py-1 rounded ${
                               values.uses_personal_data 
-                                ? "text-emerald-900 bg-emerald-300" 
-                                : "text-slate-400 bg-slate-700"
+                                ? "text-blue-500 bg-emerald-300" 
+                                : "text-red-500 bg-blue-400"
                             }`}>
                               {values.uses_personal_data ? "YES" : "NO"}
                             </span>
@@ -56,8 +56,8 @@ export default function MasPage2DataDependencies({
                               onClick={() => setFieldValue("uses_personal_data", !values.uses_personal_data)}
                               className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${
                                 values.uses_personal_data 
-                                  ? "bg-emerald-600 border-emerald-500" 
-                                  : "bg-gray-400 border-gray-500"
+                                  ? "text-blue-500 bg-emerald-300" 
+                                : "text-red-500 bg-blue-400"
                               }`}
                               style={{
                                 backgroundColor: values.uses_personal_data ? '#10b981' : '#9ca3af',
@@ -116,8 +116,8 @@ export default function MasPage2DataDependencies({
                           <div className="ml-4 flex items-center gap-2">
                             <span className={`text-xs font-bold px-2 py-1 rounded ${
                               values.uses_special_category_data 
-                                ? "text-emerald-900 bg-emerald-300" 
-                                : "text-slate-400 bg-slate-700"
+                                ? "text-blue-500 bg-emerald-300" 
+                                : "text-red-500 bg-blue-400"
                             }`}>
                               {values.uses_special_category_data ? "YES" : "NO"}
                             </span>
@@ -128,8 +128,8 @@ export default function MasPage2DataDependencies({
                               onClick={() => setFieldValue("uses_special_category_data", !values.uses_special_category_data)}
                               className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${
                                 values.uses_special_category_data 
-                                  ? "bg-emerald-600 border-emerald-500" 
-                                  : "bg-gray-400 border-gray-500"
+                                  ? "text-blue-500 bg-emerald-300" 
+                                : "text-red-500 bg-blue-400"
                               }`}
                               style={{
                                 backgroundColor: values.uses_special_category_data ? '#10b981' : '#9ca3af',
@@ -179,8 +179,8 @@ export default function MasPage2DataDependencies({
                           <div className="ml-4 flex items-center gap-2">
                             <span className={`text-xs font-bold px-2 py-1 rounded ${
                               values.uses_third_party_ai 
-                                ? "text-emerald-900 bg-emerald-300" 
-                                : "text-slate-400 bg-slate-700"
+                                ? "text-blue-500 bg-emerald-300" 
+                                : "text-red-500 bg-blue-400"
                             }`}>
                               {values.uses_third_party_ai ? "YES" : "NO"}
                             </span>
@@ -191,8 +191,8 @@ export default function MasPage2DataDependencies({
                               onClick={() => setFieldValue("uses_third_party_ai", !values.uses_third_party_ai)}
                               className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${
                                 values.uses_third_party_ai 
-                                  ? "bg-emerald-600 border-emerald-500" 
-                                  : "bg-gray-400 border-gray-500"
+                                  ? "text-blue-500 bg-emerald-300" 
+                                : "text-red-500 bg-blue-400"
                               }`}
                               style={{
                                 backgroundColor: values.uses_third_party_ai ? '#10b981' : '#9ca3af',

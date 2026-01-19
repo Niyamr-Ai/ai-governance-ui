@@ -1,55 +1,54 @@
 import {
-    Card,
-    CardHeader,
-    CardTitle,
-    CardDescription,
-    CardContent,
-  } from "@/components/ui/card";
-  import { Label } from "@/components/ui/label";
-  import { Textarea } from "@/components/ui/textarea";
-  import { Input } from "@/components/ui/input";
-  import { useFormikContext } from "formik";
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { useFormikContext } from "formik";
 
-  type EvidenceContent = Record<string, string>;
-  
-  
-  type Props = {
-    masCurrentPage: number;
-    handleEvidenceFileChange: (key: string, file: File | null) => void;
-    evidenceContent: EvidenceContent;
-  };
-  
-  
-  export default function MasPage6TechnicalPillars({
-    masCurrentPage,
-    handleEvidenceFileChange,
-    evidenceContent,
-  }: Props) {
-    const { values, setFieldValue } = useFormikContext<any>();
-    if (masCurrentPage !== 5) return null;
-  
-    return (
-        <Card className="glass-panel">
-        <CardHeader>
-            <CardTitle className="text-foreground">Technical Pillars</CardTitle>
-            <CardDescription className="text-muted-foreground">
-            Transparency & Explainability, Fairness & Bias Testing, and Human Oversight
-            </CardDescription>
+type EvidenceContent = Record<string, string>;
+
+
+type Props = {
+  masCurrentPage: number;
+  handleEvidenceFileChange: (key: string, file: File | null) => void;
+  evidenceContent: EvidenceContent;
+};
+
+
+export default function MasPage6TechnicalPillars({
+  masCurrentPage,
+  handleEvidenceFileChange,
+  evidenceContent,
+}: Props) {
+  const { values, setFieldValue } = useFormikContext<any>();
+  if (masCurrentPage !== 5) return null;
+
+  return (
+    <Card className="glass-panel">
+      <CardHeader>
+        <CardTitle className="text-foreground">Technical Pillars</CardTitle>
+        <CardDescription className="text-muted-foreground">
+          Transparency & Explainability, Fairness & Bias Testing, and Human Oversight
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
         {/* Transparency & Explainability with Sub-questions */}
         <div className="space-y-3 border border-border rounded-xl p-4 glass-panel">
           <div className="flex items-center justify-between">
             <div className="space-y-0.5 flex-1">
-            <Label className="text-base font-medium text-foreground">Transparency & Explainability</Label>
-            <p className="text-sm text-muted-foreground">Do you have documentation explaining how the system works to users or stakeholders?</p>
-          </div>
+              <Label className="text-base font-medium text-foreground">Transparency & Explainability</Label>
+              <p className="text-sm text-muted-foreground">Do you have documentation explaining how the system works to users or stakeholders?</p>
+            </div>
             <div className="ml-4 flex items-center gap-2">
-              <span className={`text-xs font-bold px-2 py-1 rounded ${
-                values.transparency_docs 
-                  ? "text-emerald-900 bg-emerald-300" 
-                  : "text-slate-400 bg-slate-700"
-              }`}>
+              <span className={`text-xs font-bold px-2 py-1 rounded ${values.transparency_docs
+                ? "text-blue-500 bg-emerald-300"
+                : "text-red-500 bg-blue-400"
+                }`}>
                 {values.transparency_docs ? "YES" : "NO"}
               </span>
               <button
@@ -57,14 +56,12 @@ import {
                 role="switch"
                 aria-checked={values.transparency_docs}
                 onClick={() => setFieldValue("transparency_docs", !values.transparency_docs)}
-                className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${
-                  values.transparency_docs ? "bg-emerald-600 border-emerald-500" : "bg-gray-400 border-gray-500"
-                }`}
+                className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${values.transparency_docs ? "bg-emerald-600 border-emerald-500" : "bg-gray-400 border-gray-500"
+                  }`}
                 style={{ backgroundColor: values.transparency_docs ? '#10b981' : '#9ca3af' }}
               >
-                <span className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform ${
-                  values.transparency_docs ? "translate-x-5" : "translate-x-0"
-                }`} />
+                <span className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform ${values.transparency_docs ? "translate-x-5" : "translate-x-0"
+                  }`} />
               </button>
             </div>
           </div>
@@ -78,8 +75,8 @@ import {
                   placeholder="e.g., User guides, system explanation documents, model cards, API documentation, decision explanation reports, etc."
                   className="min-h-[80px] rounded-xl"
                   required={values.transparency_docs}
-          />
-        </div>
+                />
+              </div>
               <div className="space-y-2">
                 <Label className="text-sm font-medium text-foreground">How do you explain system decisions to users or stakeholders? *</Label>
                 <Textarea
@@ -90,21 +87,55 @@ import {
                   required={values.transparency_docs}
                 />
               </div>
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-foreground">Evidence: Upload transparency documentation</Label>
-                <Input
-                  type="file"
-                  accept=".pdf,.doc,.docx"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      handleEvidenceFileChange("transparency_evidence", file || null);
-                    }
-                  }}
-                  className="file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-slate-700 file:text-slate-100 hover:file:bg-slate-600"
-                />
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-foreground">
+                  Evidence: Upload transparency documentation
+                  </Label>
+
+                  <div className="relative flex items-center gap-3">
+                    {/* Hidden File Input */}
+                    <Input
+                      id="transparency_evidence"
+                      type="file"
+                      accept=".pdf,.doc,.docx,.txt"
+                      className="hidden"
+                      onChange={(e) =>
+                        handleEvidenceFileChange(
+                          "transparency_evidence",
+                          e.target.files?.[0] || null
+                        )
+                      }
+                    />
+
+                    {/* Custom Upload Button */}
+                    <label
+                      htmlFor="transparency_evidence"
+                      className="
+        inline-flex cursor-pointer items-center gap-2 rounded-xl
+        border border-border bg-background px-4 py-2 text-sm
+        text-foreground shadow-sm transition
+        hover:bg-accent hover:text-accent-foreground
+        focus-visible:outline-none focus-visible:ring-2
+        focus-visible:ring-ring focus-visible:ring-offset-2
+      "
+                    >
+                      📎 Upload file
+                    </label>
+
+                    {/* File Status */}
+                    {evidenceContent.transparency_evidence ? (
+                      <span className="text-xs text-emerald-400">
+                        ✓ File processed ({evidenceContent.transparency_evidence.length} chars)
+                      </span>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">
+                        PDF, DOC, DOCX, TXT
+                      </span>
+                    )}
+                  </div>
+                </div>
+
               </div>
-            </div>
           )}
         </div>
 
@@ -116,11 +147,10 @@ import {
               <p className="text-sm text-muted-foreground">Do you maintain model cards for each AI system?</p>
             </div>
             <div className="ml-4 flex items-center gap-2">
-              <span className={`text-xs font-bold px-2 py-1 rounded ${
-                values.transparency_model_cards 
-                  ? "text-emerald-900 bg-emerald-300" 
-                  : "text-slate-400 bg-slate-700"
-              }`}>
+              <span className={`text-xs font-bold px-2 py-1 rounded ${values.transparency_model_cards
+                ? "text-blue-500 bg-emerald-300"
+                : "text-red-500 bg-blue-400"
+                }`}>
                 {values.transparency_model_cards ? "YES" : "NO"}
               </span>
               <button
@@ -128,14 +158,12 @@ import {
                 role="switch"
                 aria-checked={values.transparency_model_cards}
                 onClick={() => setFieldValue("transparency_model_cards", !values.transparency_model_cards)}
-                className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${
-                  values.transparency_model_cards ? "bg-emerald-600 border-emerald-500" : "bg-gray-400 border-gray-500"
-                }`}
+                className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${values.transparency_model_cards ? "bg-emerald-600 border-emerald-500" : "bg-gray-400 border-gray-500"
+                  }`}
                 style={{ backgroundColor: values.transparency_model_cards ? '#10b981' : '#9ca3af' }}
               >
-                <span className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform ${
-                  values.transparency_model_cards ? "translate-x-5" : "translate-x-0"
-                }`} />
+                <span className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform ${values.transparency_model_cards ? "translate-x-5" : "translate-x-0"
+                  }`} />
               </button>
             </div>
           </div>
@@ -228,15 +256,14 @@ import {
         <div className="space-y-3 border border-border rounded-xl p-4 glass-panel">
           <div className="flex items-center justify-between">
             <div className="space-y-0.5 flex-1">
-            <Label className="text-base font-medium text-foreground">Fairness & Bias Testing</Label>
-            <p className="text-sm text-muted-foreground">Have you performed bias or discrimination testing on your system?</p>
-          </div>
+              <Label className="text-base font-medium text-foreground">Fairness & Bias Testing</Label>
+              <p className="text-sm text-muted-foreground">Have you performed bias or discrimination testing on your system?</p>
+            </div>
             <div className="ml-4 flex items-center gap-2">
-              <span className={`text-xs font-bold px-2 py-1 rounded ${
-                values.fairness_testing 
-                  ? "text-emerald-900 bg-emerald-300" 
-                  : "text-slate-400 bg-slate-700"
-              }`}>
+              <span className={`text-xs font-bold px-2 py-1 rounded ${values.fairness_testing
+                ? "text-blue-500 bg-emerald-300"
+                : "text-red-500 bg-blue-400"
+                }`}>
                 {values.fairness_testing ? "YES" : "NO"}
               </span>
               <button
@@ -244,14 +271,12 @@ import {
                 role="switch"
                 aria-checked={values.fairness_testing}
                 onClick={() => setFieldValue("fairness_testing", !values.fairness_testing)}
-                className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${
-                  values.fairness_testing ? "bg-emerald-600 border-emerald-500" : "bg-gray-400 border-gray-500"
-                }`}
+                className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${values.fairness_testing ? "bg-emerald-600 border-emerald-500" : "bg-gray-400 border-gray-500"
+                  }`}
                 style={{ backgroundColor: values.fairness_testing ? '#10b981' : '#9ca3af' }}
               >
-                <span className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform ${
-                  values.fairness_testing ? "translate-x-5" : "translate-x-0"
-                }`} />
+                <span className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform ${values.fairness_testing ? "translate-x-5" : "translate-x-0"
+                  }`} />
               </button>
             </div>
           </div>
@@ -265,8 +290,8 @@ import {
                   placeholder="e.g., Demographic parity testing, equalized odds, calibration testing, disparate impact analysis, A/B testing across groups, etc."
                   className="min-h-[100px] rounded-xl"
                   required={values.fairness_testing}
-          />
-        </div>
+                />
+              </div>
               <div className="space-y-2">
                 <Label className="text-sm font-medium text-foreground">What were the results of your fairness testing? *</Label>
                 <Textarea
@@ -278,18 +303,51 @@ import {
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-sm font-medium text-foreground">Evidence: Upload fairness testing reports or results</Label>
-                <Input
-                  type="file"
-                  accept=".pdf,.doc,.docx,.xlsx"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      handleEvidenceFileChange("fairness_evidence", file || null);
+                <Label className="text-sm font-medium text-foreground">
+                  Evidence: Upload fairness testing reports or results
+                </Label>
+
+                <div className="relative flex items-center gap-3">
+                  {/* Hidden File Input */}
+                  <Input
+                    id="fairness_evidence"
+                    type="file"
+                    accept=".pdf,.doc,.docx,.txt"
+                    className="hidden"
+                    onChange={(e) =>
+                      handleEvidenceFileChange(
+                        "fairness_evidence",
+                        e.target.files?.[0] || null
+                      )
                     }
-                  }}
-                  className="file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-slate-700 file:text-slate-100 hover:file:bg-slate-600"
-                />
+                  />
+
+                  {/* Custom Upload Button */}
+                  <label
+                    htmlFor="fairness_evidence"
+                    className="
+        inline-flex cursor-pointer items-center gap-2 rounded-xl
+        border border-border bg-background px-4 py-2 text-sm
+        text-foreground shadow-sm transition
+        hover:bg-accent hover:text-accent-foreground
+        focus-visible:outline-none focus-visible:ring-2
+        focus-visible:ring-ring focus-visible:ring-offset-2
+      "
+                  >
+                    📎 Upload file
+                  </label>
+
+                  {/* File Status */}
+                  {evidenceContent.fairness_evidence ? (
+                    <span className="text-xs text-emerald-400">
+                      ✓ File processed ({evidenceContent.fairness_evidence.length} chars)
+                    </span>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">
+                      PDF, DOC, DOCX, TXT
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           )}
@@ -387,11 +445,10 @@ import {
               <p className="text-sm text-muted-foreground">Do you use external auditors to validate fairness testing?</p>
             </div>
             <div className="ml-4 flex items-center gap-2">
-              <span className={`text-xs font-bold px-2 py-1 rounded ${
-                values.fairness_external_validation 
-                  ? "text-emerald-900 bg-emerald-300" 
-                  : "text-slate-400 bg-slate-700"
-              }`}>
+              <span className={`text-xs font-bold px-2 py-1 rounded ${values.fairness_external_validation
+                ? "text-blue-500 bg-emerald-300"
+                : "text-red-500 bg-blue-400"
+                }`}>
                 {values.fairness_external_validation ? "YES" : "NO"}
               </span>
               <button
@@ -399,14 +456,12 @@ import {
                 role="switch"
                 aria-checked={values.fairness_external_validation}
                 onClick={() => setFieldValue("fairness_external_validation", !values.fairness_external_validation)}
-                className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${
-                  values.fairness_external_validation ? "bg-emerald-600 border-emerald-500" : "bg-gray-400 border-gray-500"
-                }`}
+                className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${values.fairness_external_validation ? "bg-emerald-600 border-emerald-500" : "bg-gray-400 border-gray-500"
+                  }`}
                 style={{ backgroundColor: values.fairness_external_validation ? '#10b981' : '#9ca3af' }}
               >
-                <span className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform ${
-                  values.fairness_external_validation ? "translate-x-5" : "translate-x-0"
-                }`} />
+                <span className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform ${values.fairness_external_validation ? "translate-x-5" : "translate-x-0"
+                  }`} />
               </button>
             </div>
           </div>
@@ -429,15 +484,14 @@ import {
         <div className="space-y-3 border border-border rounded-xl p-4 glass-panel">
           <div className="flex items-center justify-between">
             <div className="space-y-0.5 flex-1">
-            <Label className="text-base font-medium text-foreground">Human Oversight</Label>
-            <p className="text-sm text-muted-foreground">Do you have human-in-the-loop (HITL) or human-on-the-loop (HOTL) processes defined?</p>
-          </div>
+              <Label className="text-base font-medium text-foreground">Human Oversight</Label>
+              <p className="text-sm text-muted-foreground">Do you have human-in-the-loop (HITL) or human-on-the-loop (HOTL) processes defined?</p>
+            </div>
             <div className="ml-4 flex items-center gap-2">
-              <span className={`text-xs font-bold px-2 py-1 rounded ${
-                values.human_oversight 
-                  ? "text-emerald-900 bg-emerald-300" 
-                  : "text-slate-400 bg-slate-700"
-              }`}>
+              <span className={`text-xs font-bold px-2 py-1 rounded ${values.human_oversight
+                ? "text-blue-500 bg-emerald-300"
+                : "text-red-500 bg-blue-400"
+                }`}>
                 {values.human_oversight ? "YES" : "NO"}
               </span>
               <button
@@ -445,14 +499,12 @@ import {
                 role="switch"
                 aria-checked={values.human_oversight}
                 onClick={() => setFieldValue("human_oversight", !values.human_oversight)}
-                className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${
-                  values.human_oversight ? "bg-emerald-600 border-emerald-500" : "bg-gray-400 border-gray-500"
-                }`}
+                className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${values.human_oversight ? "bg-emerald-600 border-emerald-500" : "bg-gray-400 border-gray-500"
+                  }`}
                 style={{ backgroundColor: values.human_oversight ? '#10b981' : '#9ca3af' }}
               >
-                <span className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform ${
-                  values.human_oversight ? "translate-x-5" : "translate-x-0"
-                }`} />
+                <span className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform ${values.human_oversight ? "translate-x-5" : "translate-x-0"
+                  }`} />
               </button>
             </div>
           </div>
@@ -466,8 +518,8 @@ import {
                   placeholder="e.g., Human-in-the-loop (HITL) - humans review every decision before execution. Human-on-the-loop (HOTL) - humans monitor and can intervene. Both - different processes for different scenarios."
                   className="min-h-[80px] rounded-xl"
                   required={values.human_oversight}
-          />
-        </div>
+                />
+              </div>
               <div className="space-y-2">
                 <Label className="text-sm font-medium text-foreground">Describe your human oversight processes and when humans intervene *</Label>
                 <Textarea
@@ -479,19 +531,53 @@ import {
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-sm font-medium text-foreground">Evidence: Upload human oversight process documentation</Label>
-                <Input
-                  type="file"
-                  accept=".pdf,.doc,.docx"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      handleEvidenceFileChange("human_oversight_evidence", file || null);
+                <Label className="text-sm font-medium text-foreground">
+                  Evidence: Upload human oversight process documentation
+                </Label>
+
+                <div className="relative flex items-center gap-3">
+                  {/* Hidden File Input */}
+                  <Input
+                    id="human_oversight_evidence"
+                    type="file"
+                    accept=".pdf,.doc,.docx,.txt"
+                    className="hidden"
+                    onChange={(e) =>
+                      handleEvidenceFileChange(
+                        "human_oversight_evidence",
+                        e.target.files?.[0] || null
+                      )
                     }
-                  }}
-                  className="file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-slate-700 file:text-slate-100 hover:file:bg-slate-600"
-                />
+                  />
+
+                  {/* Custom Upload Button */}
+                  <label
+                    htmlFor="human_oversight_evidence"
+                    className="
+        inline-flex cursor-pointer items-center gap-2 rounded-xl
+        border border-border bg-background px-4 py-2 text-sm
+        text-foreground shadow-sm transition
+        hover:bg-accent hover:text-accent-foreground
+        focus-visible:outline-none focus-visible:ring-2
+        focus-visible:ring-ring focus-visible:ring-offset-2
+      "
+                  >
+                    📎 Upload file
+                  </label>
+
+                  {/* File Status */}
+                  {evidenceContent.human_oversight_evidence ? (
+                    <span className="text-xs text-emerald-400">
+                      ✓ File processed ({evidenceContent.human_oversight_evidence.length} chars)
+                    </span>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">
+                      PDF, DOC, DOCX, TXT
+                    </span>
+                  )}
+                </div>
               </div>
+
             </div>
           )}
         </div>
@@ -609,6 +695,5 @@ import {
         </div>
       </CardContent>
     </Card>
-    );
-  }
-  
+  );
+}
