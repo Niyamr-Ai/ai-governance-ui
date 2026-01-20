@@ -297,8 +297,8 @@ const res = await fetch("http://localhost:3001/api/red-teaming", {
   if (loading) {
     return (
       <div className="min-h-screen bg-white">
-        {isLoggedIn && <Sidebar onLogout={handleLogout} />}
-        <div className={`container mx-auto max-w-7xl py-8 px-4 ${isLoggedIn ? 'lg:pl-72 pt-24' : ''}`}>
+        <Sidebar onLogout={handleLogout} />
+        <Sidebar onLogout={handleLogout} /> mx-auto max-w-7xl py-8 px-4 ${isLoggedIn ? 'lg:pl-72 pt-24' : ''}`}>
           <div className="flex items-center justify-center min-h-[400px]">
             <div className="text-center">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
@@ -312,9 +312,9 @@ const res = await fetch("http://localhost:3001/api/red-teaming", {
 
   return (
     <div className="min-h-screen bg-white">
-      {isLoggedIn && <Sidebar onLogout={handleLogout} />}
+      <Sidebar onLogout={handleLogout} />
 
-      <div className={`container mx-auto max-w-7xl py-8 px-4 ${isLoggedIn ? 'lg:pl-72 pt-24' : ''}`}>
+      <Sidebar onLogout={handleLogout} /> mx-auto max-w-7xl py-8 px-4 ${isLoggedIn ? 'lg:pl-72 pt-24' : ''}`}>
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between">

@@ -6,8 +6,9 @@ type ToggleSectionProps = {
     description?: string;
     value: boolean;
     onChange: () => void;
-    children?: React.ReactNode;
+    children?: ReactNode;
   };
+  
   
   export default function ToggleSection({
     label,

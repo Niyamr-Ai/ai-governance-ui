@@ -99,7 +99,7 @@ export default function UKAssessmentDetailPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
-        {isLoggedIn && <Sidebar onLogout={handleLogout} />}
+        <Sidebar onLogout={handleLogout} />
         <div className={`text-center ${isLoggedIn ? 'lg:pl-72' : ''}`}>
           <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
           <p className="text-foreground text-lg font-medium">Loading assessment...</p>
@@ -111,7 +111,7 @@ export default function UKAssessmentDetailPage() {
   if (error || !data) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
-        {isLoggedIn && <Sidebar onLogout={handleLogout} />}
+        <Sidebar onLogout={handleLogout} />
         <div className={`container mx-auto max-w-4xl py-12 px-4 text-center ${isLoggedIn ? 'lg:pl-72' : ''}`}>
           <Card className="glass-panel border-red-200 shadow-elevated">
             <CardContent className="pt-6">
@@ -203,7 +203,7 @@ export default function UKAssessmentDetailPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      {isLoggedIn && <Sidebar onLogout={handleLogout} />}
+      <Sidebar onLogout={handleLogout} />
       <div className={`container mx-auto max-w-6xl py-10 px-4 space-y-8 ${isLoggedIn ? 'lg:pl-72 pt-24' : ''}`}>
         <div className="flex items-center justify-between">
           <div>

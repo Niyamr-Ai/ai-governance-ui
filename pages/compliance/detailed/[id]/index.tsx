@@ -119,7 +119,7 @@ export default function DetailedViewPage() {
   if (loading) {
     return (
       <main className="min-h-screen flex items-center justify-center bg-white">
-        {isLoggedIn && <Sidebar onLogout={handleLogout} />}
+        <Sidebar onLogout={handleLogout} />
         <div className={`text-center ${isLoggedIn ? 'lg:pl-72 pt-24' : ''}`}>
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
           <p className="text-foreground mt-4">Loading compliance results...</p>
@@ -131,7 +131,7 @@ export default function DetailedViewPage() {
   if (error) {
     return (
       <main className="min-h-screen flex items-center justify-center bg-white">
-        {isLoggedIn && <Sidebar onLogout={handleLogout} />}
+        <Sidebar onLogout={handleLogout} />
         <Card className={`max-w-md glass-panel border-red-200 ${isLoggedIn ? 'lg:ml-72' : ''}`}>
           <CardHeader>
             <CardTitle className="text-red-700">Error</CardTitle>
@@ -147,7 +147,7 @@ export default function DetailedViewPage() {
   if (!result && !error) {
     return (
       <main className="min-h-screen flex items-center justify-center bg-white">
-        {isLoggedIn && <Sidebar onLogout={handleLogout} />}
+        <Sidebar onLogout={handleLogout} />
         <Card className={`max-w-md glass-panel border-border/50 shadow-elevated ${isLoggedIn ? 'lg:ml-72' : ''}`}>
           <CardHeader>
             <CardTitle className="text-foreground">Detailed Assessment Not Found</CardTitle>
@@ -305,7 +305,7 @@ export default function DetailedViewPage() {
 
   return (
     <main className="min-h-screen bg-white pt-4 pb-8 px-4 sm:px-6 lg:px-8">
-      {isLoggedIn && <Sidebar onLogout={handleLogout} />}
+      <Sidebar onLogout={handleLogout} />
       <div className={`max-w-7xl mx-auto space-y-6 ${isLoggedIn ? 'lg:pl-72 pt-12' : ''}`}>
         <div className="glass-panel border-border/50 rounded-2xl shadow-elevated p-6">
           <div className="flex items-center justify-between">

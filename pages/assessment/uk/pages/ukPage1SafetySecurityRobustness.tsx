@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useFormikContext } from "formik";
+import EvidenceUpload from "../../shared/evidenceUpload";
 
 type Props = {
   ukCurrentPage: number;
@@ -40,8 +41,8 @@ export default function UkPage1SafetySecurityRobustness({
             <Label className="text-base font-semibold flex-1">Robustness testing and validation</Label>
             <div className="ml-4 flex items-center gap-2">
               <span className={`text-xs font-bold px-2 py-1 rounded ${values.robustness_testing
-                ? "text-emerald-900 bg-emerald-300"
-                : "text-slate-400 bg-slate-700"
+                ? "text-blue-500 bg-emerald-300"
+                : "text-red-500 bg-blue-400"
                 }`}>
                 {values.robustness_testing ? "YES" : "NO"}
               </span>
@@ -80,20 +81,40 @@ export default function UkPage1SafetySecurityRobustness({
                   className="rounded-xl"
                 />
               </div>
+
+
               <div className="space-y-2">
-                <Label>How frequently do you conduct robustness testing?</Label>
-                <Input
-                  value={values.robustness_testing_frequency || ""}
-                  onChange={(e) =>
-                    setFieldValue(
-                      "robustness_testing_frequency",
-                      e.target.value
-                    )
-                  }
-                  placeholder="e.g., Weekly, before each release"
-                  className="rounded-xl"
-                />
+                <Label className="text-sm font-medium text-foreground">
+                  How frequently do you conduct robustness testing?
+                </Label>
+                <div className="relative flex items-center gap-3">
+                  <EvidenceUpload
+                    label="Upload robustness testing frequency document"
+                    accept=".pdf,.doc,.docx,.txt"
+                    value={values.robustness_testing_frequency}
+                    onFileSelect={(file) => {
+                      handleEvidenceFileChange("uk_robustness_testing_frequency", file);
+                      setFieldValue(
+                        "robustness_testing_frequency",
+                        file ? file.name : ""
+                      );
+                    }}
+                  />
+
+
+                  {evidenceContent.uk_robustness_testing_frequency ? (
+                    <span className="text-xs text-emerald-400">
+                      ✓ File processed ({evidenceContent.uk_robustness_testing_frequency.length} chars)
+                    </span>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">
+                      PDF, DOC, DOCX, TXT
+                    </span>
+                  )}
+
+                </div>
               </div>
+
               <div className="space-y-2">
                 <Label>Test results summary</Label>
                 <Textarea
@@ -109,23 +130,19 @@ export default function UkPage1SafetySecurityRobustness({
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-sm font-medium text-foreground">Evidence: Upload robustness testing reports or documentation</Label>
-                <Input
-                  type="file"
+                <EvidenceUpload
+                  label="Upload robustness testing evidence"
                   accept=".pdf,.png,.jpg,.jpeg,.txt"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0] || null;
-
-                    // 1️⃣ parent → store file + OCR
+                  value={values.robustness_test_evidence}
+                  onFileSelect={(file) => {
                     handleEvidenceFileChange("uk_robustness_evidence", file);
-
-                    // 2️⃣ formik → store filename
                     setFieldValue(
                       "robustness_test_evidence",
-                      file ? file.name : ""
+                      file ? file.name : null
                     );
                   }}
                 />
+
 
                 {evidenceContent.uk_robustness_evidence && (
                   <p className="text-xs text-emerald-400 mt-1">
@@ -142,8 +159,8 @@ export default function UkPage1SafetySecurityRobustness({
             <Label className="text-base font-semibold flex-1">Red-teaming or adversarial testing</Label>
             <div className="ml-4 flex items-center gap-2">
               <span className={`text-xs font-bold px-2 py-1 rounded ${values.red_teaming
-                ? "text-emerald-900 bg-emerald-300"
-                : "text-slate-400 bg-slate-700"
+                ? "text-blue-500 bg-emerald-300"
+                : "text-red-500 bg-blue-400"
                 }`}>
                 {values.red_teaming ? "YES" : "NO"}
               </span>
@@ -211,23 +228,22 @@ export default function UkPage1SafetySecurityRobustness({
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-sm font-medium text-foreground">Evidence: Upload red-teaming reports or test results</Label>
-                <Input
-                  type="file"
+
+
+
+                <EvidenceUpload
+                  label="Upload red-teaming reports or test results"
                   accept=".pdf,.png,.jpg,.jpeg,.txt"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0] || null;
-
-                    // 1️⃣ parent → store file + OCR
+                  value={values.red_teaming_evidence}
+                  onFileSelect={(file) => {
                     handleEvidenceFileChange("uk_red_teaming_evidence", file);
-
-                    // 2️⃣ formik → store filename
                     setFieldValue(
                       "red_teaming_evidence",
-                      file ? file.name : ""
+                      file ? file.name : null
                     );
                   }}
                 />
+
 
                 {evidenceContent.uk_red_teaming_evidence && (
                   <p className="text-xs text-emerald-400 mt-1">
@@ -244,8 +260,8 @@ export default function UkPage1SafetySecurityRobustness({
             <Label className="text-base font-semibold flex-1">Misuse prevention measures</Label>
             <div className="ml-4 flex items-center gap-2">
               <span className={`text-xs font-bold px-2 py-1 rounded ${values.misuse_prevention
-                ? "text-emerald-900 bg-emerald-300"
-                : "text-slate-400 bg-slate-700"
+                ? "text-blue-500 bg-emerald-300"
+                : "text-red-500 bg-blue-400"
                 }`}>
                 {values.misuse_prevention ? "YES" : "NO"}
               </span>
@@ -307,8 +323,8 @@ export default function UkPage1SafetySecurityRobustness({
             <Label className="text-base font-semibold flex-1">Cybersecurity controls and monitoring</Label>
             <div className="ml-4 flex items-center gap-2">
               <span className={`text-xs font-bold px-2 py-1 rounded ${values.cybersecurity
-                ? "text-emerald-900 bg-emerald-300"
-                : "text-slate-400 bg-slate-700"
+                ? "text-blue-500 bg-emerald-300"
+                : "text-red-500 bg-blue-400"
                 }`}>
                 {values.cybersecurity ? "YES" : "NO"}
               </span>
@@ -376,24 +392,19 @@ export default function UkPage1SafetySecurityRobustness({
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-sm font-medium text-foreground">Evidence: Upload cybersecurity documentation or security assessment reports</Label>
-
-                <Input
-                  type="file"
+                <EvidenceUpload
+                  label="Upload cybersecurity documentation or security assessment reports"
                   accept=".pdf,.png,.jpg,.jpeg,.txt"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0] || null;
-
-                    // 1️⃣ parent → store file + OCR
+                  value={values.cybersecurity_evidence}
+                  onFileSelect={(file) => {
                     handleEvidenceFileChange("uk_cybersecurity_evidence", file);
-
-                    // 2️⃣ formik → store filename
                     setFieldValue(
                       "cybersecurity_evidence",
-                      file ? file.name : ""
+                      file ? file.name : null
                     );
                   }}
                 />
+
 
                 {evidenceContent.uk_cybersecurity_evidence && (
                   <p className="text-xs text-emerald-400 mt-1">
@@ -410,8 +421,8 @@ export default function UkPage1SafetySecurityRobustness({
             <Label className="text-base font-semibold flex-1">Safety testing protocols</Label>
             <div className="ml-4 flex items-center gap-2">
               <span className={`text-xs font-bold px-2 py-1 rounded ${values.safety_testing
-                ? "text-emerald-900 bg-emerald-300"
-                : "text-slate-400 bg-slate-700"
+                ? "text-blue-500 bg-emerald-300"
+                : "text-red-500 bg-blue-400"
                 }`}>
                 {values.safety_testing ? "YES" : "NO"}
               </span>
@@ -465,24 +476,23 @@ export default function UkPage1SafetySecurityRobustness({
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-sm font-medium text-foreground">Evidence: Upload safety testing reports or documentation</Label>
-              
-                <Input
-                  type="file"
+
+
+
+
+                <EvidenceUpload
+                  label="Upload safety testing reports or documentation"
                   accept=".pdf,.png,.jpg,.jpeg,.txt"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0] || null;
-
-                    // 1️⃣ parent → store file + OCR
+                  value={values.safety_testing_evidence}
+                  onFileSelect={(file) => {
                     handleEvidenceFileChange("uk_safety_testing_evidence", file);
-
-                    // 2️⃣ formik → store filename
                     setFieldValue(
                       "safety_testing_evidence",
-                      file ? file.name : ""
+                      file ? file.name : null
                     );
                   }}
                 />
+
 
                 {evidenceContent.uk_safety_testing_evidence && (
                   <p className="text-xs text-emerald-400 mt-1">
@@ -497,9 +507,3 @@ export default function UkPage1SafetySecurityRobustness({
     </Card>
   );
 }
-
-
-
-
-
-

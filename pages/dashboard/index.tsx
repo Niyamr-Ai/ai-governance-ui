@@ -669,7 +669,7 @@ export default function ComplianceDashboard() {
   return (
     <div className="min-h-screen bg-white">
       {/* Left sidebar - Only visible when logged in */}
-      {isLoggedIn && <Sidebar onLogout={handleLogout} />}
+      <Sidebar onLogout={handleLogout} />
 
       <div className={`p-6 lg:p-8 ${isLoggedIn ? 'lg:pl-72 pt-24' : ''}`}>
         <div className="space-y-8">

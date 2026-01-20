@@ -601,6 +601,14 @@ export default function AssessmentChooserPage() {
   const [evidenceFiles, setEvidenceFiles] = useState<Record<string, File>>({});
   const [evidenceContent, setEvidenceContent] = useState<Record<string, string>>({});
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [systemId, setSystemId] = useState<string | null>(null);
+  const [ukInitialFromDb, setUkInitialFromDb] = useState<typeof ukInitialState | null>(null);
+  const [masInitialFromDb, setMasInitialFromDb] = useState<typeof masInitialState | null>(null);
+
+  const systemIdFromUrl = router.query.systemId as string | undefined;
+
+
+
 
   // Form answers state
   const [euAnswers, setEuAnswers] = useState<Record<string, any>>({});
@@ -626,8 +634,15 @@ export default function AssessmentChooserPage() {
     // Page 2
     Yup.object({}),
 
-    // Page 3
-    Yup.object({}),
+    // Page 3 – Fairness
+    Yup.object({
+      bias_testing: Yup.boolean(),
+      bias_testing_evidence: Yup.string().when("bias_testing", {
+        is: true,
+        then: (s) => s.required("Evidence is required for bias testing"),
+      }),
+    }),
+
 
     // Page 4
     Yup.object({}),
@@ -743,6 +758,14 @@ export default function AssessmentChooserPage() {
     checkAuth();
   }, []);
 
+  useEffect(() => {
+    if (systemIdFromUrl) {
+      setSystemId(systemIdFromUrl);
+      setStep("form");
+    }
+  }, [systemIdFromUrl]);
+
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     router.push("/");
@@ -847,8 +870,9 @@ export default function AssessmentChooserPage() {
     }
   }, [step, isEU]);
 
-  const handleIntroSubmit = (e: React.FormEvent) => {
+  const handleIntroSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (!name.trim() || !country) {
       setError("Please provide your name and country.");
       return;
@@ -865,9 +889,92 @@ export default function AssessmentChooserPage() {
       setError("Please describe what your company is using this AI system for.");
       return;
     }
+
     setError(null);
-    setStep("form");
+    setIsSubmitting(true);
+
+    try {
+      let assessmentType: "UK" | "EU" | "MAS";
+
+      if (country.toLowerCase() === "singapore") {
+        assessmentType = "MAS";
+      } else if (
+        country.toLowerCase() === "united kingdom" ||
+        country.toLowerCase() === "uk"
+      ) {
+        assessmentType = "UK";
+      } else {
+        assessmentType = "EU";
+      }
+
+
+      const { data, error } = await supabase
+        .from("ai_systems")
+        .insert({
+          system_name: systemName,
+          company_name: companyName,
+          country,
+          assessment_type: assessmentType,
+          status: "draft",
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      if (assessmentType === "UK") {
+        router.push(`/assessment/uk/${data.id}`);
+      } else if (assessmentType === "MAS") {
+        router.push(`/assessment/mas/${data.id}`);
+      } else {
+        router.push(`/assessment/eu/${data.id}`);
+      }
+      
+
+    } catch (err: any) {
+      console.error(err);
+      setError("Failed to start assessment. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
+
+
+  useEffect(() => {
+    const loadUkSystem = async () => {
+      if (!systemId || !isUK || step !== "form") return;
+
+      const { data, error } = await supabase
+        .from("ai_systems")
+        .select("*")
+        .eq("id", systemId)
+        .single();
+
+      if (error) {
+        console.error("Failed to load UK system:", error);
+        return;
+      }
+
+      setCountry(data.country);
+
+      setUkInitialFromDb({
+        ...ukInitialState,
+        system_name: data.system_name ?? "",
+        description: data.description ?? "",
+        sector: data.sector ?? "",
+        system_status: data.system_status ?? "envision",
+        business_use_case: data.business_use_case ?? "",
+        owner: data.company_name,
+        jurisdiction: data.country,
+      });
+
+      if (data.current_step && data.current_step > 1) {
+        setUkCurrentPage(data.current_step - 1);
+      }
+    };
+
+    loadUkSystem();
+  }, [systemId, isUK, step]);
 
 
   const handleEvidenceFileChange = async (
@@ -920,10 +1027,11 @@ export default function AssessmentChooserPage() {
 
 
   const initialValues = isUK
-    ? ukInitialState
+    ? ukInitialFromDb ?? ukInitialState
     : isSingapore
       ? masInitialState
       : euAnswers;
+
 
 
 
@@ -1084,8 +1192,8 @@ export default function AssessmentChooserPage() {
   if (step === "intro") {
     return (
       <div className="min-h-screen bg-white">
-        {isLoggedIn && <Sidebar onLogout={handleLogout} />}
-        <div className={`container mx-auto max-w-3xl py-12 px-4 ${isLoggedIn ? 'lg:pl-72 pt-24' : ''}`}>
+        <Sidebar onLogout={handleLogout} />
+        <div className="container mx-auto max-w-3xl py-12 px-4 lg:pl-72 pt-24">
           <Card className="glass-panel shadow-elevated">
             <CardHeader>
               <CardTitle className="text-2xl flex items-center gap-2 text-foreground">
@@ -1192,8 +1300,8 @@ export default function AssessmentChooserPage() {
 
   return (
     <div className="min-h-screen bg-white">
-      {isLoggedIn && <Sidebar onLogout={handleLogout} />}
-      <div className={`container mx-auto max-w-4xl py-12 px-4 ${isLoggedIn ? 'lg:pl-72 pt-24' : ''}`}>
+      <Sidebar onLogout={handleLogout} />
+      <div className="container mx-auto max-w-4xl py-12 px-4 lg:pl-72 pt-24">
         <Card className="glass-panel shadow-elevated">
           <CardHeader>
             <CardTitle className="text-2xl flex items-center gap-2 text-foreground">
@@ -1243,6 +1351,7 @@ export default function AssessmentChooserPage() {
           <CardContent>
             <Formik
               initialValues={initialValues}
+              enableReinitialize
               validationSchema={
                 isSingapore
                   ? masPageSchemas[masCurrentPage]
@@ -1252,7 +1361,7 @@ export default function AssessmentChooserPage() {
               }
               onSubmit={handleFormSubmit}
             >
-              {({ handleSubmit, validateForm, setTouched, errors, setFieldValue, submitForm }) => {
+              {({ handleSubmit, validateForm, setTouched, errors, setFieldValue, submitForm, values}) => {
 
                 const handleMasNext = async () => {
                   const errors = await validateForm();
@@ -1270,8 +1379,7 @@ export default function AssessmentChooserPage() {
                   setMasCurrentPage((p) => p + 1);
                 };
 
-
-                const handleUkNext = async () => {
+                const handleUkNext = async (values: any) => {
                   const errors = await validateForm();
 
                   if (Object.keys(errors).length > 0) {
@@ -1281,12 +1389,35 @@ export default function AssessmentChooserPage() {
                     }, {} as Record<string, boolean>);
 
                     setTouched(touched);
+                    return;
+                  }
 
-                    return; // 🚫 BLOCK navigation
+                  // ✅ Persist UK Page 0
+                  if (ukCurrentPage === 0 && systemId) {
+                    const { error } = await supabase
+                      .from("ai_systems")
+                      .update({
+                        system_name: values.system_name,
+                        description: values.description,
+                        sector: values.sector,
+                        system_status: values.system_status,
+                        business_use_case: values.business_use_case,
+                        current_step: 2,
+                        status: "in_progress",
+                        updated_at: new Date().toISOString(),
+                      })
+                      .eq("id", systemId);
+
+                    if (error) {
+                      console.error("Failed to save UK Page 0:", error);
+                      setError("Failed to save progress. Please try again.");
+                      return;
+                    }
                   }
 
                   setUkCurrentPage((p) => p + 1);
                 };
+
                 return (
                   <form
                     onSubmit={handleSubmit}
@@ -1443,32 +1574,20 @@ export default function AssessmentChooserPage() {
                               <Button
                                 type="button"
                                 variant="hero"
-                                onClick={handleUkNext}
-                                className="rounded-xl bg-purple-600 hover:bg-purple-700 text-white"
+                                onClick={() => handleUkNext(values)}
                               >
                                 Next
                               </Button>
                             ) : (
 
                               <Button
-                                type="submit"
-                                disabled={isSubmitting}
-                                variant="hero"
-                                onClick={(e) => {
-                                  console.log("[UK Form] Submit button clicked on page", ukCurrentPage);
-                                  // Let form onSubmit handle it
-                                }}
-                                className="rounded-xl bg-purple-600 hover:bg-purple-700 text-white"
+                                type="button"
+                                className="bg-blue-700 hover:bg-blue-600"
+                                onClick={() => submitForm()}
                               >
-                                {isSubmitting ? (
-                                  <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Submitting...
-                                  </>
-                                ) : (
-                                  "Submit Assessment"
-                                )}
+                                Submit Assessment
                               </Button>
+
                             )}
                           </div>
                         </>
@@ -1509,6 +1628,7 @@ export default function AssessmentChooserPage() {
                             ) : (
                               <Button
                                 type="button"
+                                className="bg-blue-700 hover:bg-blue-600"
                                 disabled={isSubmitting}
                                 onClick={() => {
                                   console.log("[MAS Form] Manual submit triggered");

@@ -15,6 +15,7 @@ import { Progress } from "@/components/ui/progress";
 import { Loader2, ArrowLeft } from "lucide-react";
 import type { MasAssessmentResult, MasComplianceStatus, MasRiskLevel } from "@/types/mas";
 import { supabase } from "@/utils/supabase/client";
+import Sidebar from "@/components/sidebar";
 
 async function backendFetch(
   path: string,
@@ -61,6 +62,8 @@ const pillarOrder: Array<keyof MasAssessmentResult> = [
   "capabilityCapacity",
 ];
 
+
+
 const pillarLabels: Record<string, string> = {
   governance: "Governance & Oversight",
   inventory: "AI Inventory & Classification",
@@ -82,6 +85,21 @@ export default function MasAssessmentDetailPage() {
   const [data, setData] = useState<MasAssessmentResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  // Check authentication status
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setIsLoggedIn(!!user);
+    };
+    checkAuth();
+  }, []);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push("/");
+  };
 
   useEffect(() => {
     // Wait for router to be ready and id to be available
@@ -112,10 +130,13 @@ export default function MasAssessmentDetailPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-[60vh] bg-gray-50">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-600" />
-          <p className="text-gray-700 text-lg font-medium">Loading assessment...</p>
+      <div className="min-h-screen bg-gray-50">
+        <Sidebar onLogout={handleLogout} />
+        <div className={`flex items-center justify-center h-[60vh] ${isLoggedIn ? 'lg:pl-72 pt-24' : ''}`}>
+          <div className="text-center">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-600" />
+            <p className="text-gray-700 text-lg font-medium">Loading assessment...</p>
+          </div>
         </div>
       </div>
     );
@@ -123,22 +144,25 @@ export default function MasAssessmentDetailPage() {
 
   if (error || !data) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <div className="container mx-auto max-w-4xl py-12 px-4 text-center">
-          <Card className="bg-white border-gray-200 shadow-sm">
-            <CardContent className="pt-6">
-              <p className="text-gray-900 text-lg font-semibold mb-4">
-          {error || "Assessment not found"}
-        </p>
-              <Button 
-                variant="outline" 
-                className="border-gray-300 bg-white text-gray-900 hover:bg-gray-100 hover:text-gray-900"
-                onClick={() => router.push("/dashboard")}
-              >
-          Back to Dashboard
-        </Button>
-            </CardContent>
-          </Card>
+      <div className="min-h-screen bg-gray-50">
+        <Sidebar onLogout={handleLogout} />
+        <div className={`min-h-screen bg-gray-50 flex items-center justify-center ${isLoggedIn ? 'lg:pl-72 pt-24' : ''}`}>
+          <div className="container mx-auto max-w-4xl py-12 px-4 text-center">
+            <Card className="bg-white border-gray-200 shadow-sm">
+              <CardContent className="pt-6">
+                <p className="text-gray-900 text-lg font-semibold mb-4">
+                  {error || "Assessment not found"}
+                </p>
+                <Button
+                  variant="outline"
+                  className="border-gray-300 bg-white text-gray-900 hover:bg-gray-100 hover:text-gray-900"
+                  onClick={() => router.push("/dashboard")}
+                >
+                  Back to Dashboard
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
     );
@@ -146,7 +170,8 @@ export default function MasAssessmentDetailPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-    <div className="container mx-auto max-w-6xl py-10 px-4 space-y-8">
+      <Sidebar onLogout={handleLogout} />
+      <div className={`container mx-auto max-w-6xl py-10 px-4 space-y-8 ${isLoggedIn ? 'lg:pl-72 pt-24' : ''}`}>
       <div className="flex items-center justify-between">
         <Button
           variant="ghost"
