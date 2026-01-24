@@ -2,15 +2,15 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 
-export async function GET(req: Request) {
-  const { searchParams, origin } = new URL(req.url);
+export async function GET(request: Request) {
+  const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const redirectTo = searchParams.get("redirect_to") ?? "/dashboard";
 
   if (!code) {
     return NextResponse.redirect(`${origin}/sign-in`);
   }
 
+  // ✅ MUST await in Next 16
   const cookieStore = await cookies();
 
   const supabase = createServerClient(
@@ -18,17 +18,23 @@ export async function GET(req: Request) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        getAll: () => cookieStore.getAll(),
-        setAll: (cookiesToSet) => {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            cookieStore.set(name, value, options);
-          });
+        get: (name) => cookieStore.get(name)?.value,
+        set: (name, value, options) => {
+          cookieStore.set({ name, value, ...options });
+        },
+        remove: (name, options) => {
+          cookieStore.set({ name, value: "", ...options, maxAge: 0 });
         },
       },
     }
   );
 
-  await supabase.auth.exchangeCodeForSession(code);
+  const { error } = await supabase.auth.exchangeCodeForSession(code);
 
-  return NextResponse.redirect(`${origin}${redirectTo}`);
+  if (error) {
+    console.error("OAuth error:", error);
+    return NextResponse.redirect(`${origin}/sign-in`);
+  }
+
+  return NextResponse.redirect(`${origin}/dashboard`);
 }

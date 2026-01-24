@@ -89,10 +89,36 @@ export default function Chatbot() {
 
   /**
    * Get page context from current route
+   * Extracts systemId from various page types (MAS, UK, compliance, ai-systems)
    */
   function getPageContext(): PageContext {
     const pageType = getPageTypeFromPath(pathname);
-    const systemId = params?.id as string | undefined;
+    let systemId = params?.id as string | undefined;
+
+    // Extract systemId from different route patterns
+    if (!systemId && pathname) {
+      // Handle routes like /mas/[id], /uk/[id], /compliance/detailed/[id]
+      const pathParts = pathname.split('/').filter(Boolean);
+      
+      // Check if we're on a detail page with an ID
+      if (pathParts.length >= 2) {
+        const lastPart = pathParts[pathParts.length - 1];
+        // Check if last part looks like a UUID (basic check)
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+        if (uuidRegex.test(lastPart)) {
+          systemId = lastPart;
+        }
+      }
+    }
+
+    // Also check URL search params for systemId
+    if (!systemId && typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const systemIdParam = urlParams.get('systemId') || urlParams.get('id');
+      if (systemIdParam) {
+        systemId = systemIdParam;
+      }
+    }
 
     return {
       pageType,
@@ -118,6 +144,8 @@ export default function Chatbot() {
     if (path.startsWith('/policy-tracker')) return 'policy-tracker';
     if (path.startsWith('/red-teaming')) return 'red-teaming';
     if (path.startsWith('/assessment')) return 'assessment';
+    if (path.startsWith('/mas/')) return 'compliance'; // MAS assessment pages
+    if (path.startsWith('/uk/')) return 'compliance'; // UK assessment pages
     
     return 'unknown';
   }
