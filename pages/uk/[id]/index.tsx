@@ -120,13 +120,15 @@ export default function UKAssessmentDetailPage() {
                   {error || "Assessment not found"}
                 </AlertDescription>
               </Alert>
-              <Button 
-                variant="outline" 
-                className="border-gray-300 bg-white text-gray-900 hover:bg-gray-100 hover:text-gray-900 mt-4 rounded-xl"
-                onClick={() => router.push("/dashboard")}
-              >
-                Back to Dashboard
-              </Button>
+              <div className="flex gap-3 mt-4">
+                <Button 
+                  variant="outline" 
+                  className="border-gray-300 bg-white text-gray-900 hover:bg-gray-100 hover:text-gray-900 rounded-xl"
+                  onClick={() => router.push("/dashboard")}
+                >
+                  Back to Dashboard
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -216,13 +218,24 @@ export default function UKAssessmentDetailPage() {
             </p>
           </div>
         <div className="flex gap-3">
-          <Button 
-            variant="outline" 
-            className="border-gray-300 bg-white text-gray-900 hover:bg-gray-100 hover:text-gray-900"
-            onClick={() => router.push("/dashboard")}
-          >
-            Back to Dashboard
-          </Button>
+          <div className="flex gap-3">
+            {data.system_id && (
+              <Button 
+                variant="default" 
+                className="bg-primary text-white hover:bg-primary/90"
+                onClick={() => router.push(`/compliance/multi/${data.system_id}`)}
+              >
+                Back to Multi-Jurisdiction Results
+              </Button>
+            )}
+            <Button 
+              variant="outline" 
+              className="border-gray-300 bg-white text-gray-900 hover:bg-gray-100 hover:text-gray-900"
+              onClick={() => router.push("/dashboard")}
+            >
+              Back to Dashboard
+            </Button>
+          </div>
         </div>
         </div>
 

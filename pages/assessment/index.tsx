@@ -908,7 +908,14 @@ export default function AssessmentChooserPage() {
     setIsSubmitting(true);
 
     try {
+      // Count how many jurisdictions are selected
+      const selectedJurisdictions: string[] = [];
+      if (hasUKDataProcessing) selectedJurisdictions.push("UK");
+      if (hasEUDataProcessing) selectedJurisdictions.push("EU");
+      if (hasSingaporeDataProcessing) selectedJurisdictions.push("MAS");
+
       // Determine assessment type based on data processing locations (priority order: UK > EU > MAS)
+      // This is used for backward compatibility and single-jurisdiction flows
       let assessmentType: "UK" | "EU" | "MAS";
 
       if (hasUKDataProcessing) {
@@ -946,11 +953,25 @@ export default function AssessmentChooserPage() {
 
       if (error) throw error;
 
-      if (assessmentType === "UK") {
+      // If multiple jurisdictions selected, route to multi-jurisdiction flow
+      console.log(`\n${'='.repeat(80)}`);
+      console.log(`🔄 [INTRO] Routing after intro submission`);
+      console.log(`   System ID: ${data.id}`);
+      console.log(`   Selected jurisdictions: ${selectedJurisdictions.join(', ')}`);
+      console.log(`   Assessment type: ${assessmentType}`);
+      console.log(`${'='.repeat(80)}\n`);
+
+      if (selectedJurisdictions.length > 1) {
+        console.log(`➡️  [INTRO] Multiple jurisdictions detected - routing to multi-jurisdiction flow`);
+        router.push(`/assessment/multi/${data.id}`);
+      } else if (assessmentType === "UK") {
+        console.log(`➡️  [INTRO] Single jurisdiction (UK) - routing to UK assessment`);
         router.push(`/assessment/uk/${data.id}`);
       } else if (assessmentType === "MAS") {
+        console.log(`➡️  [INTRO] Single jurisdiction (MAS) - routing to MAS assessment`);
         router.push(`/assessment/mas/${data.id}`);
       } else {
+        console.log(`➡️  [INTRO] Single jurisdiction (EU) - routing to EU assessment`);
         router.push(`/assessment/eu/${data.id}`);
       }
     } catch (err: any) {

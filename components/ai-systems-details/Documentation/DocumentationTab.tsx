@@ -59,6 +59,7 @@ export default function DocumentationTab({ systemId, systemType }: Documentation
   const [selectedRegulation, setSelectedRegulation] = useState<string>("");
   const [selectedDocumentType, setSelectedDocumentType] = useState<string>("Compliance Summary");
   const [selectedDoc, setSelectedDoc] = useState<ComplianceDocumentation | null>(null);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
 
   // Determine available regulations based on system type
   const availableRegulations = systemType ? [systemType] : ['EU AI Act', 'UK AI Act', 'MAS'];
@@ -76,13 +77,6 @@ export default function DocumentationTab({ systemId, systemType }: Documentation
 
   useEffect(() => {
     fetchDocumentation();
-    
-    // Auto-refresh every 5 seconds to check for newly generated documentation
-    const interval = setInterval(() => {
-      fetchDocumentation();
-    }, 5000);
-    
-    return () => clearInterval(interval);
   }, [systemId]);
 
   const fetchDocumentation = async () => {
@@ -194,12 +188,48 @@ export default function DocumentationTab({ systemId, systemType }: Documentation
   
   
 
-  const handleView = (doc: ComplianceDocumentation) => {
+  const handleView = async (doc: ComplianceDocumentation) => {
     setSelectedDoc(doc);
+    
+    // Fetch PDF for viewing
+    try {
+      const { data } = await supabase.auth.getSession();
+      const accessToken = data.session?.access_token;
+      
+      if (!accessToken) {
+        console.error('No access token found');
+        return;
+      }
+      
+      // Fetch PDF and create blob URL
+      const pdfResponse = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/documentation/${doc.id}/pdf`,
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }
+      );
+      
+      if (pdfResponse.ok) {
+        const blob = await pdfResponse.blob();
+        const url = window.URL.createObjectURL(blob);
+        setPdfUrl(url);
+      } else {
+        console.error('Failed to fetch PDF for viewing');
+      }
+    } catch (error) {
+      console.error('Error loading PDF for view:', error);
+    }
   };
 
   const handleCloseView = () => {
     setSelectedDoc(null);
+    // Clean up the PDF URL blob
+    if (pdfUrl) {
+      window.URL.revokeObjectURL(pdfUrl);
+      setPdfUrl(null);
+    }
   };
 
   // Group documentation by regulation type
@@ -252,12 +282,35 @@ export default function DocumentationTab({ systemId, systemType }: Documentation
         </div>
 
         <Card className="glass-panel shadow-elevated border-border/50 rounded-2xl overflow-hidden">
-          <CardContent className="pt-6">
-            <div className="prose max-w-none">
-              <pre className="whitespace-pre-wrap text-foreground font-mono text-sm bg-gradient-to-br from-secondary/20 to-secondary/10 p-6 rounded-xl overflow-auto max-h-[600px] border border-border/30 shadow-inner">
-                {selectedDoc.content}
-              </pre>
-            </div>
+          <CardContent className="pt-6 p-0">
+            {pdfUrl ? (
+              <div className="w-full rounded-xl overflow-hidden border border-border/30 shadow-inner bg-gray-100" style={{ minHeight: '600px', height: 'calc(100vh - 300px)' }}>
+                <object
+                  data={`${pdfUrl}#toolbar=0&navpanes=0`}
+                  type="application/pdf"
+                  className="w-full h-full"
+                  style={{ minHeight: '600px' }}
+                >
+                  <div className="flex items-center justify-center h-full p-8">
+                    <div className="text-center">
+                      <p className="text-muted-foreground mb-4">PDF cannot be displayed in your browser.</p>
+                      <Button
+                        onClick={() => handleDownloadPDF(selectedDoc.id)}
+                        variant="hero"
+                        size="lg"
+                      >
+                        <Download className="h-5 w-5 mr-2" />
+                        Download PDF to View
+                      </Button>
+                    </div>
+                  </div>
+                </object>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center h-[600px]">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -272,7 +325,7 @@ export default function DocumentationTab({ systemId, systemType }: Documentation
           <Info className="h-5 w-5 text-blue-500 flex-shrink-0" />
           <p className="text-blue-700">
             Documentation is automatically generated when you create an assessment. If you don't see it yet, it may still be generating in the background. 
-            This page will auto-refresh every 5 seconds to check for new documentation.
+            Use the Refresh button to check for new documentation.
           </p>
         </div>
       )}
@@ -315,7 +368,7 @@ export default function DocumentationTab({ systemId, systemType }: Documentation
                   <SelectTrigger className="w-full bg-background border-border/50 text-foreground rounded-xl shadow-sm hover:shadow-md transition-all h-12">
                     <SelectValue placeholder="Select regulation" />
                   </SelectTrigger>
-                  <SelectContent className="glass-panel border-border/50 rounded-xl shadow-lg">
+                  <SelectContent className="bg-background border-border/50 rounded-xl shadow-lg">
                     {availableRegulations.map((reg) => (
                       <SelectItem key={reg} value={reg} className="text-foreground rounded-lg">
                         {reg}
@@ -330,7 +383,7 @@ export default function DocumentationTab({ systemId, systemType }: Documentation
                   <SelectTrigger className="w-full bg-background border-border/50 text-foreground rounded-xl shadow-sm hover:shadow-md transition-all h-12">
                     <SelectValue placeholder="Select document type" />
                   </SelectTrigger>
-                  <SelectContent className="glass-panel border-border/50 rounded-xl shadow-lg">
+                  <SelectContent className="bg-background border-border/50 rounded-xl shadow-lg">
                     {documentTypes.map((type) => (
                       <SelectItem key={type} value={type} className="text-foreground rounded-lg">
                         {type}
@@ -452,16 +505,6 @@ export default function DocumentationTab({ systemId, systemType }: Documentation
                           className="border-primary/40 bg-primary/5 text-primary hover:bg-primary/10 hover:border-primary/60 hover:shadow-md transition-all font-semibold rounded-xl px-4 py-2"
                         >
                           View
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleDownloadPDF(doc.id)}
-                          className="border-emerald-500/40 bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 hover:border-emerald-500/60 hover:shadow-md transition-all font-semibold rounded-xl px-4 py-2"
-                          title="Download as PDF"
-                        >
-                          <Download className="h-4 w-4 mr-1" />
-                          PDF
                         </Button>
                         {doc.status === 'outdated' && (
                           <Button

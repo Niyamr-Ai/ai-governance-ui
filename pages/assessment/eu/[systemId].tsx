@@ -279,7 +279,51 @@ export default function EUAssessmentPage() {
       const data = await res.json();
       const assessmentId = data.id || systemId;
 
-      router.push(`/compliance/${assessmentId}`);
+      // Check if this is part of a multi-jurisdiction assessment
+      console.log(`\n${'='.repeat(80)}`);
+      console.log(`✅ [EU-ASSESSMENT] EU assessment submitted successfully`);
+      console.log(`   System ID: ${systemId}`);
+      console.log(`   Assessment ID: ${assessmentId}`);
+      console.log(`   Checking for multi-jurisdiction flow...`);
+      console.log(`${'='.repeat(80)}\n`);
+
+      try {
+        const { data: systemData } = await supabase
+          .from("ai_systems")
+          .select("data_processing_locations")
+          .eq("id", systemId)
+          .single();
+
+        const dataProcessingLocations = systemData?.data_processing_locations || [];
+        console.log(`📋 [EU-ASSESSMENT] Data processing locations:`, dataProcessingLocations);
+
+        const hasMultipleJurisdictions = 
+          (dataProcessingLocations.includes("European Union") || dataProcessingLocations.includes("EU") ||
+           dataProcessingLocations.some((loc: string) => 
+             ["Austria", "Belgium", "Bulgaria", "Croatia", "Cyprus", "Czechia",
+              "Denmark", "Estonia", "Finland", "France", "Germany", "Greece",
+              "Hungary", "Ireland", "Italy", "Latvia", "Lithuania", "Luxembourg",
+              "Malta", "Netherlands", "Poland", "Portugal", "Romania", "Slovakia",
+              "Slovenia", "Spain", "Sweden"].some(c => c.toLowerCase() === loc.toLowerCase())
+           )) &&
+          ((dataProcessingLocations.includes("United Kingdom") || dataProcessingLocations.includes("UK")) ||
+           dataProcessingLocations.includes("Singapore"));
+
+        console.log(`🔍 [EU-ASSESSMENT] Multiple jurisdictions detected: ${hasMultipleJurisdictions}`);
+
+        if (hasMultipleJurisdictions) {
+          console.log(`➡️  [EU-ASSESSMENT] Redirecting to multi-jurisdiction page`);
+          router.push(`/assessment/multi/${systemId}?completed=EU&assessmentId=${assessmentId}`);
+        } else {
+          console.log(`➡️  [EU-ASSESSMENT] Single jurisdiction - redirecting to EU results`);
+          router.push(`/compliance/${assessmentId}`);
+        }
+      } catch (err: any) {
+        console.error(`❌ [EU-ASSESSMENT] Error checking multi-jurisdiction:`, err);
+        console.log(`➡️  [EU-ASSESSMENT] Fallback: redirecting to EU results`);
+        // Fallback to normal redirect if check fails
+        router.push(`/compliance/${assessmentId}`);
+      }
     } catch (err: any) {
       setError(err.message || "Failed to submit assessment");
     } finally {

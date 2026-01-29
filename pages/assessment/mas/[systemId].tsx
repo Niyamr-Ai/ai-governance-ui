@@ -280,6 +280,7 @@ export default function MasAssessmentPage() {
     const [masInitialFromDb, setMasInitialFromDb] = useState<typeof masInitialState | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isMultiJurisdiction, setIsMultiJurisdiction] = useState(false);
     const initialValues = masInitialFromDb ?? masInitialState;
     const [evidenceContent, setEvidenceContent] = useState<Record<string, string>>({});
 
@@ -983,7 +984,34 @@ export default function MasAssessmentPage() {
                 return;
             }
 
-            if (data.current_step && data.current_step > 1) {
+            // Check if this is part of a multi-jurisdiction assessment
+            const dataProcessingLocations = data.data_processing_locations || [];
+            const hasMultipleJurisdictions = 
+                dataProcessingLocations.includes("Singapore") &&
+                ((dataProcessingLocations.includes("United Kingdom") || dataProcessingLocations.includes("UK")) ||
+                 (dataProcessingLocations.includes("European Union") || dataProcessingLocations.includes("EU") ||
+                  dataProcessingLocations.some((loc: string) => 
+                    ["Austria", "Belgium", "Bulgaria", "Croatia", "Cyprus", "Czechia",
+                     "Denmark", "Estonia", "Finland", "France", "Germany", "Greece",
+                     "Hungary", "Ireland", "Italy", "Latvia", "Lithuania", "Luxembourg",
+                     "Malta", "Netherlands", "Poland", "Portugal", "Romania", "Slovakia",
+                     "Slovenia", "Spain", "Sweden"].some(c => c.toLowerCase() === loc.toLowerCase())
+                  )));
+
+            console.log(`\n${'='.repeat(80)}`);
+            console.log(`🔄 [MAS-ASSESSMENT] Loading MAS assessment`);
+            console.log(`   System ID: ${systemId}`);
+            console.log(`   Multi-jurisdiction flow: ${hasMultipleJurisdictions}`);
+            console.log(`   Data processing locations:`, dataProcessingLocations);
+            console.log(`${'='.repeat(80)}\n`);
+
+            setIsMultiJurisdiction(hasMultipleJurisdictions);
+
+            // If multi-jurisdiction flow, skip page 0 (common questions already answered)
+            if (hasMultipleJurisdictions) {
+                console.log(`➡️  [MAS-ASSESSMENT] Multi-jurisdiction detected - skipping page 0, starting at page 1`);
+                setMasCurrentPage(1); // Start at page 1 instead of page 0
+            } else if (data.current_step && data.current_step > 1) {
                 setMasCurrentPage(data.current_step - 1);
             }
 
@@ -1047,7 +1075,51 @@ export default function MasAssessmentPage() {
         const data = await res.json();
         const assessmentId = data.id || systemId;
 
-        router.push(`/mas/${assessmentId}`);
+        // Check if this is part of a multi-jurisdiction assessment
+        console.log(`\n${'='.repeat(80)}`);
+        console.log(`✅ [MAS-ASSESSMENT] MAS assessment submitted successfully`);
+        console.log(`   System ID: ${systemId}`);
+        console.log(`   Assessment ID: ${assessmentId}`);
+        console.log(`   Checking for multi-jurisdiction flow...`);
+        console.log(`${'='.repeat(80)}\n`);
+
+        try {
+            const { data: systemData } = await supabase
+                .from("ai_systems")
+                .select("data_processing_locations")
+                .eq("id", systemId)
+                .single();
+
+            const dataProcessingLocations = systemData?.data_processing_locations || [];
+            console.log(`📋 [MAS-ASSESSMENT] Data processing locations:`, dataProcessingLocations);
+
+            const hasMultipleJurisdictions = 
+                dataProcessingLocations.includes("Singapore") &&
+                ((dataProcessingLocations.includes("United Kingdom") || dataProcessingLocations.includes("UK")) ||
+                 (dataProcessingLocations.includes("European Union") || dataProcessingLocations.includes("EU") ||
+                  dataProcessingLocations.some((loc: string) => 
+                    ["Austria", "Belgium", "Bulgaria", "Croatia", "Cyprus", "Czechia",
+                     "Denmark", "Estonia", "Finland", "France", "Germany", "Greece",
+                     "Hungary", "Ireland", "Italy", "Latvia", "Lithuania", "Luxembourg",
+                     "Malta", "Netherlands", "Poland", "Portugal", "Romania", "Slovakia",
+                     "Slovenia", "Spain", "Sweden"].some(c => c.toLowerCase() === loc.toLowerCase())
+                  )));
+
+            console.log(`🔍 [MAS-ASSESSMENT] Multiple jurisdictions detected: ${hasMultipleJurisdictions}`);
+
+            if (hasMultipleJurisdictions) {
+                console.log(`➡️  [MAS-ASSESSMENT] Redirecting to multi-jurisdiction page`);
+                router.push(`/assessment/multi/${systemId}?completed=MAS&assessmentId=${assessmentId}`);
+            } else {
+                console.log(`➡️  [MAS-ASSESSMENT] Single jurisdiction - redirecting to MAS results`);
+                router.push(`/mas/${assessmentId}`);
+            }
+        } catch (err: any) {
+            console.error(`❌ [MAS-ASSESSMENT] Error checking multi-jurisdiction:`, err);
+            console.log(`➡️  [MAS-ASSESSMENT] Fallback: redirecting to MAS results`);
+            // Fallback to normal redirect if check fails
+            router.push(`/mas/${assessmentId}`);
+        }
     };
 
 
@@ -1247,7 +1319,7 @@ export default function MasAssessmentPage() {
                             <div className="mt-4">
                                 <div className="flex items-center justify-between mb-2">
                                     <span className="text-sm font-medium">
-                                        Step {masCurrentPage + 1} of {masPages.length}
+                                        Step {isMultiJurisdiction ? masCurrentPage : masCurrentPage + 1} of {isMultiJurisdiction ? masPages.length - 1 : masPages.length}
                                     </span>
                                     <span className="text-xs text-muted-foreground">
                                         {masPages[masCurrentPage].title}
@@ -1258,7 +1330,9 @@ export default function MasAssessmentPage() {
                                     <div
                                         className="bg-purple-600 h-2 rounded-full transition-all"
                                         style={{
-                                            width: `${((masCurrentPage + 1) / masPages.length) * 100}%`,
+                                            width: `${isMultiJurisdiction 
+                                                ? ((masCurrentPage) / (masPages.length - 1)) * 100 
+                                                : ((masCurrentPage + 1) / masPages.length) * 100}%`,
                                         }}
                                     />
                                 </div>
@@ -1299,7 +1373,7 @@ export default function MasAssessmentPage() {
 
                                     return (
                                         <form onSubmit={handleSubmit} className="space-y-6">
-                                            {masCurrentPage === 0 && (
+                                            {masCurrentPage === 0 && !isMultiJurisdiction && (
                                                 <MasPage1SystemProfile masCurrentPage={masCurrentPage} />
                                             )}
 
@@ -1363,9 +1437,9 @@ export default function MasAssessmentPage() {
                                                 <Button
                                                     type="button"
                                                     variant="outline"
-                                                    disabled={masCurrentPage === 0}
+                                                    disabled={masCurrentPage === 0 || (masCurrentPage === 1 && isMultiJurisdiction)}
                                                     onClick={() =>
-                                                        setMasCurrentPage((p) => Math.max(0, p - 1))
+                                                        setMasCurrentPage((p) => Math.max(isMultiJurisdiction ? 1 : 0, p - 1))
                                                     }
                                                 >
                                                     Previous

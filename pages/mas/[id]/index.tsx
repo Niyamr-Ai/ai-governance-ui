@@ -153,13 +153,15 @@ export default function MasAssessmentDetailPage() {
                 <p className="text-gray-900 text-lg font-semibold mb-4">
                   {error || "Assessment not found"}
                 </p>
-                <Button
-                  variant="outline"
-                  className="border-gray-300 bg-white text-gray-900 hover:bg-gray-100 hover:text-gray-900"
-                  onClick={() => router.push("/dashboard")}
-                >
-                  Back to Dashboard
-                </Button>
+                <div className="flex gap-3">
+                  <Button
+                    variant="outline"
+                    className="border-gray-300 bg-white text-gray-900 hover:bg-gray-100 hover:text-gray-900"
+                    onClick={() => router.push("/dashboard")}
+                  >
+                    Back to Dashboard
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -180,13 +182,24 @@ export default function MasAssessmentDetailPage() {
         >
           <ArrowLeft className="h-4 w-4 mr-2" /> Back
         </Button>
-        <Button
-          variant="outline"
+        <div className="flex gap-3">
+          {data?.system_id && (
+            <Button
+              variant="default"
+              className="bg-primary text-white hover:bg-primary/90"
+              onClick={() => router.push(`/compliance/multi/${data.system_id}`)}
+            >
+              Back to Multi-Jurisdiction Results
+            </Button>
+          )}
+          <Button
+            variant="outline"
             className="border-gray-300 bg-white text-gray-900 hover:bg-gray-100 hover:text-gray-900"
-          onClick={() => router.push("/dashboard")}
-        >
-          Back to Dashboard
-        </Button>
+            onClick={() => router.push("/dashboard")}
+          >
+            Back to Dashboard
+          </Button>
+        </div>
       </div>
 
         {/* MAS Compliance Progress */}

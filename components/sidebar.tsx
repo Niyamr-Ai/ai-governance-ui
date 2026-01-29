@@ -9,7 +9,6 @@ import {
   Layers,
   FileText,
   ShieldCheck,
-  Settings,
   TestTube,
   LogOut,
   type LucideIcon,
@@ -147,7 +146,6 @@ export default function Sidebar({ onLogout }: SidebarProps) {
                     {user.email}
                   </p>
                 </div>
-                <Settings className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent 
@@ -160,13 +158,6 @@ export default function Sidebar({ onLogout }: SidebarProps) {
                   <p className="text-xs text-muted-foreground">{user.email}</p>
                 </div>
               </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <Link href="/settings" className="cursor-pointer text-foreground">
-                  <Settings className="mr-2 h-4 w-4" />
-                  <span>Settings</span>
-                </Link>
-              </DropdownMenuItem>
               {onLogout && (
                 <>
                   <DropdownMenuSeparator />

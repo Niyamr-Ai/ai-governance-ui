@@ -231,6 +231,7 @@ export default function UkAssessmentPage() {
   const [ukInitialFromDb, setUkInitialFromDb] = useState<typeof ukInitialState | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isMultiJurisdiction, setIsMultiJurisdiction] = useState(false);
   const initialValues = ukInitialFromDb ?? ukInitialState;
   const [evidenceContent, setEvidenceContent] = useState<Record<string, string>>({});
 
@@ -1002,7 +1003,34 @@ export default function UkAssessmentPage() {
         return;
       }
 
-      if (data.current_step && data.current_step > 1) {
+      // Check if this is part of a multi-jurisdiction assessment
+      const dataProcessingLocations = data.data_processing_locations || [];
+      const hasMultipleJurisdictions = 
+        (dataProcessingLocations.includes("United Kingdom") || dataProcessingLocations.includes("UK")) &&
+        (dataProcessingLocations.includes("European Union") || dataProcessingLocations.includes("EU") ||
+         dataProcessingLocations.some((loc: string) => 
+           ["Austria", "Belgium", "Bulgaria", "Croatia", "Cyprus", "Czechia",
+            "Denmark", "Estonia", "Finland", "France", "Germany", "Greece",
+            "Hungary", "Ireland", "Italy", "Latvia", "Lithuania", "Luxembourg",
+            "Malta", "Netherlands", "Poland", "Portugal", "Romania", "Slovakia",
+            "Slovenia", "Spain", "Sweden"].some(c => c.toLowerCase() === loc.toLowerCase())
+         )) ||
+        dataProcessingLocations.includes("Singapore");
+
+      console.log(`\n${'='.repeat(80)}`);
+      console.log(`🔄 [UK-ASSESSMENT] Loading UK assessment`);
+      console.log(`   System ID: ${systemId}`);
+      console.log(`   Multi-jurisdiction flow: ${hasMultipleJurisdictions}`);
+      console.log(`   Data processing locations:`, dataProcessingLocations);
+      console.log(`${'='.repeat(80)}\n`);
+
+      setIsMultiJurisdiction(hasMultipleJurisdictions);
+
+      // If multi-jurisdiction flow, skip page 0 (common questions already answered)
+      if (hasMultipleJurisdictions) {
+        console.log(`➡️  [UK-ASSESSMENT] Multi-jurisdiction detected - skipping page 0, starting at page 1`);
+        setUkCurrentPage(1); // Start at page 1 instead of page 0
+      } else if (data.current_step && data.current_step > 1) {
         setUkCurrentPage(data.current_step - 1);
       }
 
@@ -1010,7 +1038,7 @@ export default function UkAssessmentPage() {
       let jurisdiction = "";
       if (data.data_processing_locations && Array.isArray(data.data_processing_locations) && data.data_processing_locations.length > 0) {
         // For UK form, prioritize UK if present, otherwise show all locations
-        if (data.data_processing_locations.includes("UK")) {
+        if (data.data_processing_locations.includes("United Kingdom") || data.data_processing_locations.includes("UK")) {
           jurisdiction = "United Kingdom";
         } else {
           jurisdiction = data.data_processing_locations.join(", ");
@@ -1043,6 +1071,9 @@ export default function UkAssessmentPage() {
 
     const payload = {
       system_id: systemId,
+      system_name: values.system_name || "",
+      company_name: values.owner || "",
+      company_use_case: values.business_use_case || "",
       answers: {
         ...values,
         ...Object.fromEntries(
@@ -1066,7 +1097,51 @@ export default function UkAssessmentPage() {
     const data = await res.json();
     const assessmentId = data.id || systemId;
 
-    router.push(`/uk/${assessmentId}`);
+      // Check if this is part of a multi-jurisdiction assessment
+      console.log(`\n${'='.repeat(80)}`);
+      console.log(`✅ [UK-ASSESSMENT] UK assessment submitted successfully`);
+      console.log(`   System ID: ${systemId}`);
+      console.log(`   Assessment ID: ${assessmentId}`);
+      console.log(`   Checking for multi-jurisdiction flow...`);
+      console.log(`${'='.repeat(80)}\n`);
+
+      try {
+        const { data: systemData } = await supabase
+          .from("ai_systems")
+          .select("data_processing_locations")
+          .eq("id", systemId)
+          .single();
+
+        const dataProcessingLocations = systemData?.data_processing_locations || [];
+        console.log(`📋 [UK-ASSESSMENT] Data processing locations:`, dataProcessingLocations);
+
+        const hasMultipleJurisdictions = 
+          (dataProcessingLocations.includes("United Kingdom") || dataProcessingLocations.includes("UK")) &&
+          (dataProcessingLocations.includes("European Union") || dataProcessingLocations.includes("EU") ||
+           dataProcessingLocations.some((loc: string) => 
+             ["Austria", "Belgium", "Bulgaria", "Croatia", "Cyprus", "Czechia",
+              "Denmark", "Estonia", "Finland", "France", "Germany", "Greece",
+              "Hungary", "Ireland", "Italy", "Latvia", "Lithuania", "Luxembourg",
+              "Malta", "Netherlands", "Poland", "Portugal", "Romania", "Slovakia",
+              "Slovenia", "Spain", "Sweden"].some(c => c.toLowerCase() === loc.toLowerCase())
+           )) ||
+          dataProcessingLocations.includes("Singapore");
+
+        console.log(`🔍 [UK-ASSESSMENT] Multiple jurisdictions detected: ${hasMultipleJurisdictions}`);
+
+        if (hasMultipleJurisdictions) {
+          console.log(`➡️  [UK-ASSESSMENT] Redirecting to multi-jurisdiction page`);
+          router.push(`/assessment/multi/${systemId}?completed=UK&assessmentId=${assessmentId}`);
+        } else {
+          console.log(`➡️  [UK-ASSESSMENT] Single jurisdiction - redirecting to UK results`);
+          router.push(`/uk/${assessmentId}`);
+        }
+      } catch (err: any) {
+        console.error(`❌ [UK-ASSESSMENT] Error checking multi-jurisdiction:`, err);
+        console.log(`➡️  [UK-ASSESSMENT] Fallback: redirecting to UK results`);
+        // Fallback to normal redirect if check fails
+        router.push(`/uk/${assessmentId}`);
+      }
   };
 
 
@@ -1331,7 +1406,7 @@ export default function UkAssessmentPage() {
               <div className="mt-4">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium">
-                    Step {ukCurrentPage + 1} of {ukPages.length}
+                    Step {isMultiJurisdiction ? ukCurrentPage : ukCurrentPage + 1} of {isMultiJurisdiction ? ukPages.length - 1 : ukPages.length}
                   </span>
                   <span className="text-xs text-muted-foreground">
                     {ukPages[ukCurrentPage].title}
@@ -1342,7 +1417,9 @@ export default function UkAssessmentPage() {
                   <div
                     className="bg-purple-600 h-2 rounded-full transition-all"
                     style={{
-                      width: `${((ukCurrentPage + 1) / ukPages.length) * 100}%`,
+                      width: `${isMultiJurisdiction 
+                        ? ((ukCurrentPage) / (ukPages.length - 1)) * 100 
+                        : ((ukCurrentPage + 1) / ukPages.length) * 100}%`,
                     }}
                   />
                 </div>
@@ -1380,8 +1457,8 @@ export default function UkAssessmentPage() {
                       return;
                     }
 
-                    // Persist Page 0
-                    if (ukCurrentPage === 0 && systemId) {
+                    // Persist Page 0 (only if not multi-jurisdiction, as common questions already saved)
+                    if (ukCurrentPage === 0 && !isMultiJurisdiction && systemId) {
                       const { error } = await supabase
                         .from("ai_systems")
                         .update({
@@ -1406,7 +1483,7 @@ export default function UkAssessmentPage() {
 
                   return (
                     <form onSubmit={handleSubmit} className="space-y-6">
-                      {ukCurrentPage === 0 && (
+                      {ukCurrentPage === 0 && !isMultiJurisdiction && (
                         <UkPage0SystemProfile ukCurrentPage={ukCurrentPage} />
                       )}
 
@@ -1462,9 +1539,9 @@ export default function UkAssessmentPage() {
                         <Button
                           type="button"
                           variant="outline"
-                          disabled={ukCurrentPage === 0}
+                          disabled={ukCurrentPage === 0 || (ukCurrentPage === 1 && isMultiJurisdiction)}
                           onClick={() =>
-                            setUkCurrentPage((p) => Math.max(0, p - 1))
+                            setUkCurrentPage((p) => Math.max(isMultiJurisdiction ? 1 : 0, p - 1))
                           }
                         >
                           Previous
