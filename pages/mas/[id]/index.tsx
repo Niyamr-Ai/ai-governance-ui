@@ -86,6 +86,7 @@ export default function MasAssessmentDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isMultiJurisdiction, setIsMultiJurisdiction] = useState(false);
 
   // Check authentication status
   useEffect(() => {
@@ -118,6 +119,42 @@ export default function MasAssessmentDetailPage() {
         const body = await res.json();
         setData(body);
         setError(null);
+
+        // Check if this is a multi-jurisdiction system
+        if (body.system_id) {
+          try {
+            const { data: systemData, error: systemError } = await supabase
+              .from("ai_systems")
+              .select("data_processing_locations")
+              .eq("id", body.system_id)
+              .single();
+
+            if (!systemError && systemData) {
+              const dataProcessingLocations = systemData.data_processing_locations || [];
+              
+              // Check if system has multiple jurisdictions
+              const hasUK = dataProcessingLocations.includes("United Kingdom") || dataProcessingLocations.includes("UK");
+              const hasEU = dataProcessingLocations.includes("European Union") || 
+                           dataProcessingLocations.includes("EU") ||
+                           dataProcessingLocations.some((loc: string) =>
+                             ["Austria", "Belgium", "Bulgaria", "Croatia", "Cyprus", "Czechia",
+                              "Denmark", "Estonia", "Finland", "France", "Germany", "Greece",
+                              "Hungary", "Ireland", "Italy", "Latvia", "Lithuania", "Luxembourg",
+                              "Malta", "Netherlands", "Poland", "Portugal", "Romania", "Slovakia",
+                              "Slovenia", "Spain", "Sweden"].some(c => c.toLowerCase() === loc.toLowerCase())
+                           );
+              const hasSingapore = dataProcessingLocations.includes("Singapore");
+
+              // Multi-jurisdiction if Singapore + (UK or EU)
+              const isMulti = hasSingapore && (hasUK || hasEU);
+              setIsMultiJurisdiction(isMulti);
+            }
+          } catch (err) {
+            console.error("Error checking multi-jurisdiction status:", err);
+            // If we can't check, default to false (don't show button)
+            setIsMultiJurisdiction(false);
+          }
+        }
       } catch (err: any) {
         setError(err.message || "Failed to load assessment");
       } finally {
@@ -183,7 +220,7 @@ export default function MasAssessmentDetailPage() {
           <ArrowLeft className="h-4 w-4 mr-2" /> Back
         </Button>
         <div className="flex gap-3">
-          {data?.system_id && (
+          {data?.system_id && isMultiJurisdiction && (
             <Button
               variant="default"
               className="bg-primary text-white hover:bg-primary/90"
