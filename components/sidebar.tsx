@@ -110,7 +110,7 @@ export default function Sidebar({ onLogout }: SidebarProps) {
     <aside className="hidden lg:flex flex-col fixed top-0 left-0 w-64 h-screen overflow-y-auto glass-panel shadow-elevated border-r border-border/50 z-20">
       {/* Logo */}
       <div className="p-6 border-b border-border/30">
-        <Link href="/" className="flex items-center gap-2 group">
+        <Link href="/dashboard" className="flex items-center gap-2 group">
           <div className="relative">
             <Image
               src="/images/logo.png"

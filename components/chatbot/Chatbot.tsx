@@ -166,8 +166,10 @@ export default function Chatbot() {
     const contextChanged = previousSystemId !== currentSystemId;
     
     // Check if we're on a generic page (dashboard, discovery, etc.) without systemId
+    // Also include root path "/" which typically redirects to dashboard for logged-in users
     const isOnGenericPage = currentSystemId === undefined && 
-      (currentContext.pageType === 'dashboard' || 
+      (pathname === '/' ||
+       currentContext.pageType === 'dashboard' || 
        currentContext.pageType === 'discovery' || 
        currentContext.pageType === 'documentation' || 
        currentContext.pageType === 'policy-tracker' || 
