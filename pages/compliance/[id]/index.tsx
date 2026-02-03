@@ -189,6 +189,9 @@ export default function ComplianceResultPage() {
     created_at,
   } = result;
 
+  // Extract prohibited practices list from reference
+  const prohibitedPracticesList = reference?.prohibited_practices || [];
+
   // Calculate compliance metrics for charts
   const totalObligations = Object.keys(highRiskObligationLabels).length;
   const fulfilledObligations = totalObligations - high_risk_missing.length;
@@ -277,16 +280,35 @@ export default function ComplianceResultPage() {
             )}
           </div>
           <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              className="border-gray-300 bg-white text-gray-900 hover:bg-gray-100 hover:text-gray-900"
+              onClick={() => router.push("/dashboard")}
+            >
+              Back to Dashboard
+            </Button>
           </div>
         </div>
 
         {/* Alert Banner */}
         {prohibited_practices_detected && (
-          <Alert variant="destructive" className="border-red-700/50 bg-red-900/30 backdrop-blur-sm">
-            <Ban className="h-4 w-4 text-red-400" />
-            <AlertTitle className="text-red-300 font-bold">Prohibited Practices Detected</AlertTitle>
-            <AlertDescription className="text-red-200">
-              Immediate action required. This AI system engages in prohibited practices under the EU AI Act.
+          <Alert variant="destructive" className="border-red-200 bg-red-50 backdrop-blur-sm">
+            <Ban className="h-4 w-4 text-red-600" />
+            <AlertTitle className="text-red-900 font-bold">Prohibited Practices Detected</AlertTitle>
+            <AlertDescription className="text-red-800">
+              <div className="mt-2">
+                <p className="mb-2">Immediate action required. This AI system engages in prohibited practices under the EU AI Act.</p>
+                {prohibitedPracticesList.length > 0 && (
+                  <div className="mt-3">
+                    <p className="font-semibold mb-2 text-red-900">Detected Prohibited Practices:</p>
+                    <ul className="list-disc list-inside space-y-1">
+                      {prohibitedPracticesList.map((practice: string, idx: number) => (
+                        <li key={idx} className="text-red-700">{practice}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
             </AlertDescription>
           </Alert>
         )}
@@ -350,12 +372,12 @@ export default function ComplianceResultPage() {
         {/* Charts Section */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Obligations Pie Chart */}
-          <Card className="shadow-lg border-slate-700/50 bg-slate-900/60 backdrop-blur-sm">
-            <CardHeader className="bg-gradient-to-r from-purple-900/30 to-indigo-900/30 border-b border-slate-700/50">
+          <Card className="glass-card shadow-premium rounded-2xl border-0 bg-gradient-to-br from-white/90 via-white/80 to-white/70 backdrop-blur-xl">
+            <CardHeader className="bg-gradient-to-r from-purple-50/50 to-indigo-50/50 border-b border-gray-200/50">
               <CardTitle className="text-foreground">Obligations Overview</CardTitle>
-              <CardDescription className="text-slate-400">High-risk obligations fulfillment status</CardDescription>
+              <CardDescription className="text-muted-foreground">High-risk obligations fulfillment status</CardDescription>
             </CardHeader>
-            <CardContent className="pt-6 flex items-center justify-center">
+            <CardContent className="pt-6 flex items-center justify-center bg-white/50">
               <ChartContainer
                 config={{
                   fulfilled: { color: COLORS.fulfilled },
@@ -385,8 +407,8 @@ export default function ComplianceResultPage() {
                     paddingAngle={5}
                     fill="#8884d8"
                     dataKey="value"
-                    stroke="#fff"
-                    strokeWidth={2}
+                    stroke="#ffffff"
+                    strokeWidth={1}
                   >
                     {obligationsData.map((entry, index) => (
                       <Cell 
@@ -401,12 +423,12 @@ export default function ComplianceResultPage() {
                       if (active && payload && payload.length) {
                         const data = payload[0];
                         return (
-                          <div className="bg-slate-800/95 backdrop-blur-sm p-4 border border-slate-700/50 rounded-lg shadow-xl">
+                          <div className="bg-white/95 backdrop-blur-sm p-4 border border-gray-200 rounded-lg shadow-xl">
                             <p className="font-bold text-lg mb-1 text-foreground">{data.name}</p>
                             <p className="text-2xl font-extrabold" style={{ color: data.payload.color }}>
                               {data.value} {data.value === 1 ? "Obligation" : "Obligations"}
                             </p>
-                            <p className="text-sm text-slate-400 mt-1">
+                            <p className="text-sm text-muted-foreground mt-1">
                               {((data.value / totalObligations) * 100).toFixed(1)}% of total
                             </p>
                           </div>
@@ -421,12 +443,12 @@ export default function ComplianceResultPage() {
           </Card>
 
           {/* Obligations Bar Chart */}
-          <Card className="shadow-lg border-slate-700/50 bg-slate-900/60 backdrop-blur-sm">
-            <CardHeader className="bg-gradient-to-r from-emerald-900/30 to-teal-900/30 border-b border-slate-700/50">
+          <Card className="glass-card shadow-premium rounded-2xl border-0 bg-gradient-to-br from-white/90 via-white/80 to-white/70 backdrop-blur-xl">
+            <CardHeader className="bg-gradient-to-r from-emerald-50/50 to-teal-50/50 border-b border-gray-200/50">
               <CardTitle className="text-foreground">Obligations Breakdown</CardTitle>
-              <CardDescription className="text-slate-400">Individual obligation fulfillment status</CardDescription>
+              <CardDescription className="text-muted-foreground">Individual obligation fulfillment status</CardDescription>
             </CardHeader>
-            <CardContent className="pt-6 overflow-hidden">
+            <CardContent className="pt-6 overflow-hidden bg-white/50">
               <div className="w-full h-[320px]">
                 <ChartContainer
                   config={{
@@ -446,16 +468,16 @@ export default function ComplianceResultPage() {
                     </defs>
                     <XAxis
                       dataKey="name"
-                      tick={{ fill: "#cbd5e1", fontSize: 11, fontWeight: 500 }}
+                      tick={{ fill: "#64748b", fontSize: 11, fontWeight: 500 }}
                       angle={-45}
                       textAnchor="end"
                       height={70}
-                      axisLine={{ stroke: "#475569" }}
+                      axisLine={{ stroke: "#cbd5e1" }}
                     />
                     <YAxis 
                       domain={[0, 100]} 
-                      tick={{ fill: "#94a3b8", fontSize: 10 }}
-                      axisLine={{ stroke: "#475569" }}
+                      tick={{ fill: "#64748b", fontSize: 10 }}
+                      axisLine={{ stroke: "#cbd5e1" }}
                       width={35}
                     />
                     <ChartTooltip
@@ -463,17 +485,17 @@ export default function ComplianceResultPage() {
                         if (active && payload && payload.length) {
                           const data = payload[0].payload;
                           return (
-                            <div className="bg-slate-800/95 backdrop-blur-sm p-4 border border-slate-700/50 rounded-lg shadow-xl">
+                            <div className="bg-white/95 backdrop-blur-sm p-4 border border-gray-200 rounded-lg shadow-xl">
                               <p className="font-bold text-lg mb-2 text-foreground">{data.fullName}</p>
                               <div className="flex items-center gap-2">
-                                <span className={`text-2xl ${data.fulfilled ? "text-emerald-400" : "text-red-400"}`}>
+                                <span className={`text-2xl ${data.fulfilled ? "text-emerald-600" : "text-red-600"}`}>
                                   {data.fulfilled ? "✅" : "❌"}
                                 </span>
-                                <span className={`font-extrabold text-xl ${data.fulfilled ? "text-emerald-400" : "text-red-400"}`}>
+                                <span className={`font-extrabold text-xl ${data.fulfilled ? "text-emerald-600" : "text-red-600"}`}>
                                   {data.fulfilled ? "Fulfilled" : "Missing"}
                                 </span>
                               </div>
-                              <p className="text-sm text-slate-400 mt-2">Score: {data.value}%</p>
+                              <p className="text-sm text-muted-foreground mt-2">Score: {data.value}%</p>
                             </div>
                           );
                         }
@@ -520,15 +542,15 @@ export default function ComplianceResultPage() {
                       key={key}
                       className={`flex items-center justify-between p-3 rounded-lg border ${
                         isFulfilled
-                          ? "bg-emerald-900/30 border-emerald-700/50"
-                          : "bg-red-900/30 border-red-700/50"
+                          ? "bg-emerald-50 border-emerald-200"
+                          : "bg-red-50 border-red-200"
                       }`}
                     >
                       <div className="flex items-center gap-3">
                         {isFulfilled ? (
-                          <CheckCircle2 className="h-5 w-5 text-emerald-400" />
+                          <CheckCircle2 className="h-5 w-5 text-emerald-600" />
                         ) : (
-                          <XCircle className="h-5 w-5 text-red-400" />
+                          <XCircle className="h-5 w-5 text-red-600" />
                         )}
                         <span className="font-medium text-foreground">{label}</span>
                       </div>
@@ -567,13 +589,13 @@ export default function ComplianceResultPage() {
                           <div
                             key={key}
                             className={`flex items-center gap-2 p-2 rounded ${
-                              isFulfilled ? "bg-emerald-900/30 border border-emerald-700/50" : "bg-red-900/30 border border-red-700/50"
+                              isFulfilled ? "bg-emerald-50 border border-emerald-200" : "bg-red-50 border border-red-200"
                             }`}
                           >
                             {isFulfilled ? (
-                              <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+                              <CheckCircle2 className="h-4 w-4 text-emerald-600" />
                             ) : (
-                              <XCircle className="h-4 w-4 text-red-400" />
+                              <XCircle className="h-4 w-4 text-red-600" />
                             )}
                             <span className="text-sm text-muted-foreground">{label}</span>
                           </div>
@@ -582,7 +604,7 @@ export default function ComplianceResultPage() {
                     </div>
                   </div>
                 ) : (
-                  <div className="p-4 bg-slate-800/50 rounded-lg border border-slate-700/50">
+                  <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
                     <p className="text-sm text-muted-foreground">
                       <strong className="text-foreground">Transparency Requirements:</strong> Not required for this AI system. 
                       Transparency obligations (Article 50) apply to limited-risk AI systems that 
@@ -597,13 +619,13 @@ export default function ComplianceResultPage() {
                     <div className="space-y-2">
                       <div
                         className={`flex items-center gap-2 p-2 rounded ${
-                          post_market_monitoring ? "bg-emerald-900/30 border border-emerald-700/50" : "bg-red-900/30 border border-red-700/50"
+                          post_market_monitoring ? "bg-emerald-50 border border-emerald-200" : "bg-red-50 border border-red-200"
                         }`}
                       >
                         {post_market_monitoring ? (
-                          <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+                          <CheckCircle2 className="h-4 w-4 text-emerald-600" />
                         ) : (
-                          <XCircle className="h-4 w-4 text-red-400" />
+                          <XCircle className="h-4 w-4 text-red-600" />
                         )}
                         <span className="text-sm text-muted-foreground">
                           {monitoringFRIALabels.postMarketMonitoring}
@@ -611,13 +633,13 @@ export default function ComplianceResultPage() {
                       </div>
                       <div
                         className={`flex items-center gap-2 p-2 rounded ${
-                          incident_reporting ? "bg-emerald-900/30 border border-emerald-700/50" : "bg-red-900/30 border border-red-700/50"
+                          incident_reporting ? "bg-emerald-50 border border-emerald-200" : "bg-red-50 border border-red-200"
                         }`}
                       >
                         {incident_reporting ? (
-                          <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+                          <CheckCircle2 className="h-4 w-4 text-emerald-600" />
                         ) : (
-                          <XCircle className="h-4 w-4 text-red-400" />
+                          <XCircle className="h-4 w-4 text-red-600" />
                         )}
                         <span className="text-sm text-muted-foreground">
                           {monitoringFRIALabels.incidentReporting}
@@ -625,13 +647,13 @@ export default function ComplianceResultPage() {
                       </div>
                       <div
                         className={`flex items-center gap-2 p-2 rounded ${
-                          fria_completed ? "bg-emerald-900/30 border border-emerald-700/50" : "bg-red-900/30 border border-red-700/50"
+                          fria_completed ? "bg-emerald-50 border border-emerald-200" : "bg-red-50 border border-red-200"
                         }`}
                       >
                         {fria_completed ? (
-                          <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+                          <CheckCircle2 className="h-4 w-4 text-emerald-600" />
                         ) : (
-                          <XCircle className="h-4 w-4 text-red-400" />
+                          <XCircle className="h-4 w-4 text-red-600" />
                         )}
                         <span className="text-sm text-muted-foreground">
                           {monitoringFRIALabels.friaCompleted}
@@ -640,7 +662,7 @@ export default function ComplianceResultPage() {
                     </div>
                   </div>
                 ) : (
-                  <div className="p-4 bg-slate-800/50 rounded-lg border border-slate-700/50">
+                  <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
                     <p className="text-sm text-muted-foreground">
                       <strong className="text-foreground">Monitoring & FRIA:</strong> Not required for this AI system. 
                       Post-market monitoring and Fundamental Rights Impact Assessment (FRIA) 
@@ -662,7 +684,7 @@ export default function ComplianceResultPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-slate-200 leading-relaxed text-lg">{summary}</p>
+            <p className="text-foreground leading-relaxed text-base font-medium whitespace-pre-wrap">{summary}</p>
           </CardContent>
         </Card>
 
@@ -671,18 +693,30 @@ export default function ComplianceResultPage() {
           <Card className="glass-card shadow-premium rounded-2xl border-0 bg-gradient-to-br from-white/90 via-white/80 to-white/70 backdrop-blur-xl">
             <CardHeader>
               <CardTitle className="text-foreground">Regulatory References</CardTitle>
-              <CardDescription className="text-slate-400">EU AI Act articles and provisions referenced</CardDescription>
+              <CardDescription className="text-muted-foreground">EU AI Act articles and provisions referenced</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {Object.entries(reference).map(([key, value]) => (
-                  <div key={key} className="p-3 bg-slate-800/50 rounded-lg border border-slate-700/50">
-                    <div className="font-semibold text-foreground mb-1">{key}</div>
-                    <div className="text-sm text-muted-foreground">
-                      {Array.isArray(value) ? value.join(", ") : String(value)}
+                {Object.entries(reference).map(([key, value]) => {
+                  // Capitalize first letter of the value
+                  const capitalizeFirst = (str: string): string => {
+                    if (!str || str.length === 0) return str;
+                    return str.charAt(0).toUpperCase() + str.slice(1);
+                  };
+                  
+                  const formattedValue = Array.isArray(value) 
+                    ? value.map(v => capitalizeFirst(String(v))).join(", ")
+                    : capitalizeFirst(String(value));
+                  
+                  return (
+                    <div key={key} className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                      <div className="font-semibold text-foreground mb-1">{key}</div>
+                      <div className="text-sm text-muted-foreground">
+                        {formattedValue || "—"}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </CardContent>
           </Card>

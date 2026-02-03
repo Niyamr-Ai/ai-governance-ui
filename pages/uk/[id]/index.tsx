@@ -201,6 +201,23 @@ export default function UKAssessmentDetailPage() {
     }
   };
 
+  // Utility function to capitalize gap strings properly
+  const capitalizeGap = (gap: string): string => {
+    return gap
+      .replace(/_/g, ' ') // Replace underscores with spaces
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+  };
+
+  // Utility function to capitalize sector name
+  const capitalizeSector = (sector: string): string => {
+    return sector
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+  };
+
   const PrincipleCard = ({
     title,
     status,
@@ -230,7 +247,7 @@ export default function UKAssessmentDetailPage() {
             {missing.length > 0 && (
               <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
                 {missing.map((item, idx) => (
-                  <li key={idx} className="text-foreground">{item}</li>
+                  <li key={idx} className="text-foreground">{capitalizeGap(item)}</li>
                 ))}
               </ul>
             )}
@@ -408,7 +425,7 @@ export default function UKAssessmentDetailPage() {
           <Card className="glass-panel border-border/50 shadow-elevated">
             <CardHeader className="bg-secondary/30">
               <CardTitle className="text-xl font-bold text-foreground">Sector-Specific Regulation</CardTitle>
-              <CardDescription className="text-muted-foreground font-medium">Sector: {data.sector_regulation.sector}</CardDescription>
+              <CardDescription className="text-muted-foreground font-medium">Sector: {capitalizeSector(data.sector_regulation.sector)}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4 bg-secondary/20">
               {data.sector_regulation.requiredControls.length > 0 && (
@@ -416,7 +433,7 @@ export default function UKAssessmentDetailPage() {
                   <h3 className="font-bold text-foreground mb-2">Required Controls:</h3>
                   <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
                     {data.sector_regulation.requiredControls.map((control, idx) => (
-                      <li key={idx} className="text-foreground">{control}</li>
+                      <li key={idx} className="text-foreground">{capitalizeGap(control)}</li>
                     ))}
                   </ul>
                 </div>
@@ -426,7 +443,7 @@ export default function UKAssessmentDetailPage() {
                   <h3 className="font-bold text-red-700 mb-2">Gaps Identified:</h3>
                   <ul className="list-disc list-inside space-y-1 text-sm text-red-600">
                     {data.sector_regulation.gaps.map((gap, idx) => (
-                      <li key={idx} className="text-red-700">{gap}</li>
+                      <li key={idx} className="text-red-700">{capitalizeGap(gap)}</li>
                     ))}
                   </ul>
                 </div>
