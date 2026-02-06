@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, RadialBarChart, RadialBar } from "recharts";
-import { CheckCircle2, XCircle, Shield, Database, FileText, Eye, Lock, ClipboardCheck, TrendingUp, AlertTriangle } from "lucide-react";
+import { CheckCircle2, XCircle, Shield, Database, FileText, Eye, Lock, ClipboardCheck, TrendingUp, AlertTriangle, ArrowLeft } from "lucide-react";
 import Sidebar from "@/components/sidebar";
 import { supabase } from "@/utils/supabase/client";
 
@@ -307,6 +307,16 @@ export default function DetailedViewPage() {
     <main className="min-h-screen bg-white pt-4 pb-8 px-4 sm:px-6 lg:px-8">
       <Sidebar onLogout={handleLogout} />
       <div className={`max-w-7xl mx-auto space-y-6 ${isLoggedIn ? 'lg:pl-72 pt-12' : ''}`}>
+        <div className="flex items-center mb-4">
+          <Button
+            variant="outline"
+            onClick={() => router.push("/dashboard")}
+            className="flex items-center gap-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Dashboard
+          </Button>
+        </div>
         <div className="glass-panel border-border/50 rounded-2xl shadow-elevated p-6">
           <div className="flex items-center justify-between">
             <div>
