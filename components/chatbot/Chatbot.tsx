@@ -33,6 +33,7 @@ export default function Chatbot() {
 
   const pathname = usePathname();
   const params = useParams();
+  const previousSystemIdRef = useRef<string | undefined>(undefined);
 
   // Check authentication status and listen for changes
   useEffect(() => {
@@ -88,6 +89,26 @@ export default function Chatbot() {
   }, [isOpen]);
 
   /**
+   * Determine page type from pathname
+   */
+  function getPageTypeFromPath(path: string | null): PageContext['pageType'] {
+    if (!path) return 'unknown';
+    
+    if (path.startsWith('/ai-systems/')) return 'ai-system';
+    if (path.startsWith('/dashboard')) return 'dashboard';
+    if (path.startsWith('/compliance')) return 'compliance';
+    if (path.startsWith('/discovery')) return 'discovery';
+    if (path.startsWith('/documentation')) return 'documentation';
+    if (path.startsWith('/policy-tracker')) return 'policy-tracker';
+    if (path.startsWith('/red-teaming')) return 'red-teaming';
+    if (path.startsWith('/assessment')) return 'assessment';
+    if (path.startsWith('/mas/')) return 'compliance'; // MAS assessment pages
+    if (path.startsWith('/uk/')) return 'compliance'; // UK assessment pages
+    
+    return 'unknown';
+  }
+
+  /**
    * Get page context from current route
    * Extracts systemId from various page types (MAS, UK, compliance, ai-systems)
    */
@@ -131,24 +152,63 @@ export default function Chatbot() {
   }
 
   /**
-   * Determine page type from pathname
+   * Reset chatbot when navigating between different contexts
+   * - Assessment → Dashboard: Close chatbot and clear messages
+   * - Dashboard → Assessment: Close chatbot and clear messages
+   * - Assessment → Different Assessment: Close chatbot and clear messages
    */
-  function getPageTypeFromPath(path: string | null): PageContext['pageType'] {
-    if (!path) return 'unknown';
+  useEffect(() => {
+    const currentContext = getPageContext();
+    const currentSystemId = currentContext.systemId;
+    const previousSystemId = previousSystemIdRef.current;
+
+    // Check if context has changed (systemId changed or became undefined/defined)
+    const contextChanged = previousSystemId !== currentSystemId;
     
-    if (path.startsWith('/ai-systems/')) return 'ai-system';
-    if (path.startsWith('/dashboard')) return 'dashboard';
-    if (path.startsWith('/compliance')) return 'compliance';
-    if (path.startsWith('/discovery')) return 'discovery';
-    if (path.startsWith('/documentation')) return 'documentation';
-    if (path.startsWith('/policy-tracker')) return 'policy-tracker';
-    if (path.startsWith('/red-teaming')) return 'red-teaming';
-    if (path.startsWith('/assessment')) return 'assessment';
-    if (path.startsWith('/mas/')) return 'compliance'; // MAS assessment pages
-    if (path.startsWith('/uk/')) return 'compliance'; // UK assessment pages
-    
-    return 'unknown';
-  }
+    // Check if we're on a generic page (dashboard, discovery, etc.) without systemId
+    // Also include root path "/" which typically redirects to dashboard for logged-in users
+    const isOnGenericPage = currentSystemId === undefined && 
+      (pathname === '/' ||
+       currentContext.pageType === 'dashboard' || 
+       currentContext.pageType === 'discovery' || 
+       currentContext.pageType === 'documentation' || 
+       currentContext.pageType === 'policy-tracker' || 
+       currentContext.pageType === 'red-teaming');
+
+    // Check if we're on an assessment page (has systemId)
+    const isOnAssessmentPage = currentSystemId !== undefined && currentSystemId !== null;
+
+    // Case 1: Navigating FROM assessment page TO dashboard/generic page
+    // Close chatbot and clear messages
+    if (contextChanged && previousSystemId !== undefined && isOnGenericPage) {
+      console.log('🤖 Navigating from assessment page to dashboard - closing chatbot and clearing messages');
+      setIsOpen(false);
+      setMessages([]);
+      setError(null);
+      setInputValue('');
+    }
+    // Case 2: Navigating FROM dashboard/generic page TO assessment page
+    // Close chatbot and clear messages
+    else if (contextChanged && previousSystemId === undefined && isOnAssessmentPage) {
+      console.log('🤖 Navigating from dashboard to assessment page - closing chatbot and clearing messages');
+      setIsOpen(false);
+      setMessages([]);
+      setError(null);
+      setInputValue('');
+    }
+    // Case 3: Navigating FROM one assessment page TO different assessment page
+    // Close chatbot and clear messages
+    else if (contextChanged && previousSystemId !== undefined && isOnAssessmentPage && previousSystemId !== currentSystemId) {
+      console.log('🤖 Navigating to different assessment page - closing chatbot and clearing messages');
+      setIsOpen(false);
+      setMessages([]);
+      setError(null);
+      setInputValue('');
+    }
+
+    // Update the ref for next comparison
+    previousSystemIdRef.current = currentSystemId;
+  }, [pathname, params]);
 
   /**
    * Send message to chat API
@@ -299,7 +359,7 @@ export default function Chatbot() {
 
       {/* Chat Panel */}
       {isOpen && (
-        <Card className="fixed bottom-24 right-6 w-96 h-[600px] flex flex-col shadow-2xl z-50 border-2">
+        <Card className="fixed bottom-24 right-6 w-1/2 h-[600px] flex flex-col shadow-2xl z-50 border-2">
           {/* Header */}
           <div className="p-4 border-b flex items-center justify-between bg-primary/5">
             <div className="flex items-center gap-2">
@@ -332,9 +392,9 @@ export default function Chatbot() {
           <ScrollArea className="flex-1 p-4">
             {messages.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground">
-                <MessageCircle className="h-12 w-12 mb-4 opacity-50" />
-                <p className="text-sm mb-2">AI Governance Copilot</p>
-                <p className="text-xs">
+                <MessageCircle className="h-32 w-32 mb-6 mt-5 opacity-50" />
+                <p className="text-base mb-2">AI Governance Copilot</p>
+                <p className="text-sm mb-4">
                   Ask me about regulations, analyze your systems, or get actionable next steps.
                 </p>
                 <div className="mt-4 space-y-2 text-xs">

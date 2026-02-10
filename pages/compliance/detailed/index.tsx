@@ -415,7 +415,7 @@ function DetailedPageContent() {
   if (checkingExistingAssessment) {
     return (
       <main className="min-h-screen flex items-center justify-center bg-white">
-        {isLoggedIn && <Sidebar onLogout={handleLogout} />}
+        <Sidebar onLogout={handleLogout} />
         <div className={`text-center ${isLoggedIn ? 'lg:pl-72 pt-24' : ''}`}>
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
           <p className="text-foreground mt-4">Checking existing assessments...</p>
@@ -426,7 +426,7 @@ function DetailedPageContent() {
 
   return (
     <main className="min-h-screen bg-white py-12 px-4 sm:px-6 lg:px-10">
-      {isLoggedIn && <Sidebar onLogout={handleLogout} />}
+      <Sidebar onLogout={handleLogout} />
       <div className={`flex items-center justify-center ${isLoggedIn ? 'lg:pl-72 pt-24' : ''}`}>
         <div className="w-full max-w-4xl">
           <Card className="glass-panel border-border/50 shadow-elevated rounded-2xl">

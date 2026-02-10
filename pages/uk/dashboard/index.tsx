@@ -113,7 +113,7 @@ export default function UKDashboardPage() {
   return (
     <div className="min-h-screen bg-white">
       {/* Sidebar */}
-      {isLoggedIn && <Sidebar onLogout={handleLogout} />}
+      <Sidebar onLogout={handleLogout} />
 
       <div className={`container mx-auto max-w-7xl py-10 px-4 lg:px-6 space-y-8 ${isLoggedIn ? 'lg:pl-72 pt-24' : ''}`}>
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">

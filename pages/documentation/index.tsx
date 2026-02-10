@@ -191,7 +191,7 @@ export default function DocumentationPage() {
   return (
     <div className="min-h-screen bg-white">
       {/* Left sidebar - Only visible when logged in */}
-      {isLoggedIn && <Sidebar onLogout={handleLogout} />}
+      <Sidebar onLogout={handleLogout} />
 
       <div className={`p-6 lg:p-8 ${isLoggedIn ? 'lg:pl-72 pt-24' : ''}`}>
         <div className="max-w-7xl mx-auto space-y-6">

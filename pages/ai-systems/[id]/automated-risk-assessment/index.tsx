@@ -216,7 +216,7 @@ export default function AutomatedRiskAssessmentPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-white">
-        {isLoggedIn && <Sidebar onLogout={handleLogout} />}
+       <Sidebar onLogout={handleLogout} />
         <div className={`flex items-center justify-center min-h-screen ${isLoggedIn ? 'lg:pl-72' : ''}`}>
           <div className="text-center">
             <div className="relative">
@@ -233,7 +233,8 @@ export default function AutomatedRiskAssessmentPage() {
   if (error) {
     return (
       <div className="min-h-screen bg-white">
-        {isLoggedIn && <Sidebar onLogout={handleLogout} />}
+        <Sidebar onLogout={handleLogout} />
+
         <div className={`flex items-center justify-center min-h-screen p-6 ${isLoggedIn ? 'lg:pl-72' : ''}`}>
           <Card className="max-w-md glass-panel shadow-elevated border-red-200">
             <CardHeader>
@@ -254,7 +255,8 @@ export default function AutomatedRiskAssessmentPage() {
   if (!assessment) {
     return (
       <div className="min-h-screen bg-white">
-        {isLoggedIn && <Sidebar onLogout={handleLogout} />}
+        <Sidebar onLogout={handleLogout} />
+
         <div className={`flex items-center justify-center min-h-screen p-6 ${isLoggedIn ? 'lg:pl-72' : ''}`}>
           <Card className="max-w-md glass-panel shadow-elevated border-border/50">
             <CardHeader>
@@ -311,7 +313,7 @@ export default function AutomatedRiskAssessmentPage() {
   return (
     <div className="min-h-screen bg-background">
       {/* Sidebar */}
-      {isLoggedIn && <Sidebar onLogout={handleLogout} />}
+      <Sidebar onLogout={handleLogout} />
 
       <div className={`container mx-auto max-w-7xl py-10 px-4 lg:px-6 space-y-8 ${isLoggedIn ? 'lg:pl-72 pt-24' : ''}`}>
         {/* Header */}

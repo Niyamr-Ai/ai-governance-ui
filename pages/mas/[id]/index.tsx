@@ -15,6 +15,7 @@ import { Progress } from "@/components/ui/progress";
 import { Loader2, ArrowLeft } from "lucide-react";
 import type { MasAssessmentResult, MasComplianceStatus, MasRiskLevel } from "@/types/mas";
 import { supabase } from "@/utils/supabase/client";
+import Sidebar from "@/components/sidebar";
 
 async function backendFetch(
   path: string,
@@ -61,6 +62,8 @@ const pillarOrder: Array<keyof MasAssessmentResult> = [
   "capabilityCapacity",
 ];
 
+
+
 const pillarLabels: Record<string, string> = {
   governance: "Governance & Oversight",
   inventory: "AI Inventory & Classification",
@@ -82,6 +85,22 @@ export default function MasAssessmentDetailPage() {
   const [data, setData] = useState<MasAssessmentResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isMultiJurisdiction, setIsMultiJurisdiction] = useState(false);
+
+  // Check authentication status
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setIsLoggedIn(!!user);
+    };
+    checkAuth();
+  }, []);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push("/");
+  };
 
   useEffect(() => {
     // Wait for router to be ready and id to be available
@@ -100,6 +119,42 @@ export default function MasAssessmentDetailPage() {
         const body = await res.json();
         setData(body);
         setError(null);
+
+        // Check if this is a multi-jurisdiction system
+        if (body.system_id) {
+          try {
+            const { data: systemData, error: systemError } = await supabase
+              .from("ai_systems")
+              .select("data_processing_locations")
+              .eq("id", body.system_id)
+              .single();
+
+            if (!systemError && systemData) {
+              const dataProcessingLocations = systemData.data_processing_locations || [];
+              
+              // Check if system has multiple jurisdictions
+              const hasUK = dataProcessingLocations.includes("United Kingdom") || dataProcessingLocations.includes("UK");
+              const hasEU = dataProcessingLocations.includes("European Union") || 
+                           dataProcessingLocations.includes("EU") ||
+                           dataProcessingLocations.some((loc: string) =>
+                             ["Austria", "Belgium", "Bulgaria", "Croatia", "Cyprus", "Czechia",
+                              "Denmark", "Estonia", "Finland", "France", "Germany", "Greece",
+                              "Hungary", "Ireland", "Italy", "Latvia", "Lithuania", "Luxembourg",
+                              "Malta", "Netherlands", "Poland", "Portugal", "Romania", "Slovakia",
+                              "Slovenia", "Spain", "Sweden"].some(c => c.toLowerCase() === loc.toLowerCase())
+                           );
+              const hasSingapore = dataProcessingLocations.includes("Singapore");
+
+              // Multi-jurisdiction if Singapore + (UK or EU)
+              const isMulti = hasSingapore && (hasUK || hasEU);
+              setIsMultiJurisdiction(isMulti);
+            }
+          } catch (err) {
+            console.error("Error checking multi-jurisdiction status:", err);
+            // If we can't check, default to false (don't show button)
+            setIsMultiJurisdiction(false);
+          }
+        }
       } catch (err: any) {
         setError(err.message || "Failed to load assessment");
       } finally {
@@ -112,10 +167,13 @@ export default function MasAssessmentDetailPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-[60vh] bg-gray-50">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-600" />
-          <p className="text-gray-700 text-lg font-medium">Loading assessment...</p>
+      <div className="min-h-screen bg-gray-50">
+        <Sidebar onLogout={handleLogout} />
+        <div className={`flex items-center justify-center h-[60vh] ${isLoggedIn ? 'lg:pl-72 pt-24' : ''}`}>
+          <div className="text-center">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-600" />
+            <p className="text-gray-700 text-lg font-medium">Loading assessment...</p>
+          </div>
         </div>
       </div>
     );
@@ -123,22 +181,27 @@ export default function MasAssessmentDetailPage() {
 
   if (error || !data) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <div className="container mx-auto max-w-4xl py-12 px-4 text-center">
-          <Card className="bg-white border-gray-200 shadow-sm">
-            <CardContent className="pt-6">
-              <p className="text-gray-900 text-lg font-semibold mb-4">
-          {error || "Assessment not found"}
-        </p>
-              <Button 
-                variant="outline" 
-                className="border-gray-300 bg-white text-gray-900 hover:bg-gray-100 hover:text-gray-900"
-                onClick={() => router.push("/dashboard")}
-              >
-          Back to Dashboard
-        </Button>
-            </CardContent>
-          </Card>
+      <div className="min-h-screen bg-gray-50">
+        <Sidebar onLogout={handleLogout} />
+        <div className={`min-h-screen bg-gray-50 flex items-center justify-center ${isLoggedIn ? 'lg:pl-72 pt-24' : ''}`}>
+          <div className="container mx-auto max-w-4xl py-12 px-4 text-center">
+            <Card className="bg-white border-gray-200 shadow-sm">
+              <CardContent className="pt-6">
+                <p className="text-gray-900 text-lg font-semibold mb-4">
+                  {error || "Assessment not found"}
+                </p>
+                <div className="flex gap-3">
+                  <Button
+                    variant="outline"
+                    className="border-gray-300 bg-white text-gray-900 hover:bg-gray-100 hover:text-gray-900"
+                    onClick={() => router.push("/dashboard")}
+                  >
+                    Back to Dashboard
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
     );
@@ -146,7 +209,8 @@ export default function MasAssessmentDetailPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-    <div className="container mx-auto max-w-6xl py-10 px-4 space-y-8">
+      <Sidebar onLogout={handleLogout} />
+      <div className={`container mx-auto max-w-6xl py-10 px-4 space-y-8 ${isLoggedIn ? 'lg:pl-72 pt-24' : ''}`}>
       <div className="flex items-center justify-between">
         <Button
           variant="ghost"
@@ -155,13 +219,24 @@ export default function MasAssessmentDetailPage() {
         >
           <ArrowLeft className="h-4 w-4 mr-2" /> Back
         </Button>
-        <Button
-          variant="outline"
+        <div className="flex gap-3">
+          {data?.system_id && isMultiJurisdiction && (
+            <Button
+              variant="default"
+              className="bg-primary text-white hover:bg-primary/90"
+              onClick={() => router.push(`/compliance/multi/${data.system_id}`)}
+            >
+              Back to Multi-Jurisdiction Results
+            </Button>
+          )}
+          <Button
+            variant="outline"
             className="border-gray-300 bg-white text-gray-900 hover:bg-gray-100 hover:text-gray-900"
-          onClick={() => router.push("/dashboard")}
-        >
-          Back to Dashboard
-        </Button>
+            onClick={() => router.push("/dashboard")}
+          >
+            Back to Dashboard
+          </Button>
+        </div>
       </div>
 
         {/* MAS Compliance Progress */}

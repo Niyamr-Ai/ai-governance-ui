@@ -401,7 +401,7 @@ export default function AISystemDetailPage() {
   return (
     <div className="min-h-screen bg-white">
       {/* Sidebar */}
-      {isLoggedIn && <Sidebar onLogout={handleLogout} />}
+      <Sidebar onLogout={handleLogout} />
 
       <div className={`container mx-auto max-w-7xl py-8 px-4 ${isLoggedIn ? 'lg:pl-72 pt-24' : ''}`}>
         {/* Header */}

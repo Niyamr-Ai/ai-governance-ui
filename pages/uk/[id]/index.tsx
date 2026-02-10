@@ -56,6 +56,7 @@ export default function UKAssessmentDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isMultiJurisdiction, setIsMultiJurisdiction] = useState(false);
 
   // Check authentication status
   useEffect(() => {
@@ -87,6 +88,42 @@ export default function UKAssessmentDetailPage() {
         }
         const body = await res.json();
         setData(body);
+
+        // Check if this is a multi-jurisdiction system
+        if (body.system_id) {
+          try {
+            const { data: systemData, error: systemError } = await supabase
+              .from("ai_systems")
+              .select("data_processing_locations")
+              .eq("id", body.system_id)
+              .single();
+
+            if (!systemError && systemData) {
+              const dataProcessingLocations = systemData.data_processing_locations || [];
+              
+              // Check if system has multiple jurisdictions
+              const hasUK = dataProcessingLocations.includes("United Kingdom") || dataProcessingLocations.includes("UK");
+              const hasEU = dataProcessingLocations.includes("European Union") || 
+                           dataProcessingLocations.includes("EU") ||
+                           dataProcessingLocations.some((loc: string) =>
+                             ["Austria", "Belgium", "Bulgaria", "Croatia", "Cyprus", "Czechia",
+                              "Denmark", "Estonia", "Finland", "France", "Germany", "Greece",
+                              "Hungary", "Ireland", "Italy", "Latvia", "Lithuania", "Luxembourg",
+                              "Malta", "Netherlands", "Poland", "Portugal", "Romania", "Slovakia",
+                              "Slovenia", "Spain", "Sweden"].some(c => c.toLowerCase() === loc.toLowerCase())
+                           );
+              const hasSingapore = dataProcessingLocations.includes("Singapore");
+
+              // Multi-jurisdiction if UK + (EU or Singapore)
+              const isMulti = hasUK && (hasEU || hasSingapore);
+              setIsMultiJurisdiction(isMulti);
+            }
+          } catch (err) {
+            console.error("Error checking multi-jurisdiction status:", err);
+            // If we can't check, default to false (don't show button)
+            setIsMultiJurisdiction(false);
+          }
+        }
       } catch (err: any) {
         setError(err.message || "Failed to load assessment");
       } finally {
@@ -99,7 +136,7 @@ export default function UKAssessmentDetailPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
-        {isLoggedIn && <Sidebar onLogout={handleLogout} />}
+        <Sidebar onLogout={handleLogout} />
         <div className={`text-center ${isLoggedIn ? 'lg:pl-72' : ''}`}>
           <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
           <p className="text-foreground text-lg font-medium">Loading assessment...</p>
@@ -111,7 +148,7 @@ export default function UKAssessmentDetailPage() {
   if (error || !data) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
-        {isLoggedIn && <Sidebar onLogout={handleLogout} />}
+        <Sidebar onLogout={handleLogout} />
         <div className={`container mx-auto max-w-4xl py-12 px-4 text-center ${isLoggedIn ? 'lg:pl-72' : ''}`}>
           <Card className="glass-panel border-red-200 shadow-elevated">
             <CardContent className="pt-6">
@@ -120,13 +157,15 @@ export default function UKAssessmentDetailPage() {
                   {error || "Assessment not found"}
                 </AlertDescription>
               </Alert>
-              <Button 
-                variant="outline" 
-                className="border-gray-300 bg-white text-gray-900 hover:bg-gray-100 hover:text-gray-900 mt-4 rounded-xl"
-                onClick={() => router.push("/dashboard")}
-              >
-                Back to Dashboard
-              </Button>
+              <div className="flex gap-3 mt-4">
+                <Button 
+                  variant="outline" 
+                  className="border-gray-300 bg-white text-gray-900 hover:bg-gray-100 hover:text-gray-900 rounded-xl"
+                  onClick={() => router.push("/dashboard")}
+                >
+                  Back to Dashboard
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -162,6 +201,23 @@ export default function UKAssessmentDetailPage() {
     }
   };
 
+  // Utility function to capitalize gap strings properly
+  const capitalizeGap = (gap: string): string => {
+    return gap
+      .replace(/_/g, ' ') // Replace underscores with spaces
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+  };
+
+  // Utility function to capitalize sector name
+  const capitalizeSector = (sector: string): string => {
+    return sector
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+  };
+
   const PrincipleCard = ({
     title,
     status,
@@ -191,7 +247,7 @@ export default function UKAssessmentDetailPage() {
             {missing.length > 0 && (
               <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
                 {missing.map((item, idx) => (
-                  <li key={idx} className="text-foreground">{item}</li>
+                  <li key={idx} className="text-foreground">{capitalizeGap(item)}</li>
                 ))}
               </ul>
             )}
@@ -203,7 +259,7 @@ export default function UKAssessmentDetailPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      {isLoggedIn && <Sidebar onLogout={handleLogout} />}
+      <Sidebar onLogout={handleLogout} />
       <div className={`container mx-auto max-w-6xl py-10 px-4 space-y-8 ${isLoggedIn ? 'lg:pl-72 pt-24' : ''}`}>
         <div className="flex items-center justify-between">
           <div>
@@ -216,13 +272,24 @@ export default function UKAssessmentDetailPage() {
             </p>
           </div>
         <div className="flex gap-3">
-          <Button 
-            variant="outline" 
-            className="border-gray-300 bg-white text-gray-900 hover:bg-gray-100 hover:text-gray-900"
-            onClick={() => router.push("/dashboard")}
-          >
-            Back to Dashboard
-          </Button>
+          <div className="flex gap-3">
+            {data.system_id && isMultiJurisdiction && (
+              <Button 
+                variant="default" 
+                className="bg-primary text-white hover:bg-primary/90"
+                onClick={() => router.push(`/compliance/multi/${data.system_id}`)}
+              >
+                Back to Multi-Jurisdiction Results
+              </Button>
+            )}
+            <Button 
+              variant="outline" 
+              className="border-gray-300 bg-white text-gray-900 hover:bg-gray-100 hover:text-gray-900"
+              onClick={() => router.push("/dashboard")}
+            >
+              Back to Dashboard
+            </Button>
+          </div>
         </div>
         </div>
 
@@ -358,7 +425,7 @@ export default function UKAssessmentDetailPage() {
           <Card className="glass-panel border-border/50 shadow-elevated">
             <CardHeader className="bg-secondary/30">
               <CardTitle className="text-xl font-bold text-foreground">Sector-Specific Regulation</CardTitle>
-              <CardDescription className="text-muted-foreground font-medium">Sector: {data.sector_regulation.sector}</CardDescription>
+              <CardDescription className="text-muted-foreground font-medium">Sector: {capitalizeSector(data.sector_regulation.sector)}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4 bg-secondary/20">
               {data.sector_regulation.requiredControls.length > 0 && (
@@ -366,7 +433,7 @@ export default function UKAssessmentDetailPage() {
                   <h3 className="font-bold text-foreground mb-2">Required Controls:</h3>
                   <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
                     {data.sector_regulation.requiredControls.map((control, idx) => (
-                      <li key={idx} className="text-foreground">{control}</li>
+                      <li key={idx} className="text-foreground">{capitalizeGap(control)}</li>
                     ))}
                   </ul>
                 </div>
@@ -376,7 +443,7 @@ export default function UKAssessmentDetailPage() {
                   <h3 className="font-bold text-red-700 mb-2">Gaps Identified:</h3>
                   <ul className="list-disc list-inside space-y-1 text-sm text-red-600">
                     {data.sector_regulation.gaps.map((gap, idx) => (
-                      <li key={idx} className="text-red-700">{gap}</li>
+                      <li key={idx} className="text-red-700">{capitalizeGap(gap)}</li>
                     ))}
                   </ul>
                 </div>
