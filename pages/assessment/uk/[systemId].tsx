@@ -8,13 +8,13 @@ import * as Yup from "yup";
 
 
 // UK FORM PAGES
-import UkPage0SystemProfile from "../uk/pages/ukPage0SystemProfile";
-import UkPage1SafetySecurityRobustness from "../uk/pages/ukPage1SafetySecurityRobustness";
-import UkPage2TransparencyExplainability from "../uk/pages/ukPage2TransparencyExplainability";
-import UkPage3FairnessDataGovernance from "../uk/pages/ukPage3FairnessDataGovernance";
-import UkPage4AccountabilityGovernance from "../uk/pages/ukPage4AccountabilityGovernance";
-import UkPage5ContestabilityRedress from "../uk/pages/ukPage5ContestabilityRedress";
-import UkPage6FoundationModels from "../uk/pages/ukPage6FoundationModels";
+import UkPage0SystemProfile from "@/components/assessment/uk/ukPage0SystemProfile";
+import UkPage1SafetySecurityRobustness from "@/components/assessment/uk/ukPage1SafetySecurityRobustness";
+import UkPage2TransparencyExplainability from "@/components/assessment/uk/ukPage2TransparencyExplainability";
+import UkPage3FairnessDataGovernance from "@/components/assessment/uk/ukPage3FairnessDataGovernance";
+import UkPage4AccountabilityGovernance from "@/components/assessment/uk/ukPage4AccountabilityGovernance";
+import UkPage5ContestabilityRedress from "@/components/assessment/uk/ukPage5ContestabilityRedress";
+import UkPage6FoundationModels from "@/components/assessment/uk/ukPage6FoundationModels";
 
 
 import {

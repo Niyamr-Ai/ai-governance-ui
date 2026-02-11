@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useFormikContext } from "formik";
-import EvidenceUpload from "../../shared/evidenceUpload";
+import EvidenceUpload from "@/pages/assessment/shared/evidenceUpload";
 
 type Props = {
   ukCurrentPage: number;

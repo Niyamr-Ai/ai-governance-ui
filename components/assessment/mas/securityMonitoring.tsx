@@ -5,8 +5,8 @@ import {
   CardDescription,
   CardContent,
 } from "@/components/ui/card";
-import ToggleSection from "../../shared/toggleSection";
-import EvidenceUpload from "../../shared/evidenceUpload";
+import ToggleSection from "@/pages/assessment/shared/toggleSection";
+import EvidenceUpload from "@/pages/assessment/shared/evidenceUpload";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -24,7 +24,17 @@ export default function SecurityMonitoring({
   masCurrentPage,
   handleEvidenceFileChange,
 }: Props) {
-  const { values, setFieldValue, errors, touched } = useFormikContext<any>();
+  // Handle SSR - Formik context not available during static generation
+  let formikContext;
+  try {
+    formikContext = useFormikContext<any>();
+  } catch (error) {
+    return null;
+  }
+  
+  if (!formikContext) return null;
+  
+  const { values, setFieldValue, errors, touched } = formikContext;
   return (
     <>
       {masCurrentPage === 7 && (

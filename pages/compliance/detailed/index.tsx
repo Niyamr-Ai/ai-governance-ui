@@ -389,9 +389,10 @@ function DetailedPageContent() {
 
       setSubmitMessage("Detailed questionnaire submitted successfully!");
 
-      // Reset form
-      setAnswers([]);
-      setCurrentCategoryIndex(0);
+      // Redirect to view the results after a short delay
+      setTimeout(() => {
+        router.push(`/compliance/detailed/${complianceId}`);
+      }, 1500);
     } catch (error) {
       setSubmitMessage(`An error occurred: ${error instanceof Error ? error.message : "Unknown error"}`);
       console.error("Submit error:", error);

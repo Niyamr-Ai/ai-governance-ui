@@ -25,7 +25,18 @@ export default function MasPage6TechnicalPillars({
   handleEvidenceFileChange,
   evidenceContent,
 }: Props) {
-  const { values, setFieldValue, errors, touched } = useFormikContext<any>();
+  // Handle SSR - Formik context not available during static generation
+  let formikContext;
+  try {
+    formikContext = useFormikContext<any>();
+  } catch (error) {
+    // During static generation, Formik context is not available
+    return null;
+  }
+  
+  if (!formikContext) return null;
+  
+  const { values, setFieldValue, errors, touched } = formikContext;
   if (masCurrentPage !== 5) return null;
 
   return (
