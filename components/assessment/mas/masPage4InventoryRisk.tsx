@@ -37,7 +37,17 @@ export default function MasPage4InventoryRisk({
   handleEvidenceFileChange,
   evidenceContent,
 }: Props) {
-  const { values, setFieldValue, errors, touched } = useFormikContext<any>();
+  // Handle SSR - Formik context not available during static generation
+  let formikContext;
+  try {
+    formikContext = useFormikContext<any>();
+  } catch (error) {
+    return null;
+  }
+  
+  if (!formikContext) return null;
+  
+  const { values, setFieldValue, errors, touched } = formikContext;
   if (masCurrentPage !== 3) return null;
 
   const isRecorded = !!values.inventory_recorded;

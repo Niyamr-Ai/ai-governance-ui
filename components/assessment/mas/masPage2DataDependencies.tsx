@@ -10,7 +10,17 @@ type Props = {
 export default function MasPage2DataDependencies({
   masCurrentPage,
 }: Props) {
-  const { values, setFieldValue, errors, touched } = useFormikContext<any>();
+  // Handle SSR - Formik context not available during static generation
+  let formikContext;
+  try {
+    formikContext = useFormikContext<any>();
+  } catch (error) {
+    return null;
+  }
+  
+  if (!formikContext) return null;
+  
+  const { values, setFieldValue, errors, touched } = formikContext;
   if (masCurrentPage !== 1) return null;
 
   return (

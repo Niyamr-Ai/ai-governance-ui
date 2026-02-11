@@ -2,20 +2,21 @@
 
 import { useMemo, useState, useEffect } from "react";
 import { useRouter } from "next/router";
+import dynamic from "next/dynamic";
 
 import { Formik } from "formik";
 import * as Yup from "yup";
 
 
 // MAS FORM PAGES
-import MasPage1SystemProfile from "../mas/pages/masPage1Intro";
-import MasPage2DataDependencies from "../mas/pages/masPage2DataDependencies"
-import MasPage3GovernanceOversight from "../mas/pages/masPage3GovernanceOversight"
-import MasPage4InventoryRisk from "../mas/pages/masPage4InventoryRisk"
-import MasPage5DataManagementQuality from "../mas/pages/masPage5DataManagementQuality"
-import MasPage6TechnicalPillars from "../mas/pages/masPage6TechnicalPillars"
-import MasPage7OperationalPillars from "../mas/pages/masPage7OperationalPillars"
-import SecurityMonitoring from "../mas/pages/securityMonitoring"
+import MasPage1SystemProfile from "@/components/assessment/mas/masPage1Intro";
+import MasPage2DataDependencies from "@/components/assessment/mas/masPage2DataDependencies"
+import MasPage3GovernanceOversight from "@/components/assessment/mas/masPage3GovernanceOversight"
+import MasPage4InventoryRisk from "@/components/assessment/mas/masPage4InventoryRisk"
+import MasPage5DataManagementQuality from "@/components/assessment/mas/masPage5DataManagementQuality"
+import MasPage6TechnicalPillars from "@/components/assessment/mas/masPage6TechnicalPillars"
+import MasPage7OperationalPillars from "@/components/assessment/mas/masPage7OperationalPillars"
+import SecurityMonitoring from "@/components/assessment/mas/securityMonitoring"
 
 
 import {
@@ -1471,4 +1472,11 @@ export default function MasAssessmentPage() {
         </div>
     );
 
+}
+
+// Prevent static generation - this page requires Formik context at runtime
+export async function getServerSideProps() {
+  return {
+    props: {},
+  };
 }
