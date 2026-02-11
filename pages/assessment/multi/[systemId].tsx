@@ -741,12 +741,25 @@ export default function MultiJurisdictionAssessmentPage() {
                     {!jurisdictionStatuses[currentJurisdictionIndex]?.completed && (
                       <Button
                         onClick={() => {
+                          console.log(`\n${'='.repeat(80)}`);
+                          console.log(`🖱️  [MULTI-ASSESSMENT] Button clicked to navigate to jurisdiction form`);
+                          console.log(`   Current jurisdiction: ${currentJurisdiction}`);
+                          console.log(`   System ID: ${systemId}`);
+                          console.log(`${'='.repeat(80)}\n`);
+                          
                           if (currentJurisdiction === "UK") {
-                            router.push(`/assessment/uk/${systemId}`);
+                            const url = `/assessment/uk/${systemId}`;
+                            console.log(`➡️  [MULTI-ASSESSMENT] Navigating to: ${url}`);
+                            router.push(url);
                           } else if (currentJurisdiction === "MAS") {
-                            router.push(`/assessment/mas/${systemId}`);
+                            const url = `/assessment/mas/${systemId}`;
+                            console.log(`➡️  [MULTI-ASSESSMENT] Navigating to: ${url}`);
+                            router.push(url);
                           } else {
-                            router.push(`/assessment/eu/${systemId}`);
+                            const url = `/assessment/eu/${systemId}`;
+                            console.log(`➡️  [MULTI-ASSESSMENT] Navigating to EU form: ${url}`);
+                            console.log(`   System ID being passed: ${systemId}`);
+                            router.push(url);
                           }
                         }}
                         variant="hero"

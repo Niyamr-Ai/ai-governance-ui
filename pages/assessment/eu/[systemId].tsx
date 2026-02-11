@@ -1,3 +1,8 @@
+// FORCE LOG ON FILE LOAD
+console.log(`\n${'='.repeat(80)}`);
+console.log(`📄 [EU-ASSESSMENT] FILE LOADED: pages/assessment/eu/[systemId].tsx`);
+console.log(`   Timestamp: ${new Date().toISOString()}`);
+console.log(`${'='.repeat(80)}\n`);
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
@@ -65,7 +70,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Shield } from "lucide-react";
+import { Loader2, Shield, AlertTriangle } from "lucide-react";
 import Sidebar from "@/components/sidebar";
 import { supabase } from "@/utils/supabase/client";
 import { backendFetch } from "@/utils/backend-fetch";
@@ -196,6 +201,30 @@ export default function EUAssessmentPage() {
   const [initialValues, setInitialValues] = useState<Record<string, any> | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [systemName, setSystemName] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Log component mount immediately
+  console.log(`\n${'='.repeat(80)}`);
+  console.log(`🚀 [EU-ASSESSMENT] Component rendering`);
+  console.log(`   Router ready: ${router.isReady}`);
+  console.log(`   System ID from query: ${systemId}`);
+  console.log(`   System ID type: ${typeof systemId}`);
+  console.log(`   Full query:`, router.query);
+  console.log(`   Current pathname: ${router.pathname}`);
+  console.log(`   Current asPath: ${router.asPath}`);
+  console.log(`${'='.repeat(80)}\n`);
+
+  // Log router state for debugging
+  useEffect(() => {
+    console.log(`\n${'='.repeat(80)}`);
+    console.log(`🔄 [EU-ASSESSMENT] Component mounted/updated`);
+    console.log(`   Router ready: ${router.isReady}`);
+    console.log(`   System ID from query: ${systemId}`);
+    console.log(`   System ID type: ${typeof systemId}`);
+    console.log(`   Full query:`, router.query);
+    console.log(`${'='.repeat(80)}\n`);
+  }, [router.isReady, systemId, router.query]);
 
 
 
@@ -211,36 +240,159 @@ export default function EUAssessmentPage() {
   }, []);
 
   useEffect(() => {
-    if (!systemId) return;
+    console.log(`\n${'='.repeat(80)}`);
+    console.log(`🔍 [EU-ASSESSMENT] useEffect triggered`);
+    console.log(`   Router ready: ${router.isReady}`);
+    console.log(`   System ID: ${systemId}`);
+    console.log(`   System ID type: ${typeof systemId}`);
+    console.log(`   Router pathname: ${router.pathname}`);
+    console.log(`   Router asPath: ${router.asPath}`);
+    console.log(`${'='.repeat(80)}\n`);
 
-    const loadAssessment = async () => {
-      const { error: systemError } = await supabase
-        .from("ai_systems")
-        .select("id")
-        .eq("id", systemId)
-        .single();
+    // Helper function to extract systemId
+    const extractSystemId = (): string | undefined => {
+      // First try from query
+      let systemIdValue = systemId as string | undefined;
+      
+      // Fallback: extract from URL path if query param is missing
+      if ((!systemIdValue || systemIdValue === 'undefined') && router.asPath) {
+        const pathMatch = router.asPath.match(/\/assessment\/eu\/([^/?]+)/);
+        if (pathMatch && pathMatch[1] && pathMatch[1] !== 'undefined') {
+          systemIdValue = pathMatch[1];
+          console.log(`🔧 [EU-ASSESSMENT] Extracted systemId from URL path: ${systemIdValue}`);
+        }
+      }
+      
+      return systemIdValue;
+    };
 
-      if (systemError) {
-        setError("Invalid or missing system");
+    // Try to get systemId immediately
+    let systemIdValue = extractSystemId();
+
+    // If we don't have systemId yet, wait a bit for router to be ready
+    if (!systemIdValue) {
+      if (!router.isReady) {
+        console.log(`⏳ [EU-ASSESSMENT] Router not ready yet, will retry when router.isReady changes`);
+        // Don't proceed - wait for router to be ready, then this useEffect will run again
+        return;
+      } else {
+        // Router is ready but still no systemId - this is an error
+        console.error(`❌ [EU-ASSESSMENT] Router is ready but no systemId found`);
+        console.error(`   Router query:`, router.query);
+        console.error(`   Router asPath: ${router.asPath}`);
+        setError("System ID is missing from the URL. Please navigate from the assessment page.");
+        setIsLoading(false);
         return;
       }
+    }
+    
+    // Final validation
+    if (systemIdValue === 'undefined') {
+      console.error(`❌ [EU-ASSESSMENT] systemId is literally 'undefined' string`);
+      setError("Invalid system ID. Please navigate from the assessment page.");
+      setIsLoading(false);
+      return;
+    }
 
-      const { data: assessment } = await supabase
-        .from("eu_assessments")
-        .select("answers")
-        .eq("system_id", systemId)
-        .single();
+    console.log(`\n${'='.repeat(80)}`);
+    console.log(`🚀 [EU-ASSESSMENT] Starting to load assessment`);
+    console.log(`   System ID: ${systemIdValue}`);
+    console.log(`${'='.repeat(80)}\n`);
 
-      const defaults = euQuestions.reduce((acc, q) => {
-        acc[q.id] = q.type === "checkbox" ? [] : "";
-        return acc;
-      }, {} as Record<string, any>);
+    const loadAssessment = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
 
-      setInitialValues(assessment?.answers ?? defaults);
+        console.log(`📡 [EU-ASSESSMENT] Fetching system data from database...`);
+        
+        // Fetch system data
+        const { data: systemData, error: systemError } = await supabase
+          .from("ai_systems")
+          .select("id, system_name")
+          .eq("id", systemIdValue)
+          .single();
+
+        if (systemError) {
+          console.error(`❌ [EU-ASSESSMENT] Error loading system:`, systemError);
+          console.error(`   Error code: ${systemError.code}`);
+          console.error(`   Error message: ${systemError.message}`);
+          setError(`Invalid or missing system: ${systemError.message}`);
+          setIsLoading(false);
+          return;
+        }
+
+        console.log(`✅ [EU-ASSESSMENT] System data loaded:`, systemData);
+
+        // Store system name for submission
+        if (systemData?.system_name) {
+          setSystemName(systemData.system_name);
+          console.log(`📝 [EU-ASSESSMENT] System name set: ${systemData.system_name}`);
+        }
+
+        console.log(`📡 [EU-ASSESSMENT] Checking for existing EU assessment...`);
+
+        // Try to fetch existing assessment (may not exist for new assessments)
+        const { data: assessment, error: assessmentError } = await supabase
+          .from("eu_assessments")
+          .select("answers")
+          .eq("system_id", systemIdValue)
+          .maybeSingle(); // Use maybeSingle() instead of single() to handle no results gracefully
+
+        if (assessmentError) {
+          if (assessmentError.code === 'PGRST116') {
+            console.log(`ℹ️  [EU-ASSESSMENT] No existing assessment found (this is normal for new assessments)`);
+          } else {
+            console.warn(`⚠️  [EU-ASSESSMENT] Error loading assessment (will use defaults):`, assessmentError);
+          }
+        } else if (assessment) {
+          console.log(`✅ [EU-ASSESSMENT] Found existing assessment with answers`);
+        } else {
+          console.log(`ℹ️  [EU-ASSESSMENT] No existing assessment found, will use defaults`);
+        }
+
+        // Create default values
+        console.log(`🔧 [EU-ASSESSMENT] Creating default form values...`);
+        const defaults = euQuestions.reduce((acc, q) => {
+          acc[q.id] = q.type === "checkbox" ? [] : "";
+          return acc;
+        }, {} as Record<string, any>);
+
+        // Use existing answers if available, otherwise use defaults
+        const finalValues = assessment?.answers ?? defaults;
+        console.log(`✅ [EU-ASSESSMENT] Setting initial values (${assessment ? 'from existing assessment' : 'using defaults'})`);
+        setInitialValues(finalValues);
+        
+        console.log(`\n${'='.repeat(80)}`);
+        console.log(`✅ [EU-ASSESSMENT] Assessment loaded successfully`);
+        console.log(`   System ID: ${systemIdValue}`);
+        console.log(`   System Name: ${systemData?.system_name || 'N/A'}`);
+        console.log(`   Has existing assessment: ${!!assessment}`);
+        console.log(`   Initial values set: ${!!finalValues}`);
+        console.log(`${'='.repeat(80)}\n`);
+      } catch (err: any) {
+        console.error(`\n${'='.repeat(80)}`);
+        console.error(`❌ [EU-ASSESSMENT] Error in loadAssessment:`, err);
+        console.error(`   Error message: ${err.message}`);
+        console.error(`   Error stack:`, err.stack);
+        console.error(`${'='.repeat(80)}\n`);
+        setError(`Failed to load assessment: ${err.message}`);
+        
+        // Still set defaults so form can render
+        console.log(`🔧 [EU-ASSESSMENT] Setting default values as fallback...`);
+        const defaults = euQuestions.reduce((acc, q) => {
+          acc[q.id] = q.type === "checkbox" ? [] : "";
+          return acc;
+        }, {} as Record<string, any>);
+        setInitialValues(defaults);
+      } finally {
+        console.log(`🏁 [EU-ASSESSMENT] Loading complete, setting isLoading to false`);
+        setIsLoading(false);
+      }
     };
 
     loadAssessment();
-  }, [systemId]);
+  }, [router.isReady, systemId]);
 
 
   const handleLogout = async () => {
@@ -267,6 +419,7 @@ export default function EUAssessmentPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           system_id: systemId,
+          system_name: systemName || "Unnamed System",
           ...values,
         }),
       });
@@ -334,8 +487,52 @@ export default function EUAssessmentPage() {
   // Render form based on country
   const frameworkName = "EU AI Act";
 
-  if (!initialValues) {
-    return <div className="p-8">Loading assessment…</div>;
+  if (isLoading || !initialValues) {
+    // Log loading state
+    console.log(`\n${'='.repeat(80)}`);
+    console.log(`⏳ [EU-ASSESSMENT] Showing loading screen`);
+    console.log(`   isLoading: ${isLoading}`);
+    console.log(`   initialValues: ${initialValues ? 'set' : 'null'}`);
+    console.log(`   router.isReady: ${router.isReady}`);
+    console.log(`   systemId: ${systemId}`);
+    console.log(`${'='.repeat(80)}\n`);
+    
+    return (
+      <div className="min-h-screen bg-white">
+        <Sidebar onLogout={handleLogout} />
+        <div className="container mx-auto max-w-4xl py-12 px-4 lg:pl-72 pt-24">
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+              <p className="text-muted-foreground">Loading assessment…</p>
+              {error && (
+                <p className="text-red-600 mt-4 text-sm">Error: {error}</p>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error && !initialValues) {
+    return (
+      <div className="min-h-screen bg-white">
+        <Sidebar onLogout={handleLogout} />
+        <div className="container mx-auto max-w-4xl py-12 px-4 lg:pl-72 pt-24">
+          <Card className="glass-panel shadow-elevated">
+            <CardContent className="p-8">
+              <Alert className="border-red-200 bg-red-50">
+                <AlertTriangle className="h-4 w-4 text-red-600" />
+                <AlertDescription className="text-red-800">
+                  {error}
+                </AlertDescription>
+              </Alert>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
   }
 
 
