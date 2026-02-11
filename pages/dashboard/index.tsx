@@ -984,7 +984,7 @@ export default function ComplianceDashboard() {
                                 variant="outline"
                                 size="sm"
                                 className="border-secondary/40 bg-secondary/30 text-foreground hover:bg-secondary/50 hover:border-primary/40 hover:shadow-md transition-all font-medium flex items-center gap-2 rounded-xl px-3 py-1.5"
-                                onClick={() => router.push(`http://localhost:3000/ai-systems/${assessment.id}?tab=risk-assessments`)}
+                                onClick={() => router.push(`/ai-systems/${assessment.id}?tab=risk-assessments`)}
                               >
                                 <AlertTriangle className="w-4 h-4" />
                                 <span>Check Assessment</span>
@@ -996,7 +996,7 @@ export default function ComplianceDashboard() {
                                   variant="outline"
                                   size="sm"
                                   className="border-primary/40 bg-primary/5 text-primary hover:bg-primary/10 hover:border-primary/60 hover:shadow-md transition-all font-medium flex items-center gap-2 rounded-xl px-3 py-1.5"
-                                  onClick={() => router.push(`http://localhost:3000/ai-systems/${assessment.id}/automated-risk-assessment`)}
+                                  onClick={() => router.push(`/ai-systems/${assessment.id}/automated-risk-assessment`)}
                                 >
                                   <Shield className="w-4 h-4" />
                                   <span>View Report</span>
@@ -1005,7 +1005,7 @@ export default function ComplianceDashboard() {
                                 <Button
                                   size="sm"
                                   className="bg-green-500/10 text-green-600 border border-green-500/30 hover:bg-green-500/20 hover:border-green-500/50 hover:shadow-md transition-all font-medium flex items-center gap-2 rounded-xl px-3 py-1.5 dark:bg-green-500/20 dark:text-green-400 dark:border-green-500/40 dark:hover:bg-green-500/30"
-                                  onClick={() => router.push(`http://localhost:3000/ai-systems/${assessment.id}/automated-risk-assessment`)}
+                                  onClick={() => router.push(`/ai-systems/${assessment.id}/automated-risk-assessment`)}
                                 >
                                   <Shield className="w-4 h-4" />
                                   <span>Generate</span>
@@ -1017,7 +1017,7 @@ export default function ComplianceDashboard() {
                                 variant="outline"
                                 size="sm"
                                 className="border-primary/40 bg-primary/5 text-primary hover:bg-primary/10 hover:border-primary/60 hover:shadow-md transition-all font-medium flex items-center gap-2 rounded-xl px-3 py-1.5"
-                                onClick={() => router.push(`http://localhost:3000/ai-systems/${assessment.id}?tab=documentation`)}
+                                onClick={() => router.push(`/ai-systems/${assessment.id}?tab=documentation`)}
                               >
                                 <FileText className="w-4 h-4" />
                                 <span>Generate</span>
@@ -1447,7 +1447,7 @@ export default function ComplianceDashboard() {
                     <Button
                       onClick={() => {
                         setShowDetailsModal(false);
-                        router.push(`http://localhost:3000/ai-systems/${selectedSystem.id}`);
+                        router.push(`/ai-systems/${selectedSystem.id}`);
                       }}
                       variant="hero"
                       className="rounded-xl"
@@ -1475,7 +1475,7 @@ export default function ComplianceDashboard() {
                         variant="outline"
                         onClick={() => {
                           setShowDetailsModal(false);
-                          router.push(`http://localhost:3000/ai-systems/${selectedSystem.id}?tab=documentation`);
+                          router.push(`/ai-systems/${selectedSystem.id}?tab=documentation`);
                         }}
                         className="rounded-xl"
                       >

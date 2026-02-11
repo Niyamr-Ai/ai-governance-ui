@@ -43,6 +43,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { supabase } from "@/utils/supabase/client";
+import { backendFetch } from "@/utils/backend-fetch";
 import Sidebar from "@/components/sidebar";
 import type { DocumentationWithSystemInfo } from "../../types/documentation";
 
@@ -87,15 +88,8 @@ export default function DocumentationPage() {
       if (documentTypeFilter !== "all") params.append("document_type", documentTypeFilter);
       if (statusFilter !== "all") params.append("status", statusFilter);
 
-      const res = await fetch(
-        `http://localhost:3001/api/documentation?${params.toString()}`,
-        {
-          headers: {
-            Authorization: `Bearer ${
-              (await supabase.auth.getSession()).data.session?.access_token
-            }`,
-          },
-        }
+      const res = await backendFetch(
+        `/api/documentation?${params.toString()}`
       );
       
       

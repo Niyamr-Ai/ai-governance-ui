@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Plus, ShieldCheck, FileText, Globe, Building2, Loader2, ExternalLink } from "lucide-react";
 import { supabase } from "@/utils/supabase/client";
+import { backendFetch } from "@/utils/backend-fetch";
 import Sidebar from "@/components/sidebar";
 import type { Policy, ComplianceStatus } from "../../types/policy";
 
@@ -32,22 +33,18 @@ export default function PolicyTrackerPage() {
       setIsLoggedIn(true);
       setIsLoading(false);
   
-      await fetchPolicies(session.access_token);
+      await fetchPolicies();
     };
   
     init();
   }, [router]);
   
 
-  const fetchPolicies = async (token: string) => {
+  const fetchPolicies = async () => {
     try {
       setLoadingPolicies(true);
   
-      const res = await fetch("http://localhost:3001/api/policies", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const res = await backendFetch("/api/policies");
   
       if (!res.ok) {
         throw new Error("Unauthorized");

@@ -18,12 +18,13 @@ const nextConfig: NextConfig = {
     },
     resolveExtensions: [".mjs", ".js", ".ts", ".tsx", ".json"],
   },
-  // Proxy API calls to Express backend
+  // Proxy API calls to Express backend (only used in development)
   async rewrites() {
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
     return [
       {
         source: '/api/:path*',
-        destination: 'http://localhost:3001/api/:path*',
+        destination: `${backendUrl}/api/:path*`,
       },
     ];
   },
