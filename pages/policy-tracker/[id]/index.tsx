@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Loader2, ShieldCheck, FileText, Edit, Globe, Building2 } from "lucide-react";
 import Sidebar from "@/components/sidebar";
 import { supabase } from "@/utils/supabase/client";
+import { backendFetch } from "@/utils/backend-fetch";
 import type {
   Policy,
   PolicyRequirement,
@@ -46,11 +47,7 @@ export default function PolicyDetailPage() {
 
     try {
       setLoading(true);
-      const res = await fetch(`http://localhost:3001/api/policies/${policyId}`, {
-        headers: {
-          Authorization: `Bearer ${await supabase.auth.getSession().then(res => res.data.session?.access_token)}`,
-        },
-      });
+      const res = await backendFetch(`/api/policies/${policyId}`);
       if (res.ok) {
         const data = await res.json();
         setPolicy(data);
