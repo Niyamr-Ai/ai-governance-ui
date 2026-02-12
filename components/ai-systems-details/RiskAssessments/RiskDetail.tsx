@@ -20,6 +20,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { ExternalLink, AlertTriangle, CheckCircle2, Clock, FileText, XCircle, Send, User, Shield, AlertCircle } from "lucide-react";
+import { toast } from "sonner";
 import type { RiskAssessment, RiskLevel, MitigationStatus, AssessmentStatus } from "@/types/risk-assessment";
 import { format } from "date-fns";
 import { useState } from "react";
@@ -178,9 +179,19 @@ export default function RiskDetail({
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to submit assessment");
+        const errorMsg = err.error || "Failed to submit assessment";
+        
+        // Show toast for prohibited system errors
+        if (err.prohibited_system) {
+          toast.error(errorMsg, { duration: 6000 });
+        } else {
+          toast.error(errorMsg, { duration: 5000 });
+        }
+        
+        throw new Error(errorMsg);
       }
 
+      toast.success("Assessment submitted for review");
       if (onStatusChange) onStatusChange();
       onClose();
     } catch (err: any) {
@@ -202,9 +213,19 @@ export default function RiskDetail({
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to approve assessment");
+        const errorMsg = err.error || "Failed to approve assessment";
+        
+        // Show toast for prohibited system errors
+        if (err.prohibited_system) {
+          toast.error(errorMsg, { duration: 6000 });
+        } else {
+          toast.error(errorMsg, { duration: 5000 });
+        }
+        
+        throw new Error(errorMsg);
       }
 
+      toast.success("Assessment approved successfully");
       if (onStatusChange) onStatusChange();
       onClose();
     } catch (err: any) {
