@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Plus, ArrowLeft, Loader2, AlertCircle, Info, AlertTriangle as AlertTriangleIcon, ShieldCheck } from "lucide-react";
+import { toast } from "sonner";
 import RiskTable from "@/components/ai-systems-details/RiskAssessments/RiskTable";
 import RiskForm from "@/components/ai-systems-details/RiskAssessments/RiskForm";
 import RiskDetail from "@/components/ai-systems-details/RiskAssessments/RiskDetail";
@@ -264,6 +265,17 @@ export default function AISystemDetailPage() {
 
     const currentStage = lifecycleStage || 'Draft';
 
+    // Check if system is prohibited
+    const isProhibited = complianceData?.eu && (complianceData.eu.risk_tier === 'Prohibited' || complianceData.eu.prohibited_practices_detected);
+    
+    if (isProhibited && newStage === 'Deployed') {
+      toast.error(
+        "Cannot deploy to Production: This system has been classified as 'Prohibited' under the EU AI Act. Prohibited AI practices cannot be deployed.",
+        { duration: 6000 }
+      );
+      return;
+    }
+
     // Show confirmation for Production (Deployed) transitions
     if (newStage === 'Deployed') {
       const confirmed = window.confirm(
@@ -294,11 +306,13 @@ export default function AISystemDetailPage() {
 
       if (res.ok) {
         setLifecycleStage(newStage);
+        toast.success("Lifecycle stage updated successfully");
 
         // Show warnings if any
         if (responseData.warnings && responseData.warnings.length > 0) {
-          const warningMsg = "Lifecycle updated, but please note:\n" + responseData.warnings.join("\n");
-          alert(warningMsg);
+          responseData.warnings.forEach((warning: string) => {
+            toast.warning(warning, { duration: 5000 });
+          });
         }
 
         // Refresh compliance data to get updated lifecycle stage
@@ -315,19 +329,20 @@ export default function AISystemDetailPage() {
         // Show validation error
         const errorMsg = responseData.reason || responseData.error || 'Failed to update lifecycle stage';
         setError(errorMsg);
+        toast.error(errorMsg, { duration: 6000 });
 
-        // Show detailed error in alert for better visibility
+        // Show additional warnings
         if (responseData.warnings && responseData.warnings.length > 0) {
-          alert(errorMsg + "\n\nAdditional warnings:\n" + responseData.warnings.join("\n"));
-        } else {
-          alert(errorMsg);
+          responseData.warnings.forEach((warning: string) => {
+            toast.warning(warning, { duration: 5000 });
+          });
         }
       }
     } catch (err: any) {
       console.error("Error updating lifecycle:", err);
       const errorMsg = err.message || 'Failed to update lifecycle stage';
       setError(errorMsg);
-      alert(errorMsg);
+      toast.error(errorMsg, { duration: 5000 });
     } finally {
       setUpdatingLifecycle(false);
     }
@@ -445,6 +460,30 @@ export default function AISystemDetailPage() {
             )}
           </div>
         </div>
+
+        {/* Prohibited System Warning Banner */}
+        {complianceData?.eu && (complianceData.eu.risk_tier === 'Prohibited' || complianceData.eu.prohibited_practices_detected) && (
+          <div className="mb-6">
+            <Alert className="bg-red-50 border-2 border-red-300 rounded-lg p-5 glass-panel shadow-lg">
+              <AlertCircle className="h-6 w-6 text-red-600 flex-shrink-0" />
+              <AlertDescription className="text-red-800 font-semibold">
+                <div className="space-y-2">
+                  <p className="text-lg font-bold">⚠️ PROHIBITED SYSTEM - DEPLOYMENT BLOCKED</p>
+                  <p className="text-sm font-normal">
+                    This system has been classified as <strong>"Prohibited"</strong> under the EU AI Act. 
+                    Prohibited AI practices (social scoring, real-time biometric identification in public spaces, 
+                    influencing law enforcement decisions) are strictly forbidden and cannot be deployed to Production.
+                  </p>
+                  <p className="text-sm font-normal mt-2">
+                    <strong>Action Required:</strong> You must modify the system to remove all prohibited practices 
+                    before it can be deployed. Lifecycle transitions to "Deployed" and assessment submissions/approvals 
+                    are blocked until compliance is achieved.
+                  </p>
+                </div>
+              </AlertDescription>
+            </Alert>
+          </div>
+        )}
 
         {/* Error Alert */}
         {error && (
@@ -635,9 +674,15 @@ export default function AISystemDetailPage() {
                               <SelectItem
                                 value="Deployed"
                                 className="text-foreground rounded-lg"
-                                disabled={lifecycleStage === 'Monitoring'}
+                                disabled={
+                                  lifecycleStage === 'Monitoring' ||
+                                  (complianceData?.eu && (complianceData.eu.risk_tier === 'Prohibited' || complianceData.eu.prohibited_practices_detected))
+                                }
                               >
                                 Deployed
+                                {complianceData?.eu && (complianceData.eu.risk_tier === 'Prohibited' || complianceData.eu.prohibited_practices_detected) && (
+                                  <span className="ml-2 text-xs text-red-600">(Blocked - Prohibited)</span>
+                                )}
                               </SelectItem>
                               <SelectItem value="Monitoring" className="text-foreground rounded-lg">
                                 Monitoring

@@ -28,10 +28,10 @@ import {
   CheckCircle2,
   XCircle,
   Shield,
+  Ban,
   FileText,
   Eye,
   TrendingUp,
-  Ban,
   Plus,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -88,13 +88,14 @@ const getRiskTierClasses = (tier) => {
 const getComplianceStatusClasses = (status) => {
   switch (status) {
     case "Compliant":
-      return "bg-emerald-600/80 text-foreground border-emerald-500/50";
-    case "Partial":
-      return "bg-amber-600/80 text-foreground border-amber-500/50";
+      return "bg-emerald-600 text-white border-emerald-500 font-semibold";
+    case "Partially compliant":
+      return "bg-amber-600 text-white border-amber-500 font-semibold";
     case "Non-Compliant":
-      return "bg-red-600/80 text-foreground border-red-500/50";
+    case "Non-compliant":
+      return "bg-red-600 text-white border-red-500 font-semibold";
     default:
-      return "bg-slate-600/80 text-foreground border-slate-500/50";
+      return "bg-slate-600 text-white border-slate-500 font-semibold";
   }
 };
 
@@ -192,10 +193,14 @@ export default function ComplianceResultPage() {
   // Extract prohibited practices list from reference
   const prohibitedPracticesList = reference?.prohibited_practices || [];
 
+  // Check if system is prohibited
+  const isProhibited = risk_tier === 'Prohibited' || prohibited_practices_detected;
+
   // Calculate compliance metrics for charts
+  // IMPORTANT: Prohibited systems cannot be compliant - obligations are not applicable
   const totalObligations = Object.keys(highRiskObligationLabels).length;
-  const fulfilledObligations = totalObligations - high_risk_missing.length;
-  const compliancePercentage = Math.round((fulfilledObligations / totalObligations) * 100);
+  const fulfilledObligations = isProhibited ? 0 : (totalObligations - high_risk_missing.length);
+  const compliancePercentage = isProhibited ? 0 : Math.round((fulfilledObligations / totalObligations) * 100);
 
   // Enhanced color palette
   const COLORS = {
@@ -210,10 +215,15 @@ export default function ComplianceResultPage() {
   };
 
   // Data for pie chart - Obligations Status
-  const obligationsData = [
-    { name: "Fulfilled", value: fulfilledObligations, color: COLORS.fulfilled, gradientId: "fulfilledGradient" },
-    { name: "Missing", value: high_risk_missing.length, color: COLORS.missing, gradientId: "missingGradient" },
-  ];
+  // For prohibited systems, show all as "Not Applicable"
+  const obligationsData = isProhibited
+    ? [
+        { name: "Not Applicable", value: totalObligations, color: "#6b7280", gradientId: "notApplicableGradient" },
+      ]
+    : [
+        { name: "Fulfilled", value: fulfilledObligations, color: COLORS.fulfilled, gradientId: "fulfilledGradient" },
+        { name: "Missing", value: high_risk_missing.length, color: COLORS.missing, gradientId: "missingGradient" },
+      ];
 
   // Data for bar chart - Individual Obligations with varied colors
   const obligationColors = [
@@ -226,6 +236,18 @@ export default function ComplianceResultPage() {
   ];
 
   const obligationsBreakdown = Object.entries(highRiskObligationLabels).map(([key, label], idx) => {
+    // For prohibited systems, all obligations are "Not Applicable"
+    if (isProhibited) {
+      return {
+        name: label.split(" ")[0],
+        fullName: label,
+        fulfilled: false,
+        value: 0,
+        color: "#6b7280", // Gray for not applicable
+        gradientId: `obligationGradient-${idx}`,
+        notApplicable: true,
+      };
+    }
     const isFulfilled = !high_risk_missing.includes(key);
     const colorSet = obligationColors[idx % obligationColors.length];
     return {
@@ -235,6 +257,7 @@ export default function ComplianceResultPage() {
       value: isFulfilled ? 100 : 0,
       color: isFulfilled ? colorSet.fulfilled : colorSet.missing,
       gradientId: `obligationGradient-${idx}`,
+      notApplicable: false,
     };
   });
 
@@ -294,10 +317,10 @@ export default function ComplianceResultPage() {
         {prohibited_practices_detected && (
           <Alert variant="destructive" className="border-red-200 bg-red-50 backdrop-blur-sm">
             <Ban className="h-4 w-4 text-red-600" />
-            <AlertTitle className="text-red-900 font-bold">Prohibited Practices Detected</AlertTitle>
+            <AlertTitle className="text-red-900 font-bold">⚠️ PROHIBITED SYSTEM - DEPLOYMENT BLOCKED</AlertTitle>
             <AlertDescription className="text-red-800">
               <div className="mt-2">
-                <p className="mb-2">Immediate action required. This AI system engages in prohibited practices under the EU AI Act.</p>
+                <p className="mb-2 font-semibold">Immediate action required. This AI system engages in prohibited practices under the EU AI Act.</p>
                 {prohibitedPracticesList.length > 0 && (
                   <div className="mt-3">
                     <p className="font-semibold mb-2 text-red-900">Detected Prohibited Practices:</p>
@@ -308,6 +331,9 @@ export default function ComplianceResultPage() {
                     </ul>
                   </div>
                 )}
+                <p className="mt-3 text-sm text-red-700">
+                  <strong>Action Required:</strong> Remove all prohibited practices before this system can be moved to Production (Deployed) stage or used in live operations. Prohibited AI systems cannot be placed on the market, put into service, or used under the EU AI Act.
+                </p>
               </div>
             </AlertDescription>
           </Alert>
@@ -342,13 +368,23 @@ export default function ComplianceResultPage() {
           <Card className="glass-card shadow-premium rounded-2xl border-0 bg-gradient-to-br from-white/90 via-white/80 to-white/70 backdrop-blur-xl">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-slate-400">Obligations Fulfilled</CardTitle>
-              <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+              {isProhibited ? (
+                <Ban className="h-4 w-4 text-red-400" />
+              ) : (
+                <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+              )}
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-foreground">
-                {fulfilledObligations}/{totalObligations}
+                {isProhibited ? (
+                  <span className="text-red-400">N/A</span>
+                ) : (
+                  `${fulfilledObligations}/${totalObligations}`
+                )}
               </div>
-              <div className="text-sm text-slate-400 mt-1">{compliancePercentage}% Complete</div>
+              <div className={`text-sm mt-1 ${isProhibited ? 'text-red-400' : 'text-slate-400'}`}>
+                {isProhibited ? 'Not Applicable - System is Prohibited' : `${compliancePercentage}% Complete`}
+              </div>
             </CardContent>
           </Card>
 
@@ -394,6 +430,10 @@ export default function ComplianceResultPage() {
                     <linearGradient id="missingGradient" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stopColor="#ef4444" stopOpacity={1} />
                       <stop offset="100%" stopColor="#dc2626" stopOpacity={0.8} />
+                    </linearGradient>
+                    <linearGradient id="notApplicableGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#6b7280" stopOpacity={1} />
+                      <stop offset="100%" stopColor="#4b5563" stopOpacity={0.8} />
                     </linearGradient>
                   </defs>
                   <Pie
@@ -484,18 +524,34 @@ export default function ComplianceResultPage() {
                       content={({ active, payload }) => {
                         if (active && payload && payload.length) {
                           const data = payload[0].payload;
+                          const isNotApplicable = data.notApplicable || isProhibited;
                           return (
                             <div className="bg-white/95 backdrop-blur-sm p-4 border border-gray-200 rounded-lg shadow-xl">
                               <p className="font-bold text-lg mb-2 text-foreground">{data.fullName}</p>
                               <div className="flex items-center gap-2">
-                                <span className={`text-2xl ${data.fulfilled ? "text-emerald-600" : "text-red-600"}`}>
-                                  {data.fulfilled ? "✅" : "❌"}
-                                </span>
-                                <span className={`font-extrabold text-xl ${data.fulfilled ? "text-emerald-600" : "text-red-600"}`}>
-                                  {data.fulfilled ? "Fulfilled" : "Missing"}
-                                </span>
+                                {isNotApplicable ? (
+                                  <>
+                                    <span className="text-2xl text-gray-600">🚫</span>
+                                    <span className="font-extrabold text-xl text-gray-600">
+                                      Not Applicable
+                                    </span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <span className={`text-2xl ${data.fulfilled ? "text-emerald-600" : "text-red-600"}`}>
+                                      {data.fulfilled ? "✅" : "❌"}
+                                    </span>
+                                    <span className={`font-extrabold text-xl ${data.fulfilled ? "text-emerald-600" : "text-red-600"}`}>
+                                      {data.fulfilled ? "Fulfilled" : "Missing"}
+                                    </span>
+                                  </>
+                                )}
                               </div>
-                              <p className="text-sm text-muted-foreground mt-2">Score: {data.value}%</p>
+                              <p className="text-sm text-muted-foreground mt-2">
+                                {isNotApplicable 
+                                  ? "System is prohibited - obligations do not apply" 
+                                  : `Score: ${data.value}%`}
+                              </p>
                             </div>
                           );
                         }
@@ -528,7 +584,9 @@ export default function ComplianceResultPage() {
                 High-Risk Obligations
               </CardTitle>
               <CardDescription className="text-slate-400">
-                {high_risk_all_fulfilled
+                {isProhibited
+                  ? "Obligations are not applicable for prohibited systems"
+                  : high_risk_all_fulfilled
                   ? "All obligations are fulfilled"
                   : `${high_risk_missing.length} obligation(s) missing`}
               </CardDescription>
@@ -536,18 +594,22 @@ export default function ComplianceResultPage() {
             <CardContent>
               <div className="space-y-3">
                 {Object.entries(highRiskObligationLabels).map(([key, label]) => {
-                  const isFulfilled = !high_risk_missing.includes(key);
+                  const isFulfilled = isProhibited ? false : !high_risk_missing.includes(key);
                   return (
                     <div
                       key={key}
                       className={`flex items-center justify-between p-3 rounded-lg border ${
-                        isFulfilled
+                        isProhibited
+                          ? "bg-gray-100 border-gray-300"
+                          : isFulfilled
                           ? "bg-emerald-50 border-emerald-200"
                           : "bg-red-50 border-red-200"
                       }`}
                     >
                       <div className="flex items-center gap-3">
-                        {isFulfilled ? (
+                        {isProhibited ? (
+                          <Ban className="h-5 w-5 text-gray-600" />
+                        ) : isFulfilled ? (
                           <CheckCircle2 className="h-5 w-5 text-emerald-600" />
                         ) : (
                           <XCircle className="h-5 w-5 text-red-600" />
@@ -555,12 +617,14 @@ export default function ComplianceResultPage() {
                         <span className="font-medium text-foreground">{label}</span>
                       </div>
                       <Badge
-                        variant={isFulfilled ? "default" : "destructive"}
-                        className={isFulfilled 
+                        variant={isProhibited ? "secondary" : (isFulfilled ? "default" : "destructive")}
+                        className={isProhibited
+                          ? "bg-gray-500/80 text-white border-gray-400/50"
+                          : isFulfilled 
                           ? "bg-emerald-600/80 text-foreground border-emerald-500/50" 
                           : "bg-red-600/80 text-foreground border-red-500/50"}
                       >
-                        {isFulfilled ? "Fulfilled" : "Missing"}
+                        {isProhibited ? "Not Applicable" : (isFulfilled ? "Fulfilled" : "Missing")}
                       </Badge>
                     </div>
                   );
