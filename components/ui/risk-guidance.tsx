@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/utils/supabase/client";
 import type { RiskCategory, RiskLevel } from "@/types/risk-assessment";
+import ReactMarkdown from "react-markdown";
 
 async function backendFetch(
   path: string,
@@ -179,8 +180,22 @@ export function RiskGuidancePanel({
                 <BookOpen className="h-4 w-4 text-blue-500" />
                 <h4 className="font-medium">Category Overview</h4>
               </div>
-              <div className="text-sm text-muted-foreground whitespace-pre-line">
-                {guidance.categoryGuidance}
+              <div className="text-sm text-muted-foreground prose prose-sm max-w-none">
+                <ReactMarkdown
+                  components={{
+                    h1: ({ children }) => <h1 className="text-base font-semibold text-foreground mb-2">{children}</h1>,
+                    h2: ({ children }) => <h2 className="text-sm font-semibold text-foreground mb-2 mt-3">{children}</h2>,
+                    h3: ({ children }) => <h3 className="text-sm font-medium text-foreground mb-1 mt-2">{children}</h3>,
+                    p: ({ children }) => <p className="mb-2">{children}</p>,
+                    strong: ({ children }) => <strong className="font-semibold text-foreground">{children}</strong>,
+                    ul: ({ children }) => <ul className="list-disc list-inside space-y-1 ml-2">{children}</ul>,
+                    ol: ({ children }) => <ol className="list-decimal list-inside space-y-1 ml-2">{children}</ol>,
+                    li: ({ children }) => <li className="ml-2">{children}</li>,
+                    code: ({ children }) => <code className="bg-secondary/50 px-1 py-0.5 rounded text-xs font-mono">{children}</code>,
+                  }}
+                >
+                  {guidance.categoryGuidance}
+                </ReactMarkdown>
               </div>
             </div>
 
@@ -191,8 +206,22 @@ export function RiskGuidancePanel({
                   <Scale className="h-4 w-4 text-orange-500" />
                   <h4 className="font-medium">Risk Level Guidance</h4>
                 </div>
-                <div className="text-sm text-muted-foreground whitespace-pre-line">
-                  {guidance.riskLevelGuidance}
+                <div className="text-sm text-muted-foreground prose prose-sm max-w-none">
+                  <ReactMarkdown
+                    components={{
+                      h1: ({ children }) => <h1 className="text-base font-semibold text-foreground mb-2">{children}</h1>,
+                      h2: ({ children }) => <h2 className="text-sm font-semibold text-foreground mb-2 mt-3">{children}</h2>,
+                      h3: ({ children }) => <h3 className="text-sm font-medium text-foreground mb-1 mt-2">{children}</h3>,
+                      p: ({ children }) => <p className="mb-2">{children}</p>,
+                      strong: ({ children }) => <strong className="font-semibold text-foreground">{children}</strong>,
+                      ul: ({ children }) => <ul className="list-disc list-inside space-y-1 ml-2">{children}</ul>,
+                      ol: ({ children }) => <ol className="list-decimal list-inside space-y-1 ml-2">{children}</ol>,
+                      li: ({ children }) => <li className="ml-2">{children}</li>,
+                      code: ({ children }) => <code className="bg-secondary/50 px-1 py-0.5 rounded text-xs font-mono">{children}</code>,
+                    }}
+                  >
+                    {guidance.riskLevelGuidance}
+                  </ReactMarkdown>
                 </div>
               </div>
             )}
@@ -207,21 +236,22 @@ export function RiskGuidancePanel({
                     <Badge variant="outline">{regulationType}</Badge>
                   )}
                 </div>
-                <div className="text-sm text-muted-foreground whitespace-pre-line bg-purple-50 p-3 rounded-md">
-                  {guidance.regulatoryContext}
-                </div>
-              </div>
-            )}
-
-            {/* Platform Guidance */}
-            {guidance.platformGuidance && guidance.platformGuidance !== 'No specific platform guidance available.' && (
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <Info className="h-4 w-4 text-green-500" />
-                  <h4 className="font-medium">Platform Guidance</h4>
-                </div>
-                <div className="text-sm text-muted-foreground whitespace-pre-line bg-green-50 p-3 rounded-md">
-                  {guidance.platformGuidance}
+                <div className="text-sm text-muted-foreground prose prose-sm max-w-none bg-purple-50 p-3 rounded-md">
+                  <ReactMarkdown
+                    components={{
+                      h1: ({ children }) => <h1 className="text-base font-semibold text-foreground mb-2">{children}</h1>,
+                      h2: ({ children }) => <h2 className="text-sm font-semibold text-foreground mb-2 mt-3">{children}</h2>,
+                      h3: ({ children }) => <h3 className="text-sm font-medium text-foreground mb-1 mt-2">{children}</h3>,
+                      p: ({ children }) => <p className="mb-2">{children}</p>,
+                      strong: ({ children }) => <strong className="font-semibold text-foreground">{children}</strong>,
+                      ul: ({ children }) => <ul className="list-disc list-inside space-y-1 ml-2">{children}</ul>,
+                      ol: ({ children }) => <ol className="list-decimal list-inside space-y-1 ml-2">{children}</ol>,
+                      li: ({ children }) => <li className="ml-2">{children}</li>,
+                      code: ({ children }) => <code className="bg-secondary/50 px-1 py-0.5 rounded text-xs font-mono">{children}</code>,
+                    }}
+                  >
+                    {guidance.regulatoryContext}
+                  </ReactMarkdown>
                 </div>
               </div>
             )}
@@ -333,8 +363,22 @@ export function FieldGuidance({ field, category, riskLevel, children }: FieldGui
                 <span className="text-xs text-muted-foreground">Loading...</span>
               </div>
             ) : (
-              <div className="text-xs text-muted-foreground whitespace-pre-line">
-                {guidance}
+              <div className="text-xs text-muted-foreground prose prose-xs max-w-none">
+                <ReactMarkdown
+                  components={{
+                    h1: ({ children }) => <h1 className="text-xs font-semibold text-foreground mb-1">{children}</h1>,
+                    h2: ({ children }) => <h2 className="text-xs font-semibold text-foreground mb-1 mt-2">{children}</h2>,
+                    h3: ({ children }) => <h3 className="text-xs font-medium text-foreground mb-1">{children}</h3>,
+                    p: ({ children }) => <p className="mb-1">{children}</p>,
+                    strong: ({ children }) => <strong className="font-semibold text-foreground">{children}</strong>,
+                    ul: ({ children }) => <ul className="list-disc list-inside space-y-0.5 ml-1">{children}</ul>,
+                    ol: ({ children }) => <ol className="list-decimal list-inside space-y-0.5 ml-1">{children}</ol>,
+                    li: ({ children }) => <li className="ml-1">{children}</li>,
+                    code: ({ children }) => <code className="bg-secondary/50 px-0.5 py-0 rounded text-xs font-mono">{children}</code>,
+                  }}
+                >
+                  {guidance}
+                </ReactMarkdown>
               </div>
             )}
           </CardContent>

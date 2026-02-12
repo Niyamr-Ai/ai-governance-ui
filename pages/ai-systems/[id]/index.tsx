@@ -32,7 +32,6 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import TasksTab from "@/components/ai-systems-details/Tasks/TasksTab";
-import PoliciesTab from "@/components/ai-systems-details/Policies/PoliciesTab";
 import Sidebar from "@/components/sidebar";
 import { supabase } from "@/utils/supabase/client";
 
@@ -483,12 +482,6 @@ export default function AISystemDetailPage() {
               className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-blue-500 data-[state=active]:shadow-lg data-[state=active]:shadow-primary/30 text-muted-foreground rounded-lg px-6 py-2.5 font-semibold transition-all duration-300 hover:text-foreground hover:bg-secondary/50 data-[state=active]:scale-[1.02]"
             >
               To-Do
-            </TabsTrigger>
-            <TabsTrigger
-              value="policies"
-              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-blue-500 data-[state=active]:shadow-lg data-[state=active]:shadow-primary/30 text-muted-foreground rounded-lg px-6 py-2.5 font-semibold transition-all duration-300 hover:text-foreground hover:bg-secondary/50 data-[state=active]:scale-[1.02]"
-            >
-              Policies
             </TabsTrigger>
             <TabsTrigger
               value="documentation"
@@ -1012,11 +1005,6 @@ export default function AISystemDetailPage() {
             )}
           </TabsContent>
 
-          {/* Policies Tab */}
-          <TabsContent value="policies">
-            <PoliciesTab systemId={systemId} />
-          </TabsContent>
-
           {/* Documentation Tab */}
           <TabsContent value="documentation">
             <DocumentationTab
@@ -1028,8 +1016,8 @@ export default function AISystemDetailPage() {
 
         {/* Risk Detail Modal */}
         {selectedAssessment && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="max-w-3xl w-full max-h-[90vh] overflow-y-auto glass-panel rounded-lg border-border/50">
+          <div className="fixed inset-0 bg-white/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="max-w-3xl w-full max-h-[90vh] overflow-y-auto glass-panel rounded-lg border-border/50 shadow-2xl">
               <RiskDetail
                 assessment={selectedAssessment}
                 onClose={handleCloseDetail}

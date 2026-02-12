@@ -895,14 +895,7 @@ export default function AssessmentChooserPage() {
       return;
     }
 
-    // Check if only India is selected (no UK/EU/Singapore)
-    const hasOnlyIndia = dataProcessingLocations.length === 1 && dataProcessingLocations.includes("India");
     const hasRelevantJurisdiction = hasUKDataProcessing || hasEUDataProcessing || hasSingaporeDataProcessing;
-
-    if (hasOnlyIndia && !hasRelevantJurisdiction) {
-      setError("If you only process data in India, you may not need UK/EU/MAS compliance. Please select UK, EU, or Singapore if you process data from those jurisdictions.");
-      return;
-    }
 
     setError(null);
     setIsSubmitting(true);
@@ -1478,25 +1471,6 @@ export default function AssessmentChooserPage() {
                         className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
                       >
                         Singapore (MAS)
-                      </Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="data-processing-india"
-                        checked={dataProcessingLocations.includes("India")}
-                        onCheckedChange={(checked) => {
-                          if (checked) {
-                            setDataProcessingLocations([...dataProcessingLocations, "India"]);
-                          } else {
-                            setDataProcessingLocations(dataProcessingLocations.filter((loc) => loc !== "India"));
-                          }
-                        }}
-                      />
-                      <Label
-                        htmlFor="data-processing-india"
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                      >
-                        India
                       </Label>
                     </div>
                   </div>

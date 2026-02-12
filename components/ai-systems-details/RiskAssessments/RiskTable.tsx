@@ -31,9 +31,9 @@ interface RiskTableProps {
 export default function RiskTable({ assessments, onViewDetail, loading, userRole = 'user' }: RiskTableProps) {
   const getRiskBadge = (level: RiskLevel) => {
     const variants = {
-      low: "bg-emerald-900/50 text-emerald-300 border-emerald-700/50 hover:bg-emerald-800/70",
-      medium: "bg-amber-900/50 text-amber-300 border-amber-700/50 hover:bg-amber-800/70",
-      high: "bg-red-900/50 text-red-300 border-red-700/50 hover:bg-red-800/70",
+      low: "bg-gradient-to-r from-emerald-50 to-emerald-100/80 text-emerald-700 border border-emerald-200/60 font-semibold px-3 py-1.5 rounded-full shadow-md hover:shadow-lg transition-all",
+      medium: "bg-gradient-to-r from-amber-50 to-amber-100/80 text-amber-700 border border-amber-200/60 font-semibold px-3 py-1.5 rounded-full shadow-md hover:shadow-lg transition-all",
+      high: "bg-gradient-to-r from-red-50 to-red-100/80 text-red-700 border border-red-200/60 font-semibold px-3 py-1.5 rounded-full shadow-md hover:shadow-lg transition-all",
     };
     return (
       <Badge className={variants[level]}>
@@ -44,9 +44,9 @@ export default function RiskTable({ assessments, onViewDetail, loading, userRole
 
   const getMitigationBadge = (status: MitigationStatus) => {
     const variants = {
-      not_started: "bg-slate-800/50 text-slate-400 border-slate-700/50",
-      in_progress: "bg-blue-900/50 text-blue-300 border-blue-700/50",
-      mitigated: "bg-emerald-900/50 text-emerald-300 border-emerald-700/50",
+      not_started: "bg-secondary/30 text-muted-foreground border-border/50",
+      in_progress: "bg-gradient-to-r from-blue-50 to-blue-100/80 text-blue-700 border border-blue-200/60",
+      mitigated: "bg-gradient-to-r from-emerald-50 to-emerald-100/80 text-emerald-700 border border-emerald-200/60",
     };
     
     const icons = {
@@ -71,10 +71,10 @@ export default function RiskTable({ assessments, onViewDetail, loading, userRole
 
   const getStatusBadge = (status: AssessmentStatus) => {
     const variants = {
-      draft: "bg-slate-800/50 text-slate-400 border-slate-700/50",
-      submitted: "bg-amber-900/50 text-amber-300 border-amber-700/50",
-      approved: "bg-emerald-900/50 text-emerald-300 border-emerald-700/50",
-      rejected: "bg-red-900/50 text-red-300 border-red-700/50",
+      draft: "bg-secondary/30 text-muted-foreground border-border/50",
+      submitted: "bg-gradient-to-r from-amber-50 to-amber-100/80 text-amber-700 border border-amber-200/60",
+      approved: "bg-gradient-to-r from-emerald-50 to-emerald-100/80 text-emerald-700 border border-emerald-200/60",
+      rejected: "bg-gradient-to-r from-red-50 to-red-100/80 text-red-700 border border-red-200/60",
     };
 
     const icons = {
@@ -111,7 +111,7 @@ export default function RiskTable({ assessments, onViewDetail, loading, userRole
 
   if (loading) {
     return (
-      <div className="text-center py-8 text-slate-400">
+      <div className="text-center py-8 text-muted-foreground">
         Loading risk assessments...
       </div>
     );
@@ -119,33 +119,33 @@ export default function RiskTable({ assessments, onViewDetail, loading, userRole
 
   if (assessments.length === 0) {
     return (
-      <div className="text-center py-8 text-slate-400">
+      <div className="text-center py-8 text-muted-foreground">
         No risk assessments found. Create your first assessment to get started.
       </div>
     );
   }
 
   return (
-    <div className="rounded-lg border border-slate-700/50 overflow-hidden">
+    <div className="rounded-lg border border-border/50 overflow-hidden">
       <Table>
                     <TableHeader>
-                      <TableRow className="bg-slate-800/80 hover:bg-slate-800/80 border-b border-slate-700">
-                        <TableHead className="font-bold text-white text-xs uppercase tracking-wider">
+                      <TableRow className="bg-secondary/30 hover:bg-secondary/30 border-b border-border">
+                        <TableHead className="font-bold text-foreground text-xs uppercase tracking-wider">
                           Category
                         </TableHead>
-                        <TableHead className="font-bold text-white text-xs uppercase tracking-wider">
+                        <TableHead className="font-bold text-foreground text-xs uppercase tracking-wider">
                           Risk Level
                         </TableHead>
-                        <TableHead className="font-bold text-white text-xs uppercase tracking-wider">
+                        <TableHead className="font-bold text-foreground text-xs uppercase tracking-wider">
                           Status
                         </TableHead>
-                        <TableHead className="font-bold text-white text-xs uppercase tracking-wider">
+                        <TableHead className="font-bold text-foreground text-xs uppercase tracking-wider">
                           Mitigation Status
                         </TableHead>
-                        <TableHead className="font-bold text-white text-xs uppercase tracking-wider">
+                        <TableHead className="font-bold text-foreground text-xs uppercase tracking-wider">
                           Assessed At
                         </TableHead>
-                        <TableHead className="font-bold text-white text-xs uppercase tracking-wider">
+                        <TableHead className="font-bold text-foreground text-xs uppercase tracking-wider">
                           Actions
                         </TableHead>
                       </TableRow>
@@ -154,15 +154,15 @@ export default function RiskTable({ assessments, onViewDetail, loading, userRole
           {assessments.map((assessment) => (
             <TableRow
               key={assessment.id}
-              className="hover:bg-slate-800/40 transition-colors duration-150 border-b border-slate-800/50"
+              className="hover:bg-secondary/20 transition-colors duration-150 border-b border-border/30"
             >
-                            <TableCell className="text-slate-200 font-medium py-4">
+                            <TableCell className="text-foreground font-medium py-4">
                               {getCategoryLabel(assessment.category)}
                             </TableCell>
                             <TableCell>{getRiskBadge(assessment.risk_level)}</TableCell>
                             <TableCell>{getStatusBadge(assessment.status)}</TableCell>
                             <TableCell>{getMitigationBadge(assessment.mitigation_status)}</TableCell>
-                            <TableCell className="text-slate-300 font-medium py-4">
+                            <TableCell className="text-muted-foreground font-medium py-4">
                               {format(new Date(assessment.assessed_at), "MMM dd, yyyy")}
                             </TableCell>
                             <TableCell>
@@ -170,7 +170,7 @@ export default function RiskTable({ assessments, onViewDetail, loading, userRole
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => onViewDetail(assessment)}
-                                className="text-purple-400 hover:text-purple-300 hover:bg-purple-500/10"
+                                className="text-primary hover:text-primary/80 hover:bg-primary/10 rounded-xl"
                               >
                                 <Eye className="h-4 w-4 mr-1" />
                                 View

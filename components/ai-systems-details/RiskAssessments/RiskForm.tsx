@@ -107,10 +107,10 @@ export default function RiskForm({ aiSystemId, onSubmit, onCancel, loading }: Ri
   };
 
   return (
-    <Card className="bg-slate-900/60 backdrop-blur-sm border-slate-700/50 shadow-2xl">
+    <Card className="glass-panel shadow-elevated border-border/50 rounded-2xl">
       <CardHeader>
-        <CardTitle className="text-white">Create Risk Assessment</CardTitle>
-        <CardDescription className="text-slate-300">
+        <CardTitle className="text-foreground">Create Risk Assessment</CardTitle>
+        <CardDescription className="text-muted-foreground">
           Assess risks across bias, robustness, privacy, or explainability
         </CardDescription>
       </CardHeader>
@@ -118,7 +118,7 @@ export default function RiskForm({ aiSystemId, onSubmit, onCancel, loading }: Ri
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Category Selection */}
           <div className="space-y-2">
-            <Label htmlFor="category" className="text-white">
+            <Label htmlFor="category" className="text-foreground">
               Category *
             </Label>
             <Select
@@ -129,27 +129,27 @@ export default function RiskForm({ aiSystemId, onSubmit, onCancel, loading }: Ri
             >
               <SelectTrigger
                 id="category"
-                className="bg-slate-800/50 border-slate-700/50 text-white focus:border-purple-500/50"
+                className="bg-background border-border/50 text-foreground focus:border-primary/50 rounded-xl"
               >
                 <SelectValue placeholder="Select category" />
               </SelectTrigger>
-              <SelectContent className="bg-slate-800 border-slate-700">
-                <SelectItem value="bias" className="text-white hover:bg-slate-700">
+              <SelectContent className="bg-background border-border/50 rounded-xl">
+                <SelectItem value="bias" className="text-foreground hover:bg-secondary/50 rounded-lg">
                   Bias & Fairness
                 </SelectItem>
-                <SelectItem value="robustness" className="text-white hover:bg-slate-700">
+                <SelectItem value="robustness" className="text-foreground hover:bg-secondary/50 rounded-lg">
                   Robustness & Performance
                 </SelectItem>
-                <SelectItem value="privacy" className="text-white hover:bg-slate-700">
+                <SelectItem value="privacy" className="text-foreground hover:bg-secondary/50 rounded-lg">
                   Privacy & Data Leakage
                 </SelectItem>
-                <SelectItem value="explainability" className="text-white hover:bg-slate-700">
+                <SelectItem value="explainability" className="text-foreground hover:bg-secondary/50 rounded-lg">
                   Explainability
                 </SelectItem>
               </SelectContent>
             </Select>
             {errors.category && (
-              <p className="text-sm text-red-400">{errors.category}</p>
+              <p className="text-sm text-red-600">{errors.category}</p>
             )}
           </div>
 
@@ -158,13 +158,13 @@ export default function RiskForm({ aiSystemId, onSubmit, onCancel, loading }: Ri
             <RiskGuidancePanel 
               category={formData.category}
               riskLevel={formData.risk_level}
-              className="bg-slate-800/30 border-slate-600/50"
+              className="bg-secondary/20 border-border/50 rounded-xl"
             />
           )}
 
           {/* Risk Level */}
           <div className="space-y-2">
-            <Label htmlFor="risk_level" className="text-white">
+            <Label htmlFor="risk_level" className="text-foreground">
               Risk Level *
             </Label>
             <Select
@@ -175,31 +175,31 @@ export default function RiskForm({ aiSystemId, onSubmit, onCancel, loading }: Ri
             >
               <SelectTrigger
                 id="risk_level"
-                className="bg-slate-800/50 border-slate-700/50 text-white focus:border-purple-500/50"
+                className="bg-background border-border/50 text-foreground focus:border-primary/50 rounded-xl"
               >
                 <SelectValue placeholder="Select risk level" />
               </SelectTrigger>
-              <SelectContent className="bg-slate-800 border-slate-700">
-                <SelectItem value="low" className="text-white hover:bg-slate-700">
+              <SelectContent className="bg-background border-border/50 rounded-xl">
+                <SelectItem value="low" className="text-foreground hover:bg-secondary/50 rounded-lg">
                   Low
                 </SelectItem>
-                <SelectItem value="medium" className="text-white hover:bg-slate-700">
+                <SelectItem value="medium" className="text-foreground hover:bg-secondary/50 rounded-lg">
                   Medium
                 </SelectItem>
-                <SelectItem value="high" className="text-white hover:bg-slate-700">
+                <SelectItem value="high" className="text-foreground hover:bg-secondary/50 rounded-lg">
                   High
                 </SelectItem>
               </SelectContent>
             </Select>
             {errors.risk_level && (
-              <p className="text-sm text-red-400">{errors.risk_level}</p>
+              <p className="text-sm text-red-600">{errors.risk_level}</p>
             )}
           </div>
 
           {/* Summary */}
           <div className="space-y-2">
             <FieldGuidance field="summary" category={formData.category} riskLevel={formData.risk_level}>
-              <Label htmlFor="summary" className="text-white">
+              <Label htmlFor="summary" className="text-foreground">
                 Summary *
               </Label>
             </FieldGuidance>
@@ -210,13 +210,13 @@ export default function RiskForm({ aiSystemId, onSubmit, onCancel, loading }: Ri
                 setFormData({ ...formData, summary: e.target.value })
               }
               placeholder="Provide a detailed summary of the risk assessment findings..."
-              className="bg-slate-800/50 border-slate-700/50 text-white placeholder:text-slate-400 focus:border-purple-500/50 min-h-[120px]"
+              className="bg-background border-border/50 text-foreground placeholder:text-muted-foreground focus:border-primary/50 min-h-[120px] rounded-xl"
               required
             />
             {errors.summary && (
-              <p className="text-sm text-red-400">{errors.summary}</p>
+              <p className="text-sm text-red-600">{errors.summary}</p>
             )}
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-muted-foreground">
               Minimum 10 characters required
             </p>
           </div>
@@ -224,15 +224,15 @@ export default function RiskForm({ aiSystemId, onSubmit, onCancel, loading }: Ri
           {/* Evidence Links */}
           <div className="space-y-2">
             <FieldGuidance field="evidence_links" category={formData.category} riskLevel={formData.risk_level}>
-              <Label className="text-white">
+              <Label className="text-foreground">
                 Evidence Links
                 {formData.risk_level === 'high' && (
-                  <span className="text-red-400 ml-1">*</span>
+                  <span className="text-red-600 ml-1">*</span>
                 )}
               </Label>
             </FieldGuidance>
             {formData.risk_level === 'high' && (
-              <p className="text-xs text-amber-400">
+              <p className="text-xs text-amber-600">
                 Required for high-risk assessments
               </p>
             )}
@@ -241,7 +241,7 @@ export default function RiskForm({ aiSystemId, onSubmit, onCancel, loading }: Ri
                 value={evidenceLink}
                 onChange={(e) => setEvidenceLink(e.target.value)}
                 placeholder="URL or file path to evidence"
-                className="bg-slate-800/50 border-slate-700/50 text-white placeholder:text-slate-400 focus:border-purple-500/50"
+                className="bg-background border-border/50 text-foreground placeholder:text-muted-foreground focus:border-primary/50 rounded-xl"
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     e.preventDefault();
@@ -253,7 +253,7 @@ export default function RiskForm({ aiSystemId, onSubmit, onCancel, loading }: Ri
                 type="button"
                 onClick={addEvidenceLink}
                 variant="outline"
-                className="border-purple-500/50 bg-purple-500/10 text-purple-300 hover:bg-purple-500/20"
+                className="border-primary/50 bg-primary/10 text-primary hover:bg-primary/20 rounded-xl"
               >
                 <Plus className="h-4 w-4" />
               </Button>
@@ -263,9 +263,9 @@ export default function RiskForm({ aiSystemId, onSubmit, onCancel, loading }: Ri
                 {formData.evidence_links.map((link, index) => (
                   <div
                     key={index}
-                    className="flex items-center justify-between bg-slate-800/30 px-3 py-2 rounded border border-slate-700/50"
+                    className="flex items-center justify-between bg-secondary/20 px-3 py-2 rounded-lg border border-border/50"
                   >
-                    <span className="text-slate-300 text-sm truncate flex-1">
+                    <span className="text-foreground text-sm truncate flex-1">
                       {link}
                     </span>
                     <Button
@@ -273,7 +273,7 @@ export default function RiskForm({ aiSystemId, onSubmit, onCancel, loading }: Ri
                       variant="ghost"
                       size="sm"
                       onClick={() => removeEvidenceLink(index)}
-                      className="text-red-400 hover:text-red-300 hover:bg-red-500/10 ml-2"
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50 ml-2 rounded-lg"
                     >
                       <X className="h-4 w-4" />
                     </Button>
@@ -285,9 +285,9 @@ export default function RiskForm({ aiSystemId, onSubmit, onCancel, loading }: Ri
 
           {/* Error Alert */}
           {Object.keys(errors).length > 0 && (
-            <Alert variant="destructive" className="bg-red-900/50 border-red-700/50">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription className="text-red-300">
+            <Alert variant="destructive" className="bg-red-50 border-red-200 rounded-xl">
+              <AlertCircle className="h-4 w-4 text-red-600" />
+              <AlertDescription className="text-red-700">
                 Please fix the errors above before submitting.
               </AlertDescription>
             </Alert>
@@ -299,14 +299,15 @@ export default function RiskForm({ aiSystemId, onSubmit, onCancel, loading }: Ri
               type="button"
               variant="outline"
               onClick={onCancel}
-              className="border-slate-700/50 bg-slate-800/50 text-slate-300 hover:bg-slate-700/50"
+              className="border-border/50 bg-secondary/30 text-foreground hover:bg-secondary/50 rounded-xl"
               disabled={loading}
             >
               Cancel
             </Button>
             <Button
               type="submit"
-              className="bg-purple-600 hover:bg-purple-700 text-white border border-purple-500/50"
+              variant="hero"
+              className="rounded-xl"
               disabled={loading}
             >
               {loading ? "Creating..." : "Create Assessment"}

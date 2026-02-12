@@ -10,6 +10,9 @@ export const metadata = {
     metadataBase: new URL(defaultUrl),
     title: "AI Governance Platform",
     description: "The unified AI Governance OS",
+    icons: {
+        icon: "/favicon.ico",
+    },
 };
 
 const inter = Inter({
@@ -28,7 +31,7 @@ export default function RootLayout({
                 <main className="min-h-screen flex flex-col items-center">
                     {children}
                 </main>
-                <Toaster />
+                <Toaster theme="light" position="top-right" />
             </body>
         </html>
     );
