@@ -89,9 +89,9 @@ export default function RiskDetail({
   const isCreator = currentUserId && assessment.assessed_by === currentUserId;
   const getRiskBadge = (level: RiskLevel) => {
     const variants = {
-      low: "bg-emerald-900/50 text-emerald-600 border-emerald-700/50",
-      medium: "bg-amber-900/50 text-amber-300 border-amber-700/50",
-      high: "bg-red-900/50 text-red-300 border-red-700/50",
+      low: "bg-gradient-to-r from-emerald-50 to-emerald-100/80 text-emerald-700 border border-emerald-200/60 font-semibold px-4 py-2 rounded-full shadow-md",
+      medium: "bg-gradient-to-r from-amber-50 to-amber-100/80 text-amber-700 border border-amber-200/60 font-semibold px-4 py-2 rounded-full shadow-md",
+      high: "bg-gradient-to-r from-red-50 to-red-100/80 text-red-700 border border-red-200/60 font-semibold px-4 py-2 rounded-full shadow-md",
     };
     return (
       <Badge className={variants[level]}>
@@ -102,9 +102,9 @@ export default function RiskDetail({
 
   const getMitigationBadge = (status: MitigationStatus) => {
     const variants = {
-      not_started: "bg-background text-muted-foreground border-border",
-      in_progress: "bg-blue-900/50 text-blue-600 border-blue-700/50",
-      mitigated: "bg-emerald-900/50 text-emerald-600 border-emerald-700/50",
+      not_started: "bg-secondary/30 text-muted-foreground border-border/50",
+      in_progress: "bg-gradient-to-r from-blue-50 to-blue-100/80 text-blue-700 border border-blue-200/60 font-semibold px-4 py-2 rounded-full shadow-md",
+      mitigated: "bg-gradient-to-r from-emerald-50 to-emerald-100/80 text-emerald-700 border border-emerald-200/60 font-semibold px-4 py-2 rounded-full shadow-md",
     };
 
     const icons = {
@@ -139,10 +139,10 @@ export default function RiskDetail({
 
   const getStatusBadge = (status: AssessmentStatus) => {
     const variants = {
-      draft: "bg-background text-muted-foreground border-border",
-      submitted: "bg-amber-900/50 text-amber-300 border-amber-700/50",
-      approved: "bg-emerald-900/50 text-emerald-600 border-emerald-700/50",
-      rejected: "bg-red-900/50 text-red-300 border-red-700/50",
+      draft: "bg-secondary/30 text-muted-foreground border-border/50 font-semibold px-4 py-2 rounded-full shadow-md",
+      submitted: "bg-gradient-to-r from-amber-50 to-amber-100/80 text-amber-700 border border-amber-200/60 font-semibold px-4 py-2 rounded-full shadow-md",
+      approved: "bg-gradient-to-r from-emerald-50 to-emerald-100/80 text-emerald-700 border border-emerald-200/60 font-semibold px-4 py-2 rounded-full shadow-md",
+      rejected: "bg-gradient-to-r from-red-50 to-red-100/80 text-red-700 border border-red-200/60 font-semibold px-4 py-2 rounded-full shadow-md",
     };
 
     const icons = {

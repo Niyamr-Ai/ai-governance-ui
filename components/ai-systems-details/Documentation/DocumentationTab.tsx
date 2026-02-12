@@ -15,6 +15,7 @@ import { Loader2, FileText, Download, RefreshCw, AlertCircle, CheckCircle2, Info
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/utils/supabase/client";
 import type { ComplianceDocumentation } from "@/types/documentation";
+import { toast } from "sonner";
 
 async function backendFetch(
   path: string,
@@ -132,7 +133,7 @@ export default function DocumentationTab({ systemId, systemType }: Documentation
       await fetchDocumentation();
       
       // Show success message
-      alert(`Documentation generated successfully! Version ${data.documentation.version}`);
+      toast.success("Document generated successfully");
       
       // Reset selection
       setSelectedRegulation("");
@@ -150,7 +151,7 @@ export default function DocumentationTab({ systemId, systemType }: Documentation
       const accessToken = data.session?.access_token;
   
       if (!accessToken) {
-        alert("Not authenticated");
+        toast.error("Not authenticated");
         return;
       }
   
@@ -178,9 +179,10 @@ export default function DocumentationTab({ systemId, systemType }: Documentation
   
       a.remove();
       window.URL.revokeObjectURL(url);
+      toast.success("PDF downloaded successfully");
     } catch (err) {
       console.error(err);
-      alert("PDF download failed");
+      toast.error("PDF download failed");
     }
   };
   

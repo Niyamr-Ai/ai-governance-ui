@@ -211,14 +211,7 @@ export default function MasAssessmentDetailPage() {
     <div className="min-h-screen bg-gray-50">
       <Sidebar onLogout={handleLogout} />
       <div className={`container mx-auto max-w-6xl py-10 px-4 space-y-8 ${isLoggedIn ? 'lg:pl-72 pt-24' : ''}`}>
-      <div className="flex items-center justify-between">
-        <Button
-          variant="ghost"
-            className="text-gray-900 hover:bg-gray-100 hover:text-gray-900"
-          onClick={() => router.back()}
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" /> Back
-        </Button>
+      <div className="flex items-center justify-end">
         <div className="flex gap-3">
           {data?.system_id && isMultiJurisdiction && (
             <Button
