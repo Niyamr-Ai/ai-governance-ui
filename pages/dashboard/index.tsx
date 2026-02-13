@@ -174,11 +174,26 @@ export default function ComplianceDashboard() {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
+        console.log('🔍 Backend URL:', backendUrl);
+        
         const [euRes, masRes, ukRes, discoveryRes] = await Promise.all([
-          backendFetch("/api/compliance"),
-          backendFetch("/api/mas-compliance"),
-          backendFetch("/api/uk-compliance"),
-          backendFetch("/api/discovery?shadow_status=confirmed"),
+          backendFetch("/api/compliance").catch(err => {
+            console.error('❌ Error fetching EU compliance:', err);
+            return { ok: false, error: err.message };
+          }),
+          backendFetch("/api/mas-compliance").catch(err => {
+            console.error('❌ Error fetching MAS compliance:', err);
+            return { ok: false, error: err.message };
+          }),
+          backendFetch("/api/uk-compliance").catch(err => {
+            console.error('❌ Error fetching UK compliance:', err);
+            return { ok: false, error: err.message };
+          }),
+          backendFetch("/api/discovery?shadow_status=confirmed").catch(err => {
+            console.error('❌ Error fetching discovery:', err);
+            return { ok: false, error: err.message };
+          }),
         ]);
 
         if (euRes.ok) {
@@ -247,11 +262,17 @@ export default function ComplianceDashboard() {
           );
           setAutomatedRiskAssessments(assessmentMap);
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error fetching dashboard data:", error);
+        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
+        const errorMessage = error?.message?.includes('Failed to fetch') || error?.message?.includes('NetworkError')
+          ? `Cannot connect to backend server at ${backendUrl}. Please ensure the backend is running: cd ai-governance-backend && npm run dev`
+          : error?.message || "Failed to fetch dashboard data";
+        console.error('❌ Dashboard fetch error:', errorMessage);
         setTests([]);
         setMas([]);
         setUk([]);
+        // Don't set error state here - let individual fetch errors be handled gracefully
       } finally {
         setLoading(false);
       }

@@ -193,14 +193,16 @@ export default function ComplianceResultPage() {
   // Extract prohibited practices list from reference
   const prohibitedPracticesList = reference?.prohibited_practices || [];
 
-  // Check if system is prohibited
+  // Check if system is prohibited or minimal-risk
   const isProhibited = risk_tier === 'Prohibited' || prohibited_practices_detected;
+  const isMinimalRisk = risk_tier === 'Minimal-risk' || risk_tier === 'Minimal-Risk';
+  const isNotApplicable = isProhibited || isMinimalRisk; // Both don't require high-risk obligations
 
   // Calculate compliance metrics for charts
-  // IMPORTANT: Prohibited systems cannot be compliant - obligations are not applicable
+  // IMPORTANT: Prohibited and Minimal-risk systems don't require high-risk obligations - they are not applicable
   const totalObligations = Object.keys(highRiskObligationLabels).length;
-  const fulfilledObligations = isProhibited ? 0 : (totalObligations - high_risk_missing.length);
-  const compliancePercentage = isProhibited ? 0 : Math.round((fulfilledObligations / totalObligations) * 100);
+  const fulfilledObligations = isNotApplicable ? 0 : (totalObligations - high_risk_missing.length);
+  const compliancePercentage = isNotApplicable ? 0 : Math.round((fulfilledObligations / totalObligations) * 100);
 
   // Enhanced color palette
   const COLORS = {
@@ -215,8 +217,8 @@ export default function ComplianceResultPage() {
   };
 
   // Data for pie chart - Obligations Status
-  // For prohibited systems, show all as "Not Applicable"
-  const obligationsData = isProhibited
+  // For prohibited and minimal-risk systems, show all as "Not Applicable"
+  const obligationsData = isNotApplicable
     ? [
         { name: "Not Applicable", value: totalObligations, color: "#6b7280", gradientId: "notApplicableGradient" },
       ]
@@ -236,8 +238,8 @@ export default function ComplianceResultPage() {
   ];
 
   const obligationsBreakdown = Object.entries(highRiskObligationLabels).map(([key, label], idx) => {
-    // For prohibited systems, all obligations are "Not Applicable"
-    if (isProhibited) {
+    // For prohibited and minimal-risk systems, all obligations are "Not Applicable"
+    if (isNotApplicable) {
       return {
         name: label.split(" ")[0],
         fullName: label,
@@ -368,22 +370,26 @@ export default function ComplianceResultPage() {
           <Card className="glass-card shadow-premium rounded-2xl border-0 bg-gradient-to-br from-white/90 via-white/80 to-white/70 backdrop-blur-xl">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-slate-400">Obligations Fulfilled</CardTitle>
-              {isProhibited ? (
-                <Ban className="h-4 w-4 text-red-400" />
+              {isNotApplicable ? (
+                <Ban className="h-4 w-4 text-gray-400" />
               ) : (
                 <CheckCircle2 className="h-4 w-4 text-emerald-400" />
               )}
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-foreground">
-                {isProhibited ? (
-                  <span className="text-red-400">N/A</span>
+                {isNotApplicable ? (
+                  <span className="text-gray-500">N/A</span>
                 ) : (
                   `${fulfilledObligations}/${totalObligations}`
                 )}
               </div>
-              <div className={`text-sm mt-1 ${isProhibited ? 'text-red-400' : 'text-slate-400'}`}>
-                {isProhibited ? 'Not Applicable - System is Prohibited' : `${compliancePercentage}% Complete`}
+              <div className={`text-sm mt-1 ${isNotApplicable ? 'text-gray-500' : 'text-slate-400'}`}>
+                {isProhibited 
+                  ? 'Not Applicable - System is Prohibited' 
+                  : isMinimalRisk 
+                  ? 'Not Applicable - Minimal-risk systems do not require high-risk obligations'
+                  : `${compliancePercentage}% Complete`}
               </div>
             </CardContent>
           </Card>
@@ -524,12 +530,12 @@ export default function ComplianceResultPage() {
                       content={({ active, payload }) => {
                         if (active && payload && payload.length) {
                           const data = payload[0].payload;
-                          const isNotApplicable = data.notApplicable || isProhibited;
+                          const isNotApplicableTooltip = data.notApplicable || isNotApplicable;
                           return (
                             <div className="bg-white/95 backdrop-blur-sm p-4 border border-gray-200 rounded-lg shadow-xl">
                               <p className="font-bold text-lg mb-2 text-foreground">{data.fullName}</p>
                               <div className="flex items-center gap-2">
-                                {isNotApplicable ? (
+                                {isNotApplicableTooltip ? (
                                   <>
                                     <span className="text-2xl text-gray-600">🚫</span>
                                     <span className="font-extrabold text-xl text-gray-600">
@@ -548,8 +554,10 @@ export default function ComplianceResultPage() {
                                 )}
                               </div>
                               <p className="text-sm text-muted-foreground mt-2">
-                                {isNotApplicable 
-                                  ? "System is prohibited - obligations do not apply" 
+                                {isNotApplicableTooltip 
+                                  ? (isProhibited 
+                                    ? "System is prohibited - obligations do not apply" 
+                                    : "Minimal-risk systems do not require high-risk obligations")
                                   : `Score: ${data.value}%`}
                               </p>
                             </div>
@@ -586,6 +594,8 @@ export default function ComplianceResultPage() {
               <CardDescription className="text-slate-400">
                 {isProhibited
                   ? "Obligations are not applicable for prohibited systems"
+                  : isMinimalRisk
+                  ? "High-risk obligations are not applicable for minimal-risk systems"
                   : high_risk_all_fulfilled
                   ? "All obligations are fulfilled"
                   : `${high_risk_missing.length} obligation(s) missing`}
@@ -594,12 +604,12 @@ export default function ComplianceResultPage() {
             <CardContent>
               <div className="space-y-3">
                 {Object.entries(highRiskObligationLabels).map(([key, label]) => {
-                  const isFulfilled = isProhibited ? false : !high_risk_missing.includes(key);
+                  const isFulfilled = isNotApplicable ? false : !high_risk_missing.includes(key);
                   return (
                     <div
                       key={key}
                       className={`flex items-center justify-between p-3 rounded-lg border ${
-                        isProhibited
+                        isNotApplicable
                           ? "bg-gray-100 border-gray-300"
                           : isFulfilled
                           ? "bg-emerald-50 border-emerald-200"
@@ -607,7 +617,7 @@ export default function ComplianceResultPage() {
                       }`}
                     >
                       <div className="flex items-center gap-3">
-                        {isProhibited ? (
+                        {isNotApplicable ? (
                           <Ban className="h-5 w-5 text-gray-600" />
                         ) : isFulfilled ? (
                           <CheckCircle2 className="h-5 w-5 text-emerald-600" />
@@ -617,14 +627,14 @@ export default function ComplianceResultPage() {
                         <span className="font-medium text-foreground">{label}</span>
                       </div>
                       <Badge
-                        variant={isProhibited ? "secondary" : (isFulfilled ? "default" : "destructive")}
-                        className={isProhibited
+                        variant={isNotApplicable ? "secondary" : (isFulfilled ? "default" : "destructive")}
+                        className={isNotApplicable
                           ? "bg-gray-500/80 text-white border-gray-400/50"
                           : isFulfilled 
                           ? "bg-emerald-600/80 text-foreground border-emerald-500/50" 
                           : "bg-red-600/80 text-foreground border-red-500/50"}
                       >
-                        {isProhibited ? "Not Applicable" : (isFulfilled ? "Fulfilled" : "Missing")}
+                        {isNotApplicable ? "Not Applicable" : (isFulfilled ? "Fulfilled" : "Missing")}
                       </Badge>
                     </div>
                   );
