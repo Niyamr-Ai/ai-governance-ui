@@ -180,37 +180,37 @@ export default function ComplianceDashboard() {
         const [euRes, masRes, ukRes, discoveryRes] = await Promise.all([
           backendFetch("/api/compliance").catch(err => {
             console.error('❌ Error fetching EU compliance:', err);
-            return { ok: false, error: err.message };
+            return null;
           }),
           backendFetch("/api/mas-compliance").catch(err => {
             console.error('❌ Error fetching MAS compliance:', err);
-            return { ok: false, error: err.message };
+            return null;
           }),
           backendFetch("/api/uk-compliance").catch(err => {
             console.error('❌ Error fetching UK compliance:', err);
-            return { ok: false, error: err.message };
+            return null;
           }),
           backendFetch("/api/discovery?shadow_status=confirmed").catch(err => {
             console.error('❌ Error fetching discovery:', err);
-            return { ok: false, error: err.message };
+            return null;
           }),
         ]);
 
-        if (euRes.ok) {
+        if (euRes instanceof Response && euRes.ok) {
           const data = await euRes.json();
           setTests(data || []);
         } else {
           setTests([]);
         }
 
-        if (masRes.ok) {
+        if (masRes instanceof Response && masRes.ok) {
           const data = await masRes.json();
           setMas(Array.isArray(data) ? data : []);
         } else {
           setMas([]);
         }
 
-        if (ukRes.ok) {
+        if (ukRes instanceof Response && ukRes.ok) {
           const data = await ukRes.json();
           setUk(Array.isArray(data) ? data : []);
         } else {
@@ -218,7 +218,7 @@ export default function ComplianceDashboard() {
         }
 
         // Check for Shadow AI
-        if (discoveryRes.ok) {
+        if (discoveryRes instanceof Response && discoveryRes.ok) {
           const discoveryData = await discoveryRes.json();
           const confirmedShadowCount = discoveryData.stats?.confirmed_shadow || 0;
           if (confirmedShadowCount > 0) {
