@@ -249,7 +249,10 @@ export default function UkPage2TransparencyExplainability({
                   )}
               </div>
               <div className="space-y-2">
-                <Label className="text-sm font-medium text-foreground">Evidence: Upload explainability documentation or examples</Label>
+                <Label className="text-sm font-medium text-foreground">
+                  Evidence: Upload explainability documentation or examples
+                  <span className="text-xs text-muted-foreground ml-2">(Optional if text fields above are filled)</span>
+                </Label>
                 <Input
                   type="file"
                   accept=".pdf,.png,.jpg,.jpeg,.txt"
@@ -258,8 +261,6 @@ export default function UkPage2TransparencyExplainability({
                     handleEvidenceFileChange("uk_explainability_evidence", file);
                     setFieldValue("explainability_evidence", file ? file.name : "");
                   }}
-
-
                   className={`file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-slate-700 file:text-slate-100 hover:file:bg-slate-600 ${errors.explainability_evidence && touched.explainability_evidence
                     ? "border-red-500 focus:ring-red-500"
                     : ""
