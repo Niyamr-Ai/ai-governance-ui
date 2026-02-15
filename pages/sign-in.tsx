@@ -7,39 +7,66 @@ import { supabase } from "@/utils/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Alert,
   AlertDescription,
 } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
-import { AlertCircle, Loader2, Eye, EyeOff, Shield, Users, Lock, ArrowRight, Sparkles } from "lucide-react";
+import { AlertCircle, Loader2, Eye, EyeOff, Shield, Users, Lock, ArrowRight, Sparkles, ArrowLeft } from "lucide-react";
 
 export default function SignIn() {
   const router = useRouter();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [emailNotConfirmed, setEmailNotConfirmed] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
 
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
     if (error) {
-      setError(error.message);
+      // Check if error is due to email not being confirmed
+      const errorMessage = error.message.toLowerCase();
+      if (
+        errorMessage.includes('email not confirmed') ||
+        errorMessage.includes('email_not_confirmed') ||
+        errorMessage.includes('not confirmed') ||
+        error.code === 'email_not_confirmed'
+      ) {
+        setEmailNotConfirmed(true);
+        setError("Please verify your email address before signing in. Check your inbox for a confirmation link.");
+      } else {
+        setEmailNotConfirmed(false);
+        setError(error.message);
+      }
       setLoading(false);
       return;
+    }
+
+    // Update user metadata if first_name and last_name exist but name is missing
+    if (data.user) {
+      const metadata = data.user.user_metadata || {};
+      if (metadata.first_name && metadata.last_name && !metadata.name) {
+        const fullName = `${metadata.first_name} ${metadata.last_name}`.trim();
+        await supabase.auth.updateUser({
+          data: {
+            ...metadata,
+            name: fullName,
+            full_name: fullName,
+          },
+        });
+      }
     }
 
     router.push("/dashboard");
@@ -60,7 +87,6 @@ export default function SignIn() {
       setGoogleLoading(false);
     }
   };
-
 
   return (
     <div className="min-h-screen flex">
@@ -145,6 +171,15 @@ export default function SignIn() {
       {/* Right Section - Sign-in Form */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-8 lg:p-12 bg-white">
         <div className="w-full max-w-md space-y-6">
+          {/* Back Button */}
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to home
+          </Link>
+
           {/* Welcome Message */}
           <div className="space-y-1">
             <h2 className="text-3xl font-semibold text-foreground">
@@ -213,7 +248,12 @@ export default function SignIn() {
                 type="email"
                 placeholder="name@company.com"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (emailNotConfirmed) {
+                    setEmailNotConfirmed(false);
+                  }
+                }}
                 className="rounded-lg"
                 required
                 disabled={loading || googleLoading}
@@ -249,20 +289,7 @@ export default function SignIn() {
               </div>
             </div>
 
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="remember"
-                  checked={rememberMe}
-                  onCheckedChange={(checked) => setRememberMe(checked === true)}
-                />
-                <Label
-                  htmlFor="remember"
-                  className="text-sm cursor-pointer"
-                >
-                  Remember me
-                </Label>
-              </div>
+            <div className="flex items-center justify-end">
               <Link
                 href="/forgot-password"
                 className="text-sm text-primary hover:text-primary/80 transition-colors"
@@ -274,7 +301,14 @@ export default function SignIn() {
             {error && (
               <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{error}</AlertDescription>
+                <AlertDescription>
+                  {error}
+                  {emailNotConfirmed && (
+                    <div className="mt-3">
+                      <p className="text-sm mb-2">Please check your email (including spam folder) for the confirmation link, or sign up again to receive a new confirmation email.</p>
+                    </div>
+                  )}
+                </AlertDescription>
               </Alert>
             )}
 

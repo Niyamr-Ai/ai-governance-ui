@@ -46,9 +46,24 @@ interface SidebarProps {
 function getUserDisplayName(user: any): string {
   if (!user) return "User";
   
-  // Try user_metadata first
-  const fullName = user.user_metadata?.full_name || user.user_metadata?.name;
+  // Try user_metadata first - check for full_name, name, or first_name + last_name
+  const metadata = user.user_metadata || user.raw_user_meta_data || {};
+  const fullName = metadata.full_name || metadata.name;
+  
   if (fullName) return fullName;
+  
+  // Try to construct from first_name and last_name
+  const firstName = metadata.first_name;
+  const lastName = metadata.last_name;
+  if (firstName && lastName) {
+    return `${firstName} ${lastName}`;
+  }
+  if (firstName) return firstName;
+  if (lastName) return lastName;
+  
+  // Check Supabase's raw_app_meta_data or app_metadata
+  const appMetadata = user.app_metadata || {};
+  if (appMetadata.full_name) return appMetadata.full_name;
   
   // Fallback to email (extract name part before @)
   if (user.email) {
@@ -64,7 +79,9 @@ function getUserDisplayName(user: any): string {
 function getUserInitials(user: any): string {
   if (!user) return "U";
   
-  const fullName = user.user_metadata?.full_name || user.user_metadata?.name;
+  const metadata = user.user_metadata || user.raw_user_meta_data || {};
+  const fullName = metadata.full_name || metadata.name;
+  
   if (fullName) {
     const names = fullName.split(" ");
     if (names.length >= 2) {
@@ -72,6 +89,15 @@ function getUserInitials(user: any): string {
     }
     return fullName[0].toUpperCase();
   }
+  
+  // Try to construct from first_name and last_name
+  const firstName = metadata.first_name;
+  const lastName = metadata.last_name;
+  if (firstName && lastName) {
+    return (firstName[0] + lastName[0]).toUpperCase();
+  }
+  if (firstName) return firstName[0].toUpperCase();
+  if (lastName) return lastName[0].toUpperCase();
   
   if (user.email) {
     return user.email[0].toUpperCase();
