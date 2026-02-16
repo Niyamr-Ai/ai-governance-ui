@@ -157,14 +157,24 @@ export default function ComplianceDashboard() {
   const [loadingDocumentation, setLoadingDocumentation] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-  // Check authentication status
+  // Check authentication status and wait for session
   useEffect(() => {
     const checkAuth = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setIsLoggedIn(!!user);
+      // Wait a bit for session to be established (e.g., after email confirmation)
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      const { data: { session }, error } = await supabase.auth.getSession();
+      
+      if (!session || error) {
+        console.log('❌ No session found, redirecting to sign-in');
+        router.push("/sign-in");
+        return;
+      }
+      
+      setIsLoggedIn(!!session.user);
     };
     checkAuth();
-  }, []);
+  }, [router]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -174,6 +184,19 @@ export default function ComplianceDashboard() {
 
   useEffect(() => {
     const fetchData = async () => {
+      // Wait for authentication check to complete
+      if (!isLoggedIn) {
+        return;
+      }
+
+      // Double-check session before making API calls
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        console.log('❌ No session found in fetchData, redirecting to sign-in');
+        router.push("/sign-in");
+        return;
+      }
+
       try {
         const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
         console.log('🔍 Backend URL:', backendUrl);
@@ -279,7 +302,7 @@ export default function ComplianceDashboard() {
       }
     };
     fetchData();
-  }, []);
+  }, [router, isLoggedIn]);
 
   // Helper function to extract accountable person/role
   const getAccountablePerson = (assessment: any, category: string): string => {

@@ -340,6 +340,17 @@ export default function Chatbot() {
     return null;
   }
 
+  // Don't render on assessment pages (chooser and all form pages)
+  if (pathname && (
+    pathname === '/assessment' ||
+    pathname.startsWith('/assessment/eu/') ||
+    pathname.startsWith('/assessment/uk/') ||
+    pathname.startsWith('/assessment/mas/') ||
+    pathname.startsWith('/assessment/multi/')
+  )) {
+    return null;
+  }
+
   return (
     <>
       {/* Floating Chat Button */}

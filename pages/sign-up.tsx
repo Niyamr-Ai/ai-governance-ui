@@ -12,12 +12,13 @@ import {
   AlertDescription,
 } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
-import { AlertCircle, Loader2, Eye, EyeOff, Shield, Users, Lock, ArrowRight, Sparkles, CheckCircle2 } from "lucide-react";
+import { AlertCircle, Loader2, Eye, EyeOff, Shield, Users, Lock, ArrowRight, Sparkles, CheckCircle2, ArrowLeft } from "lucide-react";
 import Head from 'next/head';
-
 export default function SignUp() {
   const router = useRouter();
 
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -27,12 +28,20 @@ export default function SignUp() {
   const [success, setSuccess] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
     setSuccess(null);
+
+    // Validate required fields
+    if (!firstName.trim() || !lastName.trim()) {
+      setError("First name and last name are required");
+      setLoading(false);
+      return;
+    }
 
     // Validate passwords match
     if (password !== confirmPassword) {
@@ -41,24 +50,276 @@ export default function SignUp() {
       return;
     }
 
-    const { error } = await supabase.auth.signUp({
+    // Strategy: Try to sign up and check the response carefully
+    // Supabase behavior when email confirmation is enabled:
+    // - New user: Returns { data: { user: {...}, session: null }, error: null }
+    // - Existing user: Returns { data: { user: null, session: null }, error: null } (for security)
+    // 
+    // However, sometimes Supabase might return the existing user object.
+    // We need to check multiple indicators to detect existing accounts.
+
+    const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
+    const signupStartTime = Date.now();
+
+    console.log('[Sign-up] Attempting signup for:', email);
+
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || window.location.origin}/dashboard`,
+        emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || window.location.origin}/auth/callback?redirect_to=/dashboard`,
+        data: {
+          first_name: firstName.trim(),
+          last_name: lastName.trim(),
+          full_name: fullName,
+          name: fullName, // Also set 'name' field which Supabase uses for display name
+        },
+      },
+    });
+
+    console.log('[Sign-up] Supabase response:', {
+      hasError: !!error,
+      errorMessage: error?.message,
+      hasUser: !!data?.user,
+      userId: data?.user?.id,
+      userCreatedAt: data?.user?.created_at,
+      emailConfirmed: !!data?.user?.email_confirmed_at,
+      lastSignInAt: data?.user?.last_sign_in_at
+    });
+
+    // Check for explicit errors first
+    if (error) {
+      const errorMessage = error.message.toLowerCase();
+
+      if (
+        errorMessage.includes('user already registered') ||
+        errorMessage.includes('email already registered') ||
+        errorMessage.includes('already exists') ||
+        errorMessage.includes('already been registered') ||
+        errorMessage.includes('duplicate') ||
+        errorMessage.includes('email address is already') ||
+        errorMessage.includes('email already in use') ||
+        error.code === 'signup_disabled'
+      ) {
+        setError("An account with this email already exists. Please sign in instead.");
+      } else if (errorMessage.includes('rate limit')) {
+        setError("Too many sign-up attempts. Please wait a few minutes before trying again.");
+      } else {
+        setError(error.message);
+      }
+      setLoading(false);
+      return;
+    }
+
+    // CRITICAL CHECK 1: If data.user is null, account already exists
+    // This is the primary indicator when email confirmation is enabled
+    if (!data || !data.user) {
+      setError("An account with this email already exists. Please sign in instead.");
+      setLoading(false);
+      return;
+    }
+
+    // CRITICAL CHECK 2: Verify the user was just created
+    // When Supabase returns an existing user, the created_at will be from when it was originally created
+    // New signups should have a created_at timestamp very close to now (within 1 second)
+    const signupEndTime = Date.now();
+    const userCreatedAt = data.user.created_at ? new Date(data.user.created_at).getTime() : 0;
+
+    // Calculate raw time difference (signupEndTime - userCreatedAt)
+    // Positive = user created before signup ended (normal for new accounts)
+    // Negative = user created after signup ended (impossible for new accounts = existing account)
+    const rawTimeDiff = signupEndTime - userCreatedAt;
+    const timeDiff = Math.abs(rawTimeDiff);
+
+    console.log('[Sign-up] Checking user creation time:', {
+      userId: data.user.id,
+      createdAt: data.user.created_at,
+      createdAtTimestamp: userCreatedAt,
+      signupStartTime,
+      signupEndTime,
+      rawTimeDiffMs: rawTimeDiff,
+      timeDiffMsAbs: timeDiff,
+      timeDiffSeconds: Math.floor(timeDiff / 1000),
+      emailConfirmed: !!data.user.email_confirmed_at,
+      emailConfirmedAt: data.user.email_confirmed_at,
+      lastSignInAt: data.user.last_sign_in_at
+    });
+
+    // CRITICAL: Multiple checks to detect existing accounts
+
+    // Check 2a: PRIMARY CHECK - If user was created BEFORE signup started, it's definitely an existing account
+    // This is the most reliable check - works regardless of when account was created (5 minutes or 10 years ago)
+    // New accounts are created AFTER signupStartTime (when we call signUp)
+    // Existing accounts were created BEFORE signupStartTime
+    // Account for small clock skew/network latency: allow 100ms buffer
+    const timeBeforeSignupStart = signupStartTime - userCreatedAt;
+    if (timeBeforeSignupStart > 100) {
+      // User was created before our signup attempt started = existing account
+      const timeBeforeSignupStartSeconds = Math.floor(timeBeforeSignupStart / 1000);
+      const timeBeforeSignupStartMinutes = Math.floor(timeBeforeSignupStartSeconds / 60);
+      const timeBeforeSignupStartHours = Math.floor(timeBeforeSignupStartMinutes / 60);
+      const timeBeforeSignupStartDays = Math.floor(timeBeforeSignupStartHours / 24);
+      const timeBeforeSignupStartYears = Math.floor(timeBeforeSignupStartDays / 365);
+
+      console.log('[Sign-up] ❌ User created before signup started (EXISTING ACCOUNT):', {
+        userCreatedAt,
+        signupStartTime,
+        timeBeforeSignupStartMs: timeBeforeSignupStart,
+        timeBeforeSignupStartSeconds,
+        timeBeforeSignupStartMinutes,
+        timeBeforeSignupStartHours,
+        timeBeforeSignupStartDays,
+        timeBeforeSignupStartYears,
+        reason: timeBeforeSignupStartYears > 0
+          ? `User created ${timeBeforeSignupStartYears} year(s) ago - EXISTING ACCOUNT`
+          : timeBeforeSignupStartDays > 0
+            ? `User created ${timeBeforeSignupStartDays} day(s) ago - EXISTING ACCOUNT`
+            : timeBeforeSignupStartHours > 0
+              ? `User created ${timeBeforeSignupStartHours} hour(s) ago - EXISTING ACCOUNT`
+              : timeBeforeSignupStartMinutes > 0
+                ? `User created ${timeBeforeSignupStartMinutes} minute(s) ago - EXISTING ACCOUNT`
+                : 'User created before signup call - EXISTING ACCOUNT'
+      });
+      setError("An account with this email already exists. Please sign in instead.");
+      setLoading(false);
+      return;
+    }
+
+    // Check 2b: If rawTimeDiff is negative (user created AFTER signup ended), it's impossible for new accounts
+    // This indicates Supabase returned an existing user
+    if (rawTimeDiff < -50) {
+      console.log('[Sign-up] ❌ User created after signup ended:', {
+        rawTimeDiff,
+        reason: 'User created after signup ended (impossible for new accounts) - EXISTING ACCOUNT'
+      });
+      setError("An account with this email already exists. Please sign in instead.");
+      setLoading(false);
+      return;
+    }
+
+    // Check 2c: If user was created more than 2 seconds before signup ended, it's likely an existing account
+    // (New accounts should be created within 1-2 seconds)
+    // This will catch accounts created days/weeks/months ago (rawTimeDiff will be huge)
+    if (rawTimeDiff > 2000) {
+      const timeDiffSeconds = Math.floor(rawTimeDiff / 1000);
+      const timeDiffMinutes = Math.floor(timeDiffSeconds / 60);
+      const timeDiffHours = Math.floor(timeDiffMinutes / 60);
+      const timeDiffDays = Math.floor(timeDiffHours / 24);
+
+      console.log('[Sign-up] ❌ User created too long ago:', {
+        rawTimeDiff,
+        timeDiffSeconds,
+        timeDiffMinutes,
+        timeDiffHours,
+        timeDiffDays,
+        reason: timeDiffDays > 0
+          ? `User created ${timeDiffDays} day(s) ago - EXISTING ACCOUNT`
+          : timeDiffHours > 0
+            ? `User created ${timeDiffHours} hour(s) ago - EXISTING ACCOUNT`
+            : timeDiffMinutes > 0
+              ? `User created ${timeDiffMinutes} minute(s) ago - EXISTING ACCOUNT`
+              : 'User created too long ago - EXISTING ACCOUNT'
+      });
+      setError("An account with this email already exists. Please sign in instead.");
+      setLoading(false);
+      return;
+    }
+
+    // Check 2d: If user has last_sign_in_at set, it's definitely an existing account
+    if (data.user.last_sign_in_at) {
+      console.log('[Sign-up] ❌ User has last_sign_in_at:', {
+        lastSignInAt: data.user.last_sign_in_at,
+        reason: 'User has previous sign-in history - EXISTING ACCOUNT'
+      });
+      setError("An account with this email already exists. Please sign in instead.");
+      setLoading(false);
+      return;
+    }
+
+    // Check 2e: If user has app_metadata with provider info (OAuth), it's an existing account
+    if (data.user.app_metadata && Object.keys(data.user.app_metadata).length > 0) {
+      const hasProvider = data.user.app_metadata.provider ||
+        (data.user.app_metadata.providers && data.user.app_metadata.providers.length > 0);
+      if (hasProvider) {
+        console.log('[Sign-up] ❌ User has OAuth provider metadata:', {
+          appMetadata: data.user.app_metadata,
+          reason: 'User was created via OAuth - EXISTING ACCOUNT'
+        });
+        setError("An account with this email already exists. Please sign in instead.");
+        setLoading(false);
+        return;
+      }
+    }
+
+    // CRITICAL CHECK 3: If user is already confirmed, it's definitely an existing account
+    // (New signups won't be confirmed immediately - they need to click email link)
+    if (data.user.email_confirmed_at) {
+      const confirmedAt = new Date(data.user.email_confirmed_at).getTime();
+      const confirmedTimeDiff = signupEndTime - confirmedAt;
+
+      console.log('[Sign-up] User email confirmation check:', {
+        confirmedAt,
+        confirmedTimeDiffMs: confirmedTimeDiff,
+        confirmedTimeDiffSeconds: Math.floor(Math.abs(confirmedTimeDiff) / 1000)
+      });
+
+      // If email was confirmed (and it's not a brand new account), it's existing
+      // Allow 2 seconds for edge cases where confirmation happens instantly
+      if (Math.abs(confirmedTimeDiff) > 2000) {
+        console.log('[Sign-up] ❌ User already confirmed:', confirmedTimeDiff, 'ms difference - EXISTING ACCOUNT');
+        setError("An account with this email already exists. Please sign in instead.");
+        setLoading(false);
+        return;
+      }
+    }
+
+    // Additional check: If user metadata doesn't match what we're trying to set, it might be existing
+    // But this is less reliable, so we'll use it as a secondary check
+    const userMetadata = data.user.user_metadata || {};
+    if (userMetadata.first_name && userMetadata.first_name !== firstName.trim()) {
+      console.log('[Sign-up] ⚠️ User metadata mismatch - might be existing account');
+      // Don't fail on this alone, but log it
+    }
+
+    console.log('[Sign-up] ✅ New account created successfully');
+
+    // Success! Account created
+    setSuccess("Account created successfully! Please check your email (including spam folder) to verify your account. Click the confirmation link to complete signup.");
+    setLoading(false);
+
+    // Clear form
+    setFirstName("");
+    setLastName("");
+    setEmail("");
+    setPassword("");
+    setConfirmPassword("");
+  };
+
+  const handleResendConfirmation = async () => {
+    if (!email) {
+      setError("Please enter your email address first.");
+      return;
+    }
+
+    setResendLoading(true);
+    setError(null);
+
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email: email,
+      options: {
+        emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || window.location.origin}/auth/callback?redirect_to=/dashboard`,
       },
     });
 
     if (error) {
       setError(error.message);
-      setLoading(false);
+      setResendLoading(false);
       return;
     }
 
-    setSuccess(
-      "Account created! Please check your email to verify your account."
-    );
-    setLoading(false);
+    setSuccess("Confirmation email sent! Please check your inbox (including spam folder) and click the link to verify your account.");
+    setResendLoading(false);
   };
 
   const handleGoogleSignUp = async () => {
@@ -164,6 +425,15 @@ export default function SignUp() {
       {/* Right Section - Sign-up Form */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-8 lg:p-12 bg-white">
         <div className="w-full max-w-md space-y-6">
+          {/* Back Button */}
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to home
+          </Link>
+
           {/* Welcome Message */}
           <div className="space-y-1">
             <h2 className="text-3xl font-semibold text-foreground">
@@ -223,6 +493,39 @@ export default function SignUp() {
 
           {/* Email/Password Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="firstName" className="text-sm font-medium">
+                  First Name
+                </Label>
+                <Input
+                  id="firstName"
+                  type="text"
+                  placeholder="John"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  className="rounded-xl"
+                  required
+                  disabled={loading || googleLoading}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="lastName" className="text-sm font-medium">
+                  Last Name
+                </Label>
+                <Input
+                  id="lastName"
+                  type="text"
+                  placeholder="Doe"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  className="rounded-xl"
+                  required
+                  disabled={loading || googleLoading}
+                />
+              </div>
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="email" className="text-sm font-medium">
                 Email address
@@ -312,7 +615,28 @@ export default function SignUp() {
             {success && (
               <Alert className="bg-green-50 border-green-200">
                 <CheckCircle2 className="h-4 w-4 text-green-600" />
-                <AlertDescription className="text-green-800">{success}</AlertDescription>
+                <AlertDescription className="text-green-800">
+                  {success}
+                  <div className="mt-3">
+                    <Button
+                      type="button"
+                      onClick={handleResendConfirmation}
+                      variant="outline"
+                      size="sm"
+                      disabled={resendLoading}
+                      className="w-full"
+                    >
+                      {resendLoading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Sending...
+                        </>
+                      ) : (
+                        "Resend Confirmation Email"
+                      )}
+                    </Button>
+                  </div>
+                </AlertDescription>
               </Alert>
             )}
 

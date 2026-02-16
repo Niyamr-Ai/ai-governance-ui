@@ -53,6 +53,7 @@ const ukInitialState = {
   // Page 2: Safety, Security & Robustness
   robustness_testing: false,
   robustness_testing_methods: "",
+  robustness_testing_frequency_text: "",
   robustness_testing_frequency: "",
   robustness_test_results: "",
   robustness_test_evidence: "",
@@ -242,6 +243,7 @@ export default function UkAssessmentPage() {
     1: [
       "robustness_testing",               // 👈 ADD THIS
       "robustness_testing_methods",
+      "robustness_testing_frequency_text",
       "robustness_testing_frequency",
 
       "red_teaming",                      // 👈 ADD THIS
@@ -479,9 +481,35 @@ export default function UkAssessmentPage() {
         then: (s) => s.required("Explainability of AI to different users is required. Enter null if nothing to show"),
       }),
 
-      explainability_evidence: Yup.string().when("explainability", {
-        is: (v) => v === true,
-        then: (s) => s.required("Evidence of AI disclosure is required. Enter null if nothing to show"),
+      explainability_evidence: Yup.string().when(["explainability", "explainability_methods", "explainability_technical_details", "explainability_user_types"], {
+        is: (explainability, methods, technicalDetails, userTypes) => {
+          return explainability === true;
+        },
+        then: (s) => s.test(
+          "evidence-or-text-content",
+          "Evidence of AI disclosure is required. Enter null if nothing to show",
+          function(value) {
+            const { explainability_methods, explainability_technical_details, explainability_user_types } = this.parent;
+            // If any text field has content (and it's not just "null"), evidence is optional
+            const hasTextContent = 
+              (explainability_methods && explainability_methods.trim() && explainability_methods.trim().toLowerCase() !== "null") ||
+              (explainability_technical_details && explainability_technical_details.trim() && explainability_technical_details.trim().toLowerCase() !== "null") ||
+              (explainability_user_types && explainability_user_types.trim() && explainability_user_types.trim().toLowerCase() !== "null");
+            
+            // If text content exists, evidence is optional (can be empty, null, or file)
+            if (hasTextContent) {
+              return true;
+            }
+            
+            // If no text content, evidence is required (must be file or explicitly set to "null")
+            // Accept empty string, "null", or any non-empty value (file name)
+            if (!value) {
+              return false;
+            }
+            const trimmedValue = value.trim().toLowerCase();
+            return trimmedValue === "null" || trimmedValue !== "";
+          }
+        ),
       }),
 
       documentation: Yup.boolean()
@@ -800,10 +828,33 @@ export default function UkAssessmentPage() {
           s.required("Please describe how rights are communicated to users. Enter null if nothing to show"),
       }),
 
-      user_rights_evidence: Yup.string().when("user_rights", {
-        is: true,
-        then: (s) =>
-          s.required("Please provide evidence of user rights documentation. Enter null if nothing to show"),
+      user_rights_evidence: Yup.string().when(["user_rights", "user_rights_what", "user_rights_communication"], {
+        is: (user_rights, what, communication) => {
+          return user_rights === true;
+        },
+        then: (s) => s.test(
+          "evidence-or-text-content",
+          "Please provide evidence of user rights documentation. Enter null if nothing to show",
+          function(value) {
+            const { user_rights_what, user_rights_communication } = this.parent;
+            // If any text field has content (and it's not just "null"), evidence is optional
+            const hasTextContent = 
+              (user_rights_what && user_rights_what.trim() && user_rights_what.trim().toLowerCase() !== "null") ||
+              (user_rights_communication && user_rights_communication.trim() && user_rights_communication.trim().toLowerCase() !== "null");
+            
+            // If text content exists, evidence is optional (can be empty, null, or file)
+            if (hasTextContent) {
+              return true;
+            }
+            
+            // If no text content, evidence is required (must be file or explicitly set to "null")
+            if (!value) {
+              return false;
+            }
+            const trimmedValue = value.trim().toLowerCase();
+            return trimmedValue === "null" || trimmedValue !== "";
+          }
+        ),
       }),
 
       // Appeal or challenge mechanism
@@ -856,10 +907,34 @@ export default function UkAssessmentPage() {
           s.required("Please describe how redress cases are documented. Enter null if nothing to show"),
       }),
 
-      redress_process_evidence: Yup.string().when("redress_process", {
-        is: true,
-        then: (s) =>
-          s.required("Please provide evidence of redress process documentation. Enter null if nothing to show"),
+      redress_process_evidence: Yup.string().when(["redress_process", "redress_process_steps", "redress_compensation", "redress_documentation"], {
+        is: (redress_process, steps, compensation, documentation) => {
+          return redress_process === true;
+        },
+        then: (s) => s.test(
+          "evidence-or-text-content",
+          "Please provide evidence of redress process documentation. Enter null if nothing to show",
+          function(value) {
+            const { redress_process_steps, redress_compensation, redress_documentation } = this.parent;
+            // If any text field has content (and it's not just "null"), evidence is optional
+            const hasTextContent = 
+              (redress_process_steps && redress_process_steps.trim() && redress_process_steps.trim().toLowerCase() !== "null") ||
+              (redress_compensation && redress_compensation.trim() && redress_compensation.trim().toLowerCase() !== "null") ||
+              (redress_documentation && redress_documentation.trim() && redress_documentation.trim().toLowerCase() !== "null");
+            
+            // If text content exists, evidence is optional (can be empty, null, or file)
+            if (hasTextContent) {
+              return true;
+            }
+            
+            // If no text content, evidence is required (must be file or explicitly set to "null")
+            if (!value) {
+              return false;
+            }
+            const trimmedValue = value.trim().toLowerCase();
+            return trimmedValue === "null" || trimmedValue !== "";
+          }
+        ),
       }),
 
       // Complaint handling procedures

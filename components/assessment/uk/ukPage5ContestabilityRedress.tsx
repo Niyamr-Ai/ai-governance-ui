@@ -105,7 +105,10 @@ export default function UkPage5ContestabilityRedress({
                   )}
               </div>
               <div className="space-y-2">
-                <Label className="text-sm font-medium text-foreground">Evidence: Upload user rights documentation or communication materials</Label>
+                <Label className="text-sm font-medium text-foreground">
+                  Evidence: Upload user rights documentation or communication materials
+                  <span className="text-xs text-muted-foreground ml-2">(Optional if text fields above are filled)</span>
+                </Label>
                 <Input
                   type="file"
                   accept=".pdf,.png,.jpg,.jpeg,.txt"
@@ -351,7 +354,10 @@ export default function UkPage5ContestabilityRedress({
                   )}
               </div>
               <div className="space-y-2">
-                <Label className="text-sm font-medium text-foreground">Evidence: Upload redress process documentation or case examples</Label>
+                <Label className="text-sm font-medium text-foreground">
+                  Evidence: Upload redress process documentation or case examples
+                  <span className="text-xs text-muted-foreground ml-2">(Optional if text fields above are filled)</span>
+                </Label>
                 <Input
                   type="file"
                   accept=".pdf,.png,.jpg,.jpeg,.txt"

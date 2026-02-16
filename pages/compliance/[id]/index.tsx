@@ -320,31 +320,6 @@ export default function ComplianceResultPage() {
           </div>
         </div>
 
-        {/* Alert Banner */}
-        {prohibited_practices_detected && (
-          <Alert variant="destructive" className="border-red-200 bg-red-50 backdrop-blur-sm">
-            <Ban className="h-4 w-4 text-red-600" />
-            <AlertTitle className="text-red-900 font-bold">⚠️ PROHIBITED SYSTEM - DEPLOYMENT BLOCKED</AlertTitle>
-            <AlertDescription className="text-red-800">
-              <div className="mt-2">
-                <p className="mb-2 font-semibold">Immediate action required. This AI system engages in prohibited practices under the EU AI Act.</p>
-                {prohibitedPracticesList.length > 0 && (
-                  <div className="mt-3">
-                    <p className="font-semibold mb-2 text-red-900">Detected Prohibited Practices:</p>
-                    <ul className="list-disc list-inside space-y-1">
-                      {prohibitedPracticesList.map((practice: string, idx: number) => (
-                        <li key={idx} className="text-red-700">{practice}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-                <p className="mt-3 text-sm text-red-700">
-                  <strong>Action Required:</strong> Remove all prohibited practices before this system can be moved to Production (Deployed) stage or used in live operations. Prohibited AI systems cannot be placed on the market, put into service, or used under the EU AI Act.
-                </p>
-              </div>
-            </AlertDescription>
-          </Alert>
-        )}
 
         {/* Key Metrics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
