@@ -11,6 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ArrowLeft, Loader2, Save } from "lucide-react";
 import Sidebar from "@/components/sidebar";
 import type {
+  Policy,
+  CreateInternalPolicyInput,
 } from "@/types/policy";
 
 import { supabase } from "@/utils/supabase/client";
