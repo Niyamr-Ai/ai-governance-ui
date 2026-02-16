@@ -461,29 +461,6 @@ export default function AISystemDetailPage() {
           </div>
         </div>
 
-        {/* Prohibited System Warning Banner */}
-        {complianceData?.eu && (complianceData.eu.risk_tier === 'Prohibited' || complianceData.eu.prohibited_practices_detected) && (
-          <div className="mb-6">
-            <Alert className="bg-red-50 border-2 border-red-300 rounded-lg p-5 glass-panel shadow-lg">
-              <AlertCircle className="h-6 w-6 text-red-600 flex-shrink-0" />
-              <AlertDescription className="text-red-800 font-semibold">
-                <div className="space-y-2">
-                  <p className="text-lg font-bold">⚠️ PROHIBITED SYSTEM - DEPLOYMENT BLOCKED</p>
-                  <p className="text-sm font-normal">
-                    This system has been classified as <strong>"Prohibited"</strong> under the EU AI Act. 
-                    Prohibited AI practices (social scoring, real-time biometric identification in public spaces, 
-                    influencing law enforcement decisions) are strictly forbidden and cannot be deployed to Production.
-                  </p>
-                  <p className="text-sm font-normal mt-2">
-                    <strong>Action Required:</strong> You must modify the system to remove all prohibited practices 
-                    before it can be deployed. Lifecycle transitions to "Deployed" and assessment submissions/approvals 
-                    are blocked until compliance is achieved.
-                  </p>
-                </div>
-              </AlertDescription>
-            </Alert>
-          </div>
-        )}
 
         {/* Error Alert */}
         {error && (

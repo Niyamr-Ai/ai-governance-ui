@@ -83,7 +83,8 @@ export default function SignUp() {
       hasUser: !!data?.user,
       userId: data?.user?.id,
       userCreatedAt: data?.user?.created_at,
-      emailConfirmed: !!data?.user?.email_confirmed_at
+      emailConfirmed: !!data?.user?.email_confirmed_at,
+      lastSignInAt: data?.user?.last_sign_in_at
     });
 
     // Check for explicit errors first
@@ -120,39 +121,134 @@ export default function SignUp() {
 
     // CRITICAL CHECK 2: Verify the user was just created
     // When Supabase returns an existing user, the created_at will be from when it was originally created
-    // New signups should have a created_at timestamp very close to now (within 2 seconds)
+    // New signups should have a created_at timestamp very close to now (within 1 second)
     const signupEndTime = Date.now();
     const userCreatedAt = data.user.created_at ? new Date(data.user.created_at).getTime() : 0;
     
-    // Calculate absolute time difference (handle negative values from clock skew)
-    const timeDiff = Math.abs(signupEndTime - userCreatedAt);
+    // Calculate raw time difference (signupEndTime - userCreatedAt)
+    // Positive = user created before signup ended (normal for new accounts)
+    // Negative = user created after signup ended (impossible for new accounts = existing account)
+    const rawTimeDiff = signupEndTime - userCreatedAt;
+    const timeDiff = Math.abs(rawTimeDiff);
     
     console.log('[Sign-up] Checking user creation time:', {
       userId: data.user.id,
       createdAt: data.user.created_at,
       createdAtTimestamp: userCreatedAt,
+      signupStartTime,
       signupEndTime,
-      timeDiffMs: signupEndTime - userCreatedAt, // Show raw diff for debugging
+      rawTimeDiffMs: rawTimeDiff,
       timeDiffMsAbs: timeDiff,
       timeDiffSeconds: Math.floor(timeDiff / 1000),
       emailConfirmed: !!data.user.email_confirmed_at,
-      emailConfirmedAt: data.user.email_confirmed_at
+      emailConfirmedAt: data.user.email_confirmed_at,
+      lastSignInAt: data.user.last_sign_in_at
     });
     
-    // CRITICAL: If user was created more than 3 seconds before OR after signup, it's an existing account
-    // (New accounts should be created within 1-2 seconds of the signup call)
-    // Negative timeDiff means user was "created" after signup ended (impossible for new accounts)
-    const rawTimeDiff = signupEndTime - userCreatedAt;
-    // Lower threshold to catch even small negative values (like -399ms) which indicate existing account
-    if (rawTimeDiff < -100 || timeDiff > 3000) {
-      console.log('[Sign-up] ❌ User creation time mismatch:', {
-        rawTimeDiff,
-        timeDiff,
-        reason: rawTimeDiff < -100 ? 'User created after signup (impossible - existing account)' : 'User created too long ago (existing account)'
+    // CRITICAL: Multiple checks to detect existing accounts
+    
+    // Check 2a: PRIMARY CHECK - If user was created BEFORE signup started, it's definitely an existing account
+    // This is the most reliable check - works regardless of when account was created (5 minutes or 10 years ago)
+    // New accounts are created AFTER signupStartTime (when we call signUp)
+    // Existing accounts were created BEFORE signupStartTime
+    // Account for small clock skew/network latency: allow 100ms buffer
+    const timeBeforeSignupStart = signupStartTime - userCreatedAt;
+    if (timeBeforeSignupStart > 100) {
+      // User was created before our signup attempt started = existing account
+      const timeBeforeSignupStartSeconds = Math.floor(timeBeforeSignupStart / 1000);
+      const timeBeforeSignupStartMinutes = Math.floor(timeBeforeSignupStartSeconds / 60);
+      const timeBeforeSignupStartHours = Math.floor(timeBeforeSignupStartMinutes / 60);
+      const timeBeforeSignupStartDays = Math.floor(timeBeforeSignupStartHours / 24);
+      const timeBeforeSignupStartYears = Math.floor(timeBeforeSignupStartDays / 365);
+      
+      console.log('[Sign-up] ❌ User created before signup started (EXISTING ACCOUNT):', {
+        userCreatedAt,
+        signupStartTime,
+        timeBeforeSignupStartMs: timeBeforeSignupStart,
+        timeBeforeSignupStartSeconds,
+        timeBeforeSignupStartMinutes,
+        timeBeforeSignupStartHours,
+        timeBeforeSignupStartDays,
+        timeBeforeSignupStartYears,
+        reason: timeBeforeSignupStartYears > 0
+          ? `User created ${timeBeforeSignupStartYears} year(s) ago - EXISTING ACCOUNT`
+          : timeBeforeSignupStartDays > 0 
+          ? `User created ${timeBeforeSignupStartDays} day(s) ago - EXISTING ACCOUNT`
+          : timeBeforeSignupStartHours > 0
+          ? `User created ${timeBeforeSignupStartHours} hour(s) ago - EXISTING ACCOUNT`
+          : timeBeforeSignupStartMinutes > 0
+          ? `User created ${timeBeforeSignupStartMinutes} minute(s) ago - EXISTING ACCOUNT`
+          : 'User created before signup call - EXISTING ACCOUNT'
       });
       setError("An account with this email already exists. Please sign in instead.");
       setLoading(false);
       return;
+    }
+    
+    // Check 2b: If rawTimeDiff is negative (user created AFTER signup ended), it's impossible for new accounts
+    // This indicates Supabase returned an existing user
+    if (rawTimeDiff < -50) {
+      console.log('[Sign-up] ❌ User created after signup ended:', {
+        rawTimeDiff,
+        reason: 'User created after signup ended (impossible for new accounts) - EXISTING ACCOUNT'
+      });
+      setError("An account with this email already exists. Please sign in instead.");
+      setLoading(false);
+      return;
+    }
+    
+    // Check 2c: If user was created more than 2 seconds before signup ended, it's likely an existing account
+    // (New accounts should be created within 1-2 seconds)
+    // This will catch accounts created days/weeks/months ago (rawTimeDiff will be huge)
+    if (rawTimeDiff > 2000) {
+      const timeDiffSeconds = Math.floor(rawTimeDiff / 1000);
+      const timeDiffMinutes = Math.floor(timeDiffSeconds / 60);
+      const timeDiffHours = Math.floor(timeDiffMinutes / 60);
+      const timeDiffDays = Math.floor(timeDiffHours / 24);
+      
+      console.log('[Sign-up] ❌ User created too long ago:', {
+        rawTimeDiff,
+        timeDiffSeconds,
+        timeDiffMinutes,
+        timeDiffHours,
+        timeDiffDays,
+        reason: timeDiffDays > 0
+          ? `User created ${timeDiffDays} day(s) ago - EXISTING ACCOUNT`
+          : timeDiffHours > 0
+          ? `User created ${timeDiffHours} hour(s) ago - EXISTING ACCOUNT`
+          : timeDiffMinutes > 0
+          ? `User created ${timeDiffMinutes} minute(s) ago - EXISTING ACCOUNT`
+          : 'User created too long ago - EXISTING ACCOUNT'
+      });
+      setError("An account with this email already exists. Please sign in instead.");
+      setLoading(false);
+      return;
+    }
+    
+    // Check 2d: If user has last_sign_in_at set, it's definitely an existing account
+    if (data.user.last_sign_in_at) {
+      console.log('[Sign-up] ❌ User has last_sign_in_at:', {
+        lastSignInAt: data.user.last_sign_in_at,
+        reason: 'User has previous sign-in history - EXISTING ACCOUNT'
+      });
+      setError("An account with this email already exists. Please sign in instead.");
+      setLoading(false);
+      return;
+    }
+    
+    // Check 2e: If user has app_metadata with provider info (OAuth), it's an existing account
+    if (data.user.app_metadata && Object.keys(data.user.app_metadata).length > 0) {
+      const hasProvider = data.user.app_metadata.provider || 
+                         (data.user.app_metadata.providers && data.user.app_metadata.providers.length > 0);
+      if (hasProvider) {
+        console.log('[Sign-up] ❌ User has OAuth provider metadata:', {
+          appMetadata: data.user.app_metadata,
+          reason: 'User was created via OAuth - EXISTING ACCOUNT'
+        });
+        setError("An account with this email already exists. Please sign in instead.");
+        setLoading(false);
+        return;
+      }
     }
     
     // CRITICAL CHECK 3: If user is already confirmed, it's definitely an existing account
