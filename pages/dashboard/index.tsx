@@ -50,6 +50,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Loader2, X } from "lucide-react";
+import Head from 'next/head';
 
 async function backendFetch(
   path: string,
@@ -176,7 +177,7 @@ export default function ComplianceDashboard() {
       try {
         const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
         console.log('🔍 Backend URL:', backendUrl);
-        
+
         const [euRes, masRes, ukRes, discoveryRes] = await Promise.all([
           backendFetch("/api/compliance").catch(err => {
             console.error('❌ Error fetching EU compliance:', err);
@@ -232,7 +233,7 @@ export default function ComplianceDashboard() {
           ...mas.map(m => m.id),
           ...uk.map(u => u.id),
         ];
-        
+
         if (allSystemIds.length > 0) {
           // Fetch full assessment data for systems that have automated risk assessments
           const assessmentData = await Promise.all(
@@ -249,7 +250,7 @@ export default function ComplianceDashboard() {
               }
             })
           );
-          
+
           const assessmentMap = new Map(
             assessmentData
               .filter((item): item is { id: string; data: any } => item !== null)
@@ -349,7 +350,7 @@ export default function ComplianceDashboard() {
       return r === "high" || r === "critical" || r.includes("high-risk") || r.includes("frontier");
     }).length || 0;
   const failedTests =
-    unifiedAssessments.filter((a) => 
+    unifiedAssessments.filter((a) =>
       (a.compliance_status || "").toLowerCase().includes("non")
     ).length || 0;
 
@@ -357,7 +358,7 @@ export default function ComplianceDashboard() {
   const getStatusBadge = (status: string, category?: string) => {
     if (!status) return <Badge className="bg-secondary/80 text-muted-foreground border-border/50 font-medium px-2.5 py-1 rounded-full shadow-sm hover:shadow-md transition-all">Unknown</Badge>;
     const s = status.toLowerCase();
-    
+
     // Color scheme based on AI Act
     const actColors = {
       "EU AI Act": {
@@ -376,9 +377,9 @@ export default function ComplianceDashboard() {
         partial: "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100",
       },
     };
-    
+
     const colors = actColors[category as keyof typeof actColors] || actColors["EU AI Act"];
-    
+
     if (s.includes("pass") || (s.includes("compliant") && !s.includes("partial")))
       return (
         <Badge className={`${colors.compliant} font-medium px-2.5 py-1 rounded-full shadow-sm hover:shadow-md transition-all flex items-center gap-1.5`}>
@@ -401,7 +402,7 @@ export default function ComplianceDashboard() {
   const getRiskBadge = (risk: string, category?: string) => {
     if (!risk) return <Badge className="bg-secondary/80 text-muted-foreground border-border/50 font-medium px-2.5 py-1 rounded-full shadow-sm hover:shadow-md transition-all">Unknown</Badge>;
     const r = risk.toLowerCase();
-    
+
     // Color scheme based on AI Act
     const actColors = {
       "EU AI Act": {
@@ -423,9 +424,9 @@ export default function ComplianceDashboard() {
         low: "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100",
       },
     };
-    
+
     const colors = actColors[category as keyof typeof actColors] || actColors["EU AI Act"];
-    
+
     if (r === "prohibited")
       return (
         <Badge className={`${colors.prohibited} font-medium px-2.5 py-1 rounded-full shadow-sm hover:shadow-md transition-all flex items-center gap-1.5`}>
@@ -509,22 +510,22 @@ export default function ComplianceDashboard() {
     setSystemDetails(null);
     setRiskAssessments([]);
     setDocumentation([]);
-  
+
     try {
       const [complianceRes, riskRes, docRes] = await Promise.all([
         backendFetch(`/api/ai-systems/${assessment.id}/compliance-data`),
         backendFetch(`/api/ai-systems/${assessment.id}/risk-assessments`),
         backendFetch(`/api/ai-systems/${assessment.id}/documentation`),
       ]);
-  
+
       if (complianceRes.ok) {
         setSystemDetails(await complianceRes.json());
       }
-  
+
       if (riskRes.ok) {
         setRiskAssessments(await riskRes.json());
       }
-  
+
       if (docRes.ok) {
         const docData = await docRes.json();
         setDocumentation(docData.documentation || []);
@@ -535,14 +536,14 @@ export default function ComplianceDashboard() {
       setLoadingDetails(false);
     }
   };
-  
+
 
   // Handle document download as PDF
   const handleDownloadDocument = async (doc: any) => {
     try {
       // Convert markdown to HTML (await the async parse function)
       const htmlContent = await marked.parse(doc.content);
-      
+
       // Create a temporary container with styled HTML
       // Use explicit hex colors to avoid html2canvas parsing issues with modern CSS color functions
       const tempDiv = document.createElement('div');
@@ -557,7 +558,7 @@ export default function ComplianceDashboard() {
       tempDiv.style.color = '#000000'; // Explicit black hex
       tempDiv.style.backgroundColor = '#ffffff'; // Explicit white hex
       tempDiv.style.boxSizing = 'border-box';
-      
+
       // Enhanced HTML with better spacing and structure
       // All colors must be in hex format to avoid html2canvas parsing issues
       tempDiv.innerHTML = `
@@ -593,9 +594,9 @@ export default function ComplianceDashboard() {
           ${htmlContent}
         </div>
       `;
-      
+
       document.body.appendChild(tempDiv);
-      
+
       // Convert HTML to canvas with better settings
       // Use explicit hex background color and ignore external styles
       const canvas = await html2canvas(tempDiv, {
@@ -632,10 +633,10 @@ export default function ComplianceDashboard() {
           });
         }
       });
-      
+
       // Remove temporary element
       document.body.removeChild(tempDiv);
-      
+
       // Create PDF with proper margins
       const imgData = canvas.toDataURL('image/png', 1.0);
       const pdf = new jsPDF('p', 'mm', 'a4');
@@ -646,11 +647,11 @@ export default function ComplianceDashboard() {
       const margin = 10;
       let heightLeft = imgHeight;
       let position = margin;
-      
+
       // Add first page
       pdf.addImage(imgData, 'PNG', margin, position, imgWidth, imgHeight);
       heightLeft -= (pdfHeight - 2 * margin);
-      
+
       // Add additional pages if needed
       while (heightLeft > 0) {
         position = margin - (imgHeight - heightLeft);
@@ -658,7 +659,7 @@ export default function ComplianceDashboard() {
         pdf.addImage(imgData, 'PNG', margin, position, imgWidth, imgHeight);
         heightLeft -= (pdfHeight - 2 * margin);
       }
-      
+
       // Download PDF
       pdf.save(`${doc.regulation_type.replace(/\s+/g, '_')}_v${doc.version}_${doc.id.substring(0, 8)}.pdf`);
     } catch (error) {
@@ -689,6 +690,10 @@ export default function ComplianceDashboard() {
 
   return (
     <div className="min-h-screen bg-white">
+      <Head>
+        <title>Dashboard</title>
+        <meta name="description" content="Overview of all AI compliance assessments." />
+      </Head>
       {/* Left sidebar - Only visible when logged in */}
       <Sidebar onLogout={handleLogout} />
 
@@ -898,24 +903,24 @@ export default function ComplianceDashboard() {
                         };
 
                         return (
-                          <TableRow 
-                            key={`${assessment.category}-${assessment.id}`} 
+                          <TableRow
+                            key={`${assessment.category}-${assessment.id}`}
                             className="hover:bg-secondary/20 transition-colors duration-150 border-b border-border/30"
                           >
-                            <TableCell 
+                            <TableCell
                               className="py-4 cursor-pointer hover:bg-secondary/30 rounded"
                               onClick={() => handleSystemClick(assessment)}
                             >
                               {getCategoryBadge()}
                             </TableCell>
-                            <TableCell 
+                            <TableCell
                               className="font-semibold text-foreground py-4 cursor-pointer hover:bg-secondary/30 rounded"
                               onClick={() => handleSystemClick(assessment)}
                             >
                               {assessment.name || `ID: ${assessment.id.substring(0, 8)}...`}
                             </TableCell>
                             <TableCell className="py-4">
-                              {assessment.category === 'EU AI Act' 
+                              {assessment.category === 'EU AI Act'
                                 ? getLifecycleBadge(assessment.lifecycle_stage)
                                 : <span className="text-muted-foreground text-sm">N/A</span>
                               }
@@ -979,7 +984,7 @@ export default function ComplianceDashboard() {
                                       router.push(`/compliance/detailed/${assessment.id}`);
                                     }}
                                   >
-                                    <CheckCircle className="w-4 h-4" /> 
+                                    <CheckCircle className="w-4 h-4" />
                                     <span>View Detailed</span>
                                   </Button>
                                 ) : (
@@ -1072,7 +1077,7 @@ export default function ComplianceDashboard() {
                   <div className="flex items-center gap-3">
                     <div className="p-2 rounded-xl bg-primary/10 border border-primary/30">
                       <Shield className="h-6 w-6 text-primary" />
-        </div>
+                    </div>
                     <div>
                       <DialogTitle className="text-3xl font-extrabold text-foreground">
                         AI System Details
@@ -1080,8 +1085,8 @@ export default function ComplianceDashboard() {
                       <DialogDescription className="text-muted-foreground mt-1.5 text-base">
                         Complete information about the selected AI system
                       </DialogDescription>
-      </div>
-    </div>
+                    </div>
+                  </div>
                   {selectedSystem && (() => {
                     const colors = {
                       "EU AI Act": "bg-blue-50 text-blue-700 border-blue-200 shadow-sm",
@@ -1344,8 +1349,8 @@ export default function ComplianceDashboard() {
                                       assessment.risk_level === 'high'
                                         ? "bg-red-50 text-red-700 border-red-200"
                                         : assessment.risk_level === 'medium'
-                                        ? "bg-amber-50 text-amber-700 border-amber-200"
-                                        : "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                          ? "bg-amber-50 text-amber-700 border-amber-200"
+                                          : "bg-emerald-50 text-emerald-700 border-emerald-200"
                                     }>
                                       {assessment.risk_level?.charAt(0).toUpperCase() + assessment.risk_level?.slice(1) || 'Unknown'}
                                     </Badge>
@@ -1356,8 +1361,8 @@ export default function ComplianceDashboard() {
                                       assessment.status === 'approved'
                                         ? "bg-emerald-50 text-emerald-700 border-emerald-200"
                                         : assessment.status === 'submitted'
-                                        ? "bg-blue-50 text-blue-700 border-blue-200"
-                                        : "bg-secondary text-foreground border-border"
+                                          ? "bg-blue-50 text-blue-700 border-blue-200"
+                                          : "bg-secondary text-foreground border-border"
                                     }>
                                       {assessment.status || 'Draft'}
                                     </Badge>
@@ -1426,8 +1431,8 @@ export default function ComplianceDashboard() {
                                       doc.status === 'current'
                                         ? "bg-emerald-50 text-emerald-700 border-emerald-200"
                                         : doc.status === 'requires_regeneration'
-                                        ? "bg-red-50 text-red-700 border-red-200"
-                                        : "bg-amber-50 text-amber-700 border-amber-200"
+                                          ? "bg-red-50 text-red-700 border-red-200"
+                                          : "bg-amber-50 text-amber-700 border-amber-200"
                                     }>
                                       {doc.status === 'current' ? 'Current' : doc.status === 'requires_regeneration' ? 'Requires Regeneration' : 'Outdated'}
                                     </Badge>

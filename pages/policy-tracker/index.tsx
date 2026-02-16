@@ -11,6 +11,7 @@ import { supabase } from "@/utils/supabase/client";
 import { backendFetch } from "@/utils/backend-fetch";
 import Sidebar from "@/components/sidebar";
 import type { Policy, ComplianceStatus } from "../../types/policy";
+import Head from 'next/head';
 
 export default function PolicyTrackerPage() {
   const router = useRouter();
@@ -24,32 +25,32 @@ export default function PolicyTrackerPage() {
     const init = async () => {
       const sessionRes = await supabase.auth.getSession();
       const session = sessionRes.data.session;
-  
+
       if (!session) {
         router.push("/sign-in");
         return;
       }
-  
+
       setIsLoggedIn(true);
       setIsLoading(false);
-  
+
       await fetchPolicies();
     };
-  
+
     init();
   }, [router]);
-  
+
 
   const fetchPolicies = async () => {
     try {
       setLoadingPolicies(true);
-  
+
       const res = await backendFetch("/api/policies");
-  
+
       if (!res.ok) {
         throw new Error("Unauthorized");
       }
-  
+
       const data = await res.json();
       setExternalPolicies(data.filter((p: Policy) => p.policy_type === "External"));
       setInternalPolicies(data.filter((p: Policy) => p.policy_type === "Internal"));
@@ -59,14 +60,14 @@ export default function PolicyTrackerPage() {
       setLoadingPolicies(false);
     }
   };
-  
+
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
     router.push("/");
   };
 
-  
+
 
   if (isLoading) {
     return (
@@ -81,8 +82,12 @@ export default function PolicyTrackerPage() {
 
   return (
     <div className="min-h-screen bg-background">
+      <Head>
+        <title>Policy Tracker</title>
+        <meta name="description" content="Track and manage AI regulations and organizational policies." />
+      </Head>
       <Sidebar onLogout={handleLogout} />
-      
+
       <div className={`p-6 lg:p-8 ${isLoggedIn ? 'lg:pl-72 pt-24' : ''}`}>
         <div className="max-w-7xl mx-auto space-y-8">
           {/* Header */}
@@ -261,8 +266,8 @@ export default function PolicyTrackerPage() {
                               policy.status === "Active"
                                 ? "bg-emerald-50 text-emerald-700 border-emerald-200 font-medium px-2.5 py-1 rounded-full shadow-sm hover:shadow-md transition-all"
                                 : policy.status === "Draft"
-                                ? "bg-amber-50 text-amber-700 border-amber-200 font-medium px-2.5 py-1 rounded-full shadow-sm hover:shadow-md transition-all"
-                                : "bg-secondary/80 text-muted-foreground border-border/50 font-medium px-2.5 py-1 rounded-full shadow-sm hover:shadow-md transition-all"
+                                  ? "bg-amber-50 text-amber-700 border-amber-200 font-medium px-2.5 py-1 rounded-full shadow-sm hover:shadow-md transition-all"
+                                  : "bg-secondary/80 text-muted-foreground border-border/50 font-medium px-2.5 py-1 rounded-full shadow-sm hover:shadow-md transition-all"
                             }
                           >
                             {policy.status || "Active"}

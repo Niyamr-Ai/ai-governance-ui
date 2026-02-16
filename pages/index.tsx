@@ -14,10 +14,15 @@ import Footer from '@/components/landing/Footer';
 import ChallengeSection from '@/components/landing/ChallengeSection';
 import ComplianceCheckSection from '@/components/landing/ComplianceCheckSection';
 import AIPlaygroundSection from '@/components/landing/AIPlaygroundSection';
+import Head from 'next/head';
 
 export default function Home() {
   return (
     <div className="min-h-screen overflow-x-hidden">
+      <Head>
+        <title>AI Governance Platform</title>
+        <meta name="description" content="Secure, compliant, and transparent AI governance for modern enterprises." />
+      </Head>
       <Navbar />
       <main>
         <HeroSection />
@@ -34,6 +39,6 @@ export default function Home() {
         <TrustedBySection />
       </main>
       <Footer />
-        </div>
+    </div>
   );
 }

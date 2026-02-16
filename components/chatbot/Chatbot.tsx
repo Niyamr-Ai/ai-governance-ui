@@ -359,7 +359,7 @@ export default function Chatbot() {
 
       {/* Chat Panel */}
       {isOpen && (
-        <Card className="fixed bottom-24 right-6 w-1/2 h-[600px] flex flex-col shadow-2xl z-50 border-2">
+        <Card className="fixed bottom-24 right-6 w-full max-w-lg h-[70vh] max-h-[600px] flex flex-col shadow-2xl z-50 border-2">
           {/* Header */}
           <div className="p-4 border-b flex items-center justify-between bg-primary/5">
             <div className="flex items-center gap-2">

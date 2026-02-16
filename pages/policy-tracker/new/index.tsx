@@ -11,11 +11,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ArrowLeft, Loader2, Save } from "lucide-react";
 import Sidebar from "@/components/sidebar";
 import type {
-  Policy,
-  CreateInternalPolicyInput,
 } from "@/types/policy";
 
 import { supabase } from "@/utils/supabase/client";
+import Head from 'next/head';
 
 export default function CreateInternalPolicyPage() {
   const router = useRouter();
@@ -85,6 +84,9 @@ export default function CreateInternalPolicyPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-950 via-indigo-950 to-purple-950 flex items-center justify-center">
+        <Head>
+          <title>Loading... | Create Policy</title>
+        </Head>
         <div className="text-center">
           <Loader2 className="h-12 w-12 animate-spin text-purple-400 mx-auto mb-4" />
           <p className="text-slate-300">Loading...</p>
@@ -95,6 +97,10 @@ export default function CreateInternalPolicyPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-indigo-950 to-purple-950">
+      <Head>
+        <title>Create Internal Policy | Policy Tracker</title>
+        <meta name="description" content="Create a new internal AI policy for your organization." />
+      </Head>
       <Sidebar onLogout={handleLogout} />
 
       <div className={`p-6 lg:p-8 ${isLoggedIn ? 'lg:pl-72' : ''}`}>

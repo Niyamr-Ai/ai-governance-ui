@@ -22,6 +22,7 @@ import { Loader2, Shield, CheckCircle2, Circle } from "lucide-react";
 import Sidebar from "@/components/sidebar";
 import { supabase } from "@/utils/supabase/client";
 import { backendFetch } from "@/utils/backend-fetch";
+import Head from 'next/head';
 
 // Common questions state (shared across all jurisdictions)
 const commonInitialState = {
@@ -96,9 +97,9 @@ export default function MultiJurisdictionAssessmentPage() {
             ? { ...status, completed: true, assessmentId }
             : status
         );
-        
+
         console.log(`📊 [MULTI-ASSESSMENT] Updated statuses:`, updated.map(s => `${s.id}: ${s.completed ? 'Completed ✓' : 'Pending ○'}`));
-        
+
         // Check if all are completed
         const allDone = updated.every((s) => s.completed);
         if (allDone) {
@@ -140,10 +141,10 @@ export default function MultiJurisdictionAssessmentPage() {
             }
           }
         }
-        
+
         return updated;
       });
-      
+
       // Clear query params
       router.replace(`/assessment/multi/${systemId}`, undefined, { shallow: true });
     }
@@ -187,13 +188,13 @@ export default function MultiJurisdictionAssessmentPage() {
           jurisdictions.push("UK");
         }
         if (dataProcessingLocations.includes("European Union") || dataProcessingLocations.includes("EU") ||
-            dataProcessingLocations.some((loc: string) => 
-              ["Austria", "Belgium", "Bulgaria", "Croatia", "Cyprus", "Czechia",
-               "Denmark", "Estonia", "Finland", "France", "Germany", "Greece",
-               "Hungary", "Ireland", "Italy", "Latvia", "Lithuania", "Luxembourg",
-               "Malta", "Netherlands", "Poland", "Portugal", "Romania", "Slovakia",
-               "Slovenia", "Spain", "Sweden"].some(c => c.toLowerCase() === loc.toLowerCase())
-            )) {
+          dataProcessingLocations.some((loc: string) =>
+            ["Austria", "Belgium", "Bulgaria", "Croatia", "Cyprus", "Czechia",
+              "Denmark", "Estonia", "Finland", "France", "Germany", "Greece",
+              "Hungary", "Ireland", "Italy", "Latvia", "Lithuania", "Luxembourg",
+              "Malta", "Netherlands", "Poland", "Portugal", "Romania", "Slovakia",
+              "Slovenia", "Spain", "Sweden"].some(c => c.toLowerCase() === loc.toLowerCase())
+          )) {
           jurisdictions.push("EU");
         }
         if (dataProcessingLocations.includes("Singapore")) {
@@ -220,26 +221,26 @@ export default function MultiJurisdictionAssessmentPage() {
           // Check UK assessment
           jurisdictions.includes("UK")
             ? supabase
-                .from("uk_ai_assessments")
-                .select("id")
-                .eq("system_id", systemId)
-                .maybeSingle()
+              .from("uk_ai_assessments")
+              .select("id")
+              .eq("system_id", systemId)
+              .maybeSingle()
             : Promise.resolve({ data: null, error: null }),
           // Check EU assessment
           jurisdictions.includes("EU")
             ? supabase
-                .from("eu_ai_act_check_results")
-                .select("id")
-                .eq("system_id", systemId)
-                .maybeSingle()
+              .from("eu_ai_act_check_results")
+              .select("id")
+              .eq("system_id", systemId)
+              .maybeSingle()
             : Promise.resolve({ data: null, error: null }),
           // Check MAS assessment
           jurisdictions.includes("MAS")
             ? supabase
-                .from("mas_ai_risk_assessments")
-                .select("id")
-                .eq("system_id", systemId)
-                .maybeSingle()
+              .from("mas_ai_risk_assessments")
+              .select("id")
+              .eq("system_id", systemId)
+              .maybeSingle()
             : Promise.resolve({ data: null, error: null }),
         ]);
 
@@ -280,16 +281,16 @@ export default function MultiJurisdictionAssessmentPage() {
         const jurisdiction = data.data_processing_locations?.includes("United Kingdom")
           ? "United Kingdom"
           : data.data_processing_locations?.includes("Singapore")
-          ? "Singapore"
-          : data.data_processing_locations?.includes("European Union") || data.data_processing_locations?.some((loc: string) => 
+            ? "Singapore"
+            : data.data_processing_locations?.includes("European Union") || data.data_processing_locations?.some((loc: string) =>
               ["Austria", "Belgium", "Bulgaria", "Croatia", "Cyprus", "Czechia",
-               "Denmark", "Estonia", "Finland", "France", "Germany", "Greece",
-               "Hungary", "Ireland", "Italy", "Latvia", "Lithuania", "Luxembourg",
-               "Malta", "Netherlands", "Poland", "Portugal", "Romania", "Slovakia",
-               "Slovenia", "Spain", "Sweden"].some(c => c.toLowerCase() === loc.toLowerCase())
+                "Denmark", "Estonia", "Finland", "France", "Germany", "Greece",
+                "Hungary", "Ireland", "Italy", "Latvia", "Lithuania", "Luxembourg",
+                "Malta", "Netherlands", "Poland", "Portugal", "Romania", "Slovakia",
+                "Slovenia", "Spain", "Sweden"].some(c => c.toLowerCase() === loc.toLowerCase())
             )
-          ? "European Union"
-          : data.country || "";
+              ? "European Union"
+              : data.country || "";
 
         setCommonValues({
           system_name: data.system_name ?? "",
@@ -311,14 +312,14 @@ export default function MultiJurisdictionAssessmentPage() {
         // Check query params for completed assessments (in case user is returning after completing one)
         const { completed, assessmentId } = router.query;
         let finalStatuses = statuses;
-        
+
         if (completed && typeof completed === "string" && assessmentId) {
           const jurisdictionId = completed as "UK" | "EU" | "MAS";
           console.log(`\n${'='.repeat(80)}`);
           console.log(`🔄 [MULTI-ASSESSMENT] Detected completed jurisdiction in query params during load`);
           console.log(`   Jurisdiction: ${jurisdictionId}`);
           console.log(`${'='.repeat(80)}\n`);
-          
+
           // Update statuses to mark this jurisdiction as completed (override database check if needed)
           finalStatuses = statuses.map((status) =>
             status.id === jurisdictionId
@@ -326,9 +327,9 @@ export default function MultiJurisdictionAssessmentPage() {
               : status
           );
         }
-        
+
         setJurisdictionStatuses(finalStatuses);
-        
+
         // Determine which step to show
         const allCompleted = finalStatuses.every((s) => s.completed);
         if (allCompleted && hasCommonData) {
@@ -429,7 +430,7 @@ export default function MultiJurisdictionAssessmentPage() {
           ? { ...status, completed: true, assessmentId }
           : status
       );
-      
+
       // Check if all are completed
       const allDone = updated.every((s) => s.completed);
       if (allDone) {
@@ -445,19 +446,26 @@ export default function MultiJurisdictionAssessmentPage() {
           setCurrentJurisdictionIndex(nextIncompleteIndex);
         }
       }
-      
+
       return updated;
     });
   };
 
   if (isLoading || isRedirecting) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
-          <p className="text-xl text-muted-foreground">
-            {isRedirecting ? "Redirecting to results..." : "Loading assessment..."}
-          </p>
+      <div className="min-h-screen bg-white">
+        <Head>
+          <title>{isRedirecting ? "Redirecting..." : "Loading Assessment"} | AI Governance</title>
+          <meta name="description" content="Loading multi-jurisdiction compliance assessment..." />
+        </Head>
+        <Sidebar />
+        <div className="lg:pl-72 pt-24 p-8 flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
+            <p className="text-xl text-muted-foreground">
+              {isRedirecting ? "Redirecting to results..." : "Loading assessment..."}
+            </p>
+          </div>
         </div>
       </div>
     );
@@ -466,6 +474,9 @@ export default function MultiJurisdictionAssessmentPage() {
   if (error && !commonValues) {
     return (
       <div className="min-h-screen bg-white">
+        <Head>
+          <title>Error - Multi-Jurisdiction Assessment</title>
+        </Head>
         <Sidebar />
         <div className="lg:pl-72 pt-24 p-8">
           <Card className="glass-panel shadow-elevated max-w-2xl mx-auto">
@@ -495,6 +506,10 @@ export default function MultiJurisdictionAssessmentPage() {
 
   return (
     <div className="min-h-screen bg-white">
+      <Head>
+        <title>Multi-Jurisdiction Assessment</title>
+        <meta name="description" content="Complete AI compliance assessments across multiple jurisdictions." />
+      </Head>
       <Sidebar />
       <div className="lg:pl-72 pt-24 p-8">
         <div className="container mx-auto max-w-5xl">
@@ -535,13 +550,12 @@ export default function MultiJurisdictionAssessmentPage() {
                 {jurisdictionStatuses.map((status, index) => (
                   <div
                     key={status.id}
-                    className={`flex items-center gap-3 p-3 rounded-lg ${
-                      index === currentJurisdictionIndex && currentStep === "jurisdiction"
-                        ? "bg-primary/20 border-2 border-primary"
-                        : status.completed
+                    className={`flex items-center gap-3 p-3 rounded-lg ${index === currentJurisdictionIndex && currentStep === "jurisdiction"
+                      ? "bg-primary/20 border-2 border-primary"
+                      : status.completed
                         ? "bg-green-500/10"
                         : "bg-secondary/20"
-                    }`}
+                      }`}
                   >
                     {status.completed ? (
                       <CheckCircle2 className="h-5 w-5 text-green-500" />
@@ -550,13 +564,12 @@ export default function MultiJurisdictionAssessmentPage() {
                     )}
                     <div className="flex-1">
                       <p
-                        className={`font-medium ${
-                          status.completed
-                            ? "text-green-500"
-                            : index === currentJurisdictionIndex && currentStep === "jurisdiction"
+                        className={`font-medium ${status.completed
+                          ? "text-green-500"
+                          : index === currentJurisdictionIndex && currentStep === "jurisdiction"
                             ? "text-primary"
                             : "text-foreground"
-                        }`}
+                          }`}
                       >
                         {status.name} Assessment
                       </p>
@@ -564,8 +577,8 @@ export default function MultiJurisdictionAssessmentPage() {
                         {status.completed
                           ? "Assessment completed"
                           : index === currentJurisdictionIndex && currentStep === "jurisdiction"
-                          ? "In progress..."
-                          : "Pending"}
+                            ? "In progress..."
+                            : "Pending"}
                       </p>
                     </div>
                     {status.completed && (
@@ -706,7 +719,7 @@ export default function MultiJurisdictionAssessmentPage() {
                           ) : (() => {
                             // Find the first incomplete jurisdiction
                             const nextIncomplete = jurisdictionStatuses.find(s => !s.completed);
-                            return nextIncomplete 
+                            return nextIncomplete
                               ? `Continue to ${nextIncomplete.name} Assessment`
                               : "Continue to Assessment";
                           })()}
@@ -746,7 +759,7 @@ export default function MultiJurisdictionAssessmentPage() {
                           console.log(`   Current jurisdiction: ${currentJurisdiction}`);
                           console.log(`   System ID: ${systemId}`);
                           console.log(`${'='.repeat(80)}\n`);
-                          
+
                           if (currentJurisdiction === "UK") {
                             const url = `/assessment/uk/${systemId}`;
                             console.log(`➡️  [MULTI-ASSESSMENT] Navigating to: ${url}`);

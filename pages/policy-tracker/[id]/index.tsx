@@ -14,6 +14,7 @@ import type {
   PolicyRequirement,
   ComplianceStatus,
 } from "../../../types/policy";
+import Head from 'next/head';
 
 
 export default function PolicyDetailPage() {
@@ -88,6 +89,9 @@ export default function PolicyDetailPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
+        <Head>
+          <title>Loading... | Policy Tracker</title>
+        </Head>
         <div className="text-center">
           <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
           <p className="text-foreground">Loading policy...</p>
@@ -99,6 +103,9 @@ export default function PolicyDetailPage() {
   if (!policy) {
     return (
       <div className="min-h-screen bg-white">
+        <Head>
+          <title>Policy Not Found | Policy Tracker</title>
+        </Head>
         <Sidebar onLogout={handleLogout} />
         <div className={`p-6 lg:p-8 ${isLoggedIn ? 'lg:pl-72 pt-24' : ''}`}>
           <div className="max-w-7xl mx-auto space-y-6">
@@ -144,6 +151,10 @@ export default function PolicyDetailPage() {
 
   return (
     <div className="min-h-screen bg-background">
+      <Head>
+        <title>{policy.name} | Policy Tracker</title>
+        <meta name="description" content={`View details for ${policy.name} policy.`} />
+      </Head>
       <Sidebar onLogout={handleLogout} />
 
       <div className={`p-6 lg:p-8 ${isLoggedIn ? 'lg:pl-72 pt-24' : ''}`}>

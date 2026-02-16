@@ -60,6 +60,7 @@ import {
 } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
+import Head from 'next/head';
 
 interface RedTeamingResult {
   id: string;
@@ -152,7 +153,7 @@ export default function RedTeamingPage() {
     try {
       setLoading(true);
       setError(null);
-      
+
       const endpoint = filterSystemId && filterSystemId !== "all"
         ? `/api/red-teaming?ai_system_id=${filterSystemId}`
         : `/api/red-teaming`;
@@ -166,7 +167,7 @@ export default function RedTeamingPage() {
 
       const data = await res.json();
       setResults(data.results || []);
-      
+
       // Update system names map from results
       const nameMap: Record<string, string> = {};
       (data.results || []).forEach((result: RedTeamingResult) => {
@@ -209,16 +210,16 @@ export default function RedTeamingPage() {
       }
 
       const data = await res.json();
-      
+
       // Refresh results to show new tests
       await fetchResults();
-      
+
       // Close dialog and reset form
       setShowRunDialog(false);
       setSelectedSystemId("");
       setSelectedAttackTypes([]);
       setTestAll(false);
-      
+
       // Show success message
       toast({
         title: "Tests Completed Successfully",
@@ -320,6 +321,10 @@ export default function RedTeamingPage() {
 
   return (
     <div className="min-h-screen bg-white">
+      <Head>
+        <title>Red Teaming</title>
+        <meta name="description" content="Adversarial testing and vulnerability assessment for AI systems." />
+      </Head>
       {isLoggedIn && <Sidebar onLogout={handleLogout} />}
 
       <div className={`container mx-auto max-w-7xl py-8 px-4 ${isLoggedIn ? 'lg:pl-72 pt-24' : ''}`}>
@@ -376,8 +381,8 @@ export default function RedTeamingPage() {
                           <SelectItem value="no-systems" disabled>No systems available. Please add a system first.</SelectItem>
                         ) : (
                           systems.map((system) => (
-                            <SelectItem 
-                              key={system.id} 
+                            <SelectItem
+                              key={system.id}
                               value={system.id}
                               className="bg-white hover:bg-secondary/50"
                             >
@@ -519,7 +524,7 @@ export default function RedTeamingPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <TargetedRedTeamingPanel 
+              <TargetedRedTeamingPanel
                 aiSystemId={filterSystemId}
                 onTestsGenerated={(testSuite) => {
                   console.log('Tests generated:', testSuite);
@@ -550,8 +555,8 @@ export default function RedTeamingPage() {
               <div className="flex-1">
                 <CardTitle>Test Results</CardTitle>
                 <CardDescription>
-                  {filterSystemId === "all" 
-                    ? "All red teaming test results grouped by system. Click on a system to expand and view details." 
+                  {filterSystemId === "all"
+                    ? "All red teaming test results grouped by system. Click on a system to expand and view details."
                     : `Test results for: ${systems.find(s => s.id === filterSystemId)?.name || "Selected System"}`}
                 </CardDescription>
               </div>
@@ -571,8 +576,8 @@ export default function RedTeamingPage() {
                         📋 All Systems (Show All Tests)
                       </SelectItem>
                       {systems.map((system) => (
-                        <SelectItem 
-                          key={system.id} 
+                        <SelectItem
+                          key={system.id}
                           value={system.id}
                           className="bg-white hover:bg-secondary/50"
                         >
@@ -626,7 +631,7 @@ export default function RedTeamingPage() {
 
                     return (
                       <Card key={systemId} className="border-2 border-border/50 bg-white hover:shadow-md transition-shadow">
-                        <CardHeader 
+                        <CardHeader
                           className="pb-4 cursor-pointer hover:bg-secondary/30 transition-colors"
                           onClick={() => {
                             const newExpanded = new Set(expandedSystems);
@@ -667,8 +672,8 @@ export default function RedTeamingPage() {
                                   {systemName}
                                 </CardTitle>
                                 <CardDescription className="mt-1">
-                                  {systemStats.total} test{systemStats.total !== 1 ? 's' : ''} • 
-                                  <span className="text-emerald-600 font-medium"> {systemStats.passed} passed</span> • 
+                                  {systemStats.total} test{systemStats.total !== 1 ? 's' : ''} •
+                                  <span className="text-emerald-600 font-medium"> {systemStats.passed} passed</span> •
                                   <span className="text-red-600 font-medium"> {systemStats.failed} failed</span>
                                   {systemStats.highRisk > 0 && (
                                     <> • <span className="text-red-700 font-bold"> {systemStats.highRisk} high risk</span></>
@@ -696,46 +701,45 @@ export default function RedTeamingPage() {
                           <CardContent>
                             <div className="space-y-3">
                               {systemResults.map((result) => (
-                              <div
-                                key={result.id}
-                                className={`p-4 rounded-lg border-2 transition-all ${
-                                  result.test_status === "FAIL"
+                                <div
+                                  key={result.id}
+                                  className={`p-4 rounded-lg border-2 transition-all ${result.test_status === "FAIL"
                                     ? "bg-red-50/50 border-red-200/50 hover:border-red-300"
                                     : "bg-emerald-50/50 border-emerald-200/50 hover:border-emerald-300"
-                                }`}
-                              >
-                                <div className="flex items-start justify-between gap-4">
-                                  <div className="flex-1 space-y-2">
-                                    <div className="flex items-center gap-2 flex-wrap">
-                                      {getAttackTypeBadge(result.attack_type)}
-                                      {getStatusBadge(result.test_status)}
-                                      {getRiskBadge(result.risk_level)}
-                                    </div>
-                                    <div className="text-sm text-foreground font-medium">
-                                      {result.attack_prompt}
-                                    </div>
-                                    {result.failure_reason && (
-                                      <div className="text-sm text-red-700 bg-red-100/50 p-2 rounded border border-red-200">
-                                        <strong>Failure:</strong> {result.failure_reason}
+                                    }`}
+                                >
+                                  <div className="flex items-start justify-between gap-4">
+                                    <div className="flex-1 space-y-2">
+                                      <div className="flex items-center gap-2 flex-wrap">
+                                        {getAttackTypeBadge(result.attack_type)}
+                                        {getStatusBadge(result.test_status)}
+                                        {getRiskBadge(result.risk_level)}
                                       </div>
-                                    )}
-                                    {result.system_response && (
-                                      <details className="text-sm">
-                                        <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
-                                          View System Response
-                                        </summary>
-                                        <div className="mt-2 p-3 bg-white/50 rounded border border-border/50 text-foreground">
-                                          {result.system_response}
+                                      <div className="text-sm text-foreground font-medium">
+                                        {result.attack_prompt}
+                                      </div>
+                                      {result.failure_reason && (
+                                        <div className="text-sm text-red-700 bg-red-100/50 p-2 rounded border border-red-200">
+                                          <strong>Failure:</strong> {result.failure_reason}
                                         </div>
-                                      </details>
-                                    )}
-                                  </div>
-                                  <div className="text-xs text-muted-foreground whitespace-nowrap">
-                                    {formatDate(result.tested_at)}
+                                      )}
+                                      {result.system_response && (
+                                        <details className="text-sm">
+                                          <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
+                                            View System Response
+                                          </summary>
+                                          <div className="mt-2 p-3 bg-white/50 rounded border border-border/50 text-foreground">
+                                            {result.system_response}
+                                          </div>
+                                        </details>
+                                      )}
+                                    </div>
+                                    <div className="text-xs text-muted-foreground whitespace-nowrap">
+                                      {formatDate(result.tested_at)}
+                                    </div>
                                   </div>
                                 </div>
-                              </div>
-                            ))}
+                              ))}
                             </div>
                           </CardContent>
                         )}

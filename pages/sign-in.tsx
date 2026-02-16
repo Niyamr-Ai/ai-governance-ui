@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import { AlertCircle, Loader2, Eye, EyeOff, Shield, Users, Lock, ArrowRight, Sparkles } from "lucide-react";
+import Head from 'next/head';
 
 export default function SignIn() {
   const router = useRouter();
@@ -64,6 +65,10 @@ export default function SignIn() {
 
   return (
     <div className="min-h-screen flex">
+      <Head>
+        <title>Sign In</title>
+        <meta name="description" content="Sign in to your AI governance account." />
+      </Head>
       {/* Left Section - Marketing */}
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-blue-50 via-blue-100/50 to-white p-12 flex-col justify-between">
         <div>

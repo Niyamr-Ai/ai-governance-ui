@@ -10,10 +10,11 @@ import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, RadialBarChart, Radia
 import { CheckCircle2, XCircle, Shield, Database, FileText, Eye, Lock, ClipboardCheck, TrendingUp, AlertTriangle, ArrowLeft } from "lucide-react";
 import Sidebar from "@/components/sidebar";
 import { supabase } from "@/utils/supabase/client";
+import Head from 'next/head';
 
 const getStatusClasses = (fulfilled: boolean) => {
-  return fulfilled 
-    ? "bg-emerald-50 text-emerald-700 border-emerald-200" 
+  return fulfilled
+    ? "bg-emerald-50 text-emerald-700 border-emerald-200"
     : "bg-red-50 text-red-700 border-red-200";
 };
 
@@ -48,8 +49,8 @@ async function backendFetch(
 }
 
 const getStatusIcon = (fulfilled: boolean) => {
-  return fulfilled 
-    ? <CheckCircle2 className="h-5 w-5 text-emerald-600" /> 
+  return fulfilled
+    ? <CheckCircle2 className="h-5 w-5 text-emerald-600" />
     : <XCircle className="h-5 w-5 text-red-600" />;
 };
 
@@ -103,8 +104,8 @@ export default function DetailedViewPage() {
         } else if (!res.ok) {
           throw new Error(`Failed to fetch data: ${res.statusText}`);
         } else {
-        const data = await res.json();
-        setResult(data);
+          const data = await res.json();
+          setResult(data);
         }
       } catch (err: any) {
         console.error(err);
@@ -119,6 +120,9 @@ export default function DetailedViewPage() {
   if (loading) {
     return (
       <main className="min-h-screen flex items-center justify-center bg-white">
+        <Head>
+          <title>Loading Results | AI Governance</title>
+        </Head>
         <Sidebar onLogout={handleLogout} />
         <div className={`text-center ${isLoggedIn ? 'lg:pl-72 pt-24' : ''}`}>
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
@@ -131,6 +135,9 @@ export default function DetailedViewPage() {
   if (error) {
     return (
       <main className="min-h-screen flex items-center justify-center bg-white">
+        <Head>
+          <title>Error | AI Governance</title>
+        </Head>
         <Sidebar onLogout={handleLogout} />
         <Card className={`max-w-md glass-panel border-red-200 ${isLoggedIn ? 'lg:ml-72' : ''}`}>
           <CardHeader>
@@ -147,6 +154,9 @@ export default function DetailedViewPage() {
   if (!result && !error) {
     return (
       <main className="min-h-screen flex items-center justify-center bg-white">
+        <Head>
+          <title>Assessment Not Found | AI Governance</title>
+        </Head>
         <Sidebar onLogout={handleLogout} />
         <Card className={`max-w-md glass-panel border-border/50 shadow-elevated ${isLoggedIn ? 'lg:ml-72' : ''}`}>
           <CardHeader>
@@ -253,15 +263,15 @@ export default function DetailedViewPage() {
   };
 
   const complianceData = [
-    { 
-      name: "Fulfilled", 
-      value: fulfilledCount, 
+    {
+      name: "Fulfilled",
+      value: fulfilledCount,
       color: COLORS.fulfilled,
       gradientId: "fulfilledGradient"
     },
-    { 
-      name: "Not Fulfilled", 
-      value: totalCount - fulfilledCount, 
+    {
+      name: "Not Fulfilled",
+      value: totalCount - fulfilledCount,
       color: COLORS.notFulfilled,
       gradientId: "notFulfilledGradient"
     },
@@ -290,21 +300,25 @@ export default function DetailedViewPage() {
     {
       name: "Compliance",
       value: compliancePercentage,
-      fill: compliancePercentage >= 80 
-        ? "url(#radialSuccess)" 
-        : compliancePercentage >= 50 
-        ? "url(#radialWarning)" 
-        : "url(#radialDanger)",
-      color: compliancePercentage >= 80 
-        ? COLORS.success 
-        : compliancePercentage >= 50 
-        ? COLORS.warning 
-        : COLORS.danger,
+      fill: compliancePercentage >= 80
+        ? "url(#radialSuccess)"
+        : compliancePercentage >= 50
+          ? "url(#radialWarning)"
+          : "url(#radialDanger)",
+      color: compliancePercentage >= 80
+        ? COLORS.success
+        : compliancePercentage >= 50
+          ? COLORS.warning
+          : COLORS.danger,
     },
   ];
 
   return (
     <main className="min-h-screen bg-white pt-4 pb-8 px-4 sm:px-6 lg:px-8">
+      <Head>
+        <title>Detailed Compliance Results</title>
+        <meta name="description" content="View detailed compliance assessment results." />
+      </Head>
       <Sidebar onLogout={handleLogout} />
       <div className={`max-w-7xl mx-auto space-y-6 ${isLoggedIn ? 'lg:pl-72 pt-12' : ''}`}>
         <div className="flex items-center mb-4">
@@ -397,10 +411,10 @@ export default function DetailedViewPage() {
                       <stop offset="100%" stopColor="#dc2626" stopOpacity={0.8} />
                     </linearGradient>
                   </defs>
-                  <Pie 
-                    data={complianceData} 
-                    cx="50%" 
-                    cy="50%" 
+                  <Pie
+                    data={complianceData}
+                    cx="50%"
+                    cy="50%"
                     labelLine={true}
                     label={({ name, percent }) => `${name}\n${(percent * 100).toFixed(0)}%`}
                     outerRadius={75}
@@ -411,14 +425,14 @@ export default function DetailedViewPage() {
                     strokeWidth={2}
                   >
                     {complianceData.map((entry, index) => (
-                      <Cell 
-                        key={`cell-${index}`} 
+                      <Cell
+                        key={`cell-${index}`}
                         fill={entry.gradientId ? `url(#${entry.gradientId})` : entry.color}
                         style={{ filter: "drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1))" }}
                       />
                     ))}
                   </Pie>
-                  <ChartTooltip 
+                  <ChartTooltip
                     content={({ active, payload }) => {
                       if (active && payload && payload.length) {
                         const data = payload[0];
@@ -432,7 +446,7 @@ export default function DetailedViewPage() {
                               {data.value} {data.value === 1 ? "Category" : "Categories"}
                             </p>
                             <p className="text-sm text-muted-foreground mt-1">
-                            {(((+data.value / +totalCount) * 100).toFixed(1))}% of total
+                              {(((+data.value / +totalCount) * 100).toFixed(1))}% of total
                             </p>
                           </div>
                         );
@@ -453,11 +467,11 @@ export default function DetailedViewPage() {
             <CardContent className="pt-6 flex items-center justify-center relative">
               <div className="relative w-full h-[280px]">
                 <ChartContainer config={{ compliance: { color: radialData[0].color } }} className="h-full w-full">
-                  <RadialBarChart 
-                    innerRadius="55%" 
-                    outerRadius="80%" 
-                    data={radialData} 
-                    startAngle={90} 
+                  <RadialBarChart
+                    innerRadius="55%"
+                    outerRadius="80%"
+                    data={radialData}
+                    startAngle={90}
                     endAngle={-270}
                   >
                     <defs>
@@ -474,21 +488,21 @@ export default function DetailedViewPage() {
                         <stop offset="100%" stopColor="#b91c1c" stopOpacity={0.9} />
                       </linearGradient>
                     </defs>
-                    <RadialBar 
-                      dataKey="value" 
-                      cornerRadius={15} 
+                    <RadialBar
+                      dataKey="value"
+                      cornerRadius={15}
                       fill={radialData[0].fill}
                       style={{ filter: "drop-shadow(0 4px 8px rgba(0, 0, 0, 0.15))" }}
                     />
-                    <ChartTooltip 
+                    <ChartTooltip
                       content={({ active, payload, coordinate }) => {
                         if (active && payload && payload.length) {
-                        const rawValue = payload[0]?.value;
-                        if (rawValue === undefined) return null;
-                        const value = Number(rawValue);
-                        if (Number.isNaN(value)) return null;
+                          const rawValue = payload[0]?.value;
+                          if (rawValue === undefined) return null;
+                          const value = Number(rawValue);
+                          if (Number.isNaN(value)) return null;
                           return (
-                            <div 
+                            <div
                               className="bg-background/95 backdrop-blur-sm p-4 border border-border/50 rounded-lg shadow-xl"
                               style={{
                                 position: 'absolute',
@@ -504,11 +518,11 @@ export default function DetailedViewPage() {
                                 {value}%
                               </p>
                               <p className="text-sm text-muted-foreground mt-1">
-                                {value >= 80 
-                                  ? "Excellent Compliance" 
-                                  : value >= 50 
-                                  ? "Needs Improvement" 
-                                  : "Critical Status"}
+                                {value >= 80
+                                  ? "Excellent Compliance"
+                                  : value >= 50
+                                    ? "Needs Improvement"
+                                    : "Critical Status"}
                               </p>
                             </div>
                           );
@@ -546,21 +560,21 @@ export default function DetailedViewPage() {
                         </linearGradient>
                       ))}
                     </defs>
-                    <XAxis 
-                      type="number" 
-                      domain={[0, 100]} 
+                    <XAxis
+                      type="number"
+                      domain={[0, 100]}
                       tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }}
                       axisLine={{ stroke: "hsl(var(--border))" }}
                       width={40}
                     />
-                    <YAxis 
-                      dataKey="name" 
-                      type="category" 
-                      tick={{ fill: "hsl(var(--foreground))", fontSize: 11, fontWeight: 500 }} 
+                    <YAxis
+                      dataKey="name"
+                      type="category"
+                      tick={{ fill: "hsl(var(--foreground))", fontSize: 11, fontWeight: 500 }}
                       width={55}
                       axisLine={{ stroke: "hsl(var(--border))" }}
                     />
-                    <ChartTooltip 
+                    <ChartTooltip
                       content={({ active, payload }) => {
                         if (active && payload && payload.length) {
                           const data = payload[0].payload;
@@ -582,8 +596,8 @@ export default function DetailedViewPage() {
                         return null;
                       }}
                     />
-                    <Bar 
-                      dataKey="value" 
+                    <Bar
+                      dataKey="value"
                       radius={[0, 12, 12, 0]}
                       style={{ filter: "drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1))" }}
                     >
@@ -633,10 +647,10 @@ export default function DetailedViewPage() {
                       <Icon className="h-6 w-6" />
                       <h3 className="text-xl font-bold text-foreground">{category.title}</h3>
                     </div>
-                    <Badge 
-                      variant={category.fulfilled ? "default" : "destructive"} 
-                      className={category.fulfilled 
-                        ? "bg-emerald-50 text-emerald-700 border-emerald-200" 
+                    <Badge
+                      variant={category.fulfilled ? "default" : "destructive"}
+                      className={category.fulfilled
+                        ? "bg-emerald-50 text-emerald-700 border-emerald-200"
                         : "bg-red-50 text-red-700 border-red-200"}
                     >
                       {getStatusText(category.fulfilled)}

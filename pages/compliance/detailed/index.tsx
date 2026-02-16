@@ -8,6 +8,7 @@ import { CheckCircle2, AlertCircle, FileText, Shield, ChevronLeft, ChevronRight,
 import Sidebar from "@/components/sidebar";
 import { supabase } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
+import Head from 'next/head';
 
 async function backendFetch(
   path: string,
@@ -427,6 +428,10 @@ function DetailedPageContent() {
 
   return (
     <main className="min-h-screen bg-white py-12 px-4 sm:px-6 lg:px-10">
+      <Head>
+        <title>Detailed Compliance Questionnaire</title>
+        <meta name="description" content="Complete detailed assessment for each compliance category." />
+      </Head>
       <Sidebar onLogout={handleLogout} />
       <div className={`flex items-center justify-center ${isLoggedIn ? 'lg:pl-72 pt-24' : ''}`}>
         <div className="w-full max-w-4xl">
@@ -500,8 +505,8 @@ function DetailedPageContent() {
                       <div className="space-y-3 ml-10">
                         <label
                           className={`flex items-center space-x-4 rounded-xl border p-4 cursor-pointer transition-all duration-200 ${getAnswer(question.question) === true
-                              ? "border-emerald-500/50 bg-emerald-50 shadow-md ring-2 ring-emerald-500/30"
-                              : "border-border/50 bg-secondary/30 hover:border-emerald-500/50 hover:bg-emerald-50/50"
+                            ? "border-emerald-500/50 bg-emerald-50 shadow-md ring-2 ring-emerald-500/30"
+                            : "border-border/50 bg-secondary/30 hover:border-emerald-500/50 hover:bg-emerald-50/50"
                             }`}
                         >
                           <div className="relative flex items-center justify-center">
@@ -517,8 +522,8 @@ function DetailedPageContent() {
                               className="sr-only"
                             />
                             <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${getAnswer(question.question) === true
-                                ? "border-emerald-600 bg-emerald-600"
-                                : "border-gray-400 bg-gray-200"
+                              ? "border-emerald-600 bg-emerald-600"
+                              : "border-gray-400 bg-gray-200"
                               }`}>
                               {getAnswer(question.question) === true && (
                                 <div className="w-2.5 h-2.5 rounded-full bg-white"></div>
@@ -535,8 +540,8 @@ function DetailedPageContent() {
                         </label>
                         <label
                           className={`flex items-center space-x-4 rounded-xl border p-4 cursor-pointer transition-all duration-200 ${getAnswer(question.question) === false
-                              ? "border-red-500/50 bg-red-50 shadow-md ring-2 ring-red-500/30"
-                              : "border-border/50 bg-secondary/30 hover:border-red-500/50 hover:bg-red-50/50"
+                            ? "border-red-500/50 bg-red-50 shadow-md ring-2 ring-red-500/30"
+                            : "border-border/50 bg-secondary/30 hover:border-red-500/50 hover:bg-red-50/50"
                             }`}
                         >
                           <div className="relative flex items-center justify-center">
@@ -552,8 +557,8 @@ function DetailedPageContent() {
                               className="sr-only"
                             />
                             <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${getAnswer(question.question) === false
-                                ? "border-red-600 bg-red-600"
-                                : "border-gray-400 bg-gray-200"
+                              ? "border-red-600 bg-red-600"
+                              : "border-gray-400 bg-gray-200"
                               }`}>
                               {getAnswer(question.question) === false && (
                                 <div className="w-2.5 h-2.5 rounded-full bg-white"></div>
@@ -593,8 +598,8 @@ function DetailedPageContent() {
                   disabled={isFirstCategory}
                   variant="outline"
                   className={`px-6 py-3 rounded-xl font-semibold transition-all duration-200 flex items-center gap-2 ${isFirstCategory
-                      ? "opacity-50 cursor-not-allowed"
-                      : ""
+                    ? "opacity-50 cursor-not-allowed"
+                    : ""
                     }`}
                 >
                   <ChevronLeft className="h-5 w-5" />
@@ -607,8 +612,8 @@ function DetailedPageContent() {
                     disabled={!isCategoryComplete() || isSubmitting}
                     variant="hero"
                     className={`px-8 py-3 rounded-xl font-bold text-lg transition-all duration-300 flex items-center gap-2 ${!isCategoryComplete() || isSubmitting
-                        ? "opacity-50 cursor-not-allowed"
-                        : ""
+                      ? "opacity-50 cursor-not-allowed"
+                      : ""
                       }`}
                   >
                     {isSubmitting ? (
@@ -629,8 +634,8 @@ function DetailedPageContent() {
                     disabled={!isCategoryComplete()}
                     variant="hero"
                     className={`px-8 py-3 rounded-xl font-semibold transition-all duration-300 flex items-center gap-2 ${!isCategoryComplete()
-                        ? "opacity-50 cursor-not-allowed"
-                        : ""
+                      ? "opacity-50 cursor-not-allowed"
+                      : ""
                       }`}
                   >
                     Next
@@ -651,8 +656,8 @@ function DetailedPageContent() {
               {submitMessage && (
                 <div
                   className={`mt-6 p-5 rounded-xl text-center text-base font-medium shadow-md ${submitMessage.includes("Error") || submitMessage.includes("error")
-                      ? "bg-red-50 text-red-700 border border-red-200"
-                      : "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                    ? "bg-red-50 text-red-700 border border-red-200"
+                    : "bg-emerald-50 text-emerald-700 border border-emerald-200"
                     }`}
                 >
                   <div className="flex items-center justify-center gap-2">

@@ -45,6 +45,7 @@ import { Loader2, Shield } from "lucide-react";
 import Sidebar from "@/components/sidebar";
 import { supabase } from "@/utils/supabase/client";
 import { backendFetch } from "@/utils/backend-fetch";
+import Head from 'next/head';
 
 
 const EU_COUNTRIES = [
@@ -756,7 +757,7 @@ export default function AssessmentChooserPage() {
     [dataProcessingLocations]
   );
   const hasEUDataProcessing = useMemo(
-    () => dataProcessingLocations.some((loc) => 
+    () => dataProcessingLocations.some((loc) =>
       loc === "EU" || EU_COUNTRIES.some((c) => c.toLowerCase() === loc.toLowerCase())
     ),
     [dataProcessingLocations]
@@ -1025,7 +1026,7 @@ export default function AssessmentChooserPage() {
               console.log(`📋 [AUTO-POPULATE] Evidence key: ${key}`);
               console.log(`📄 [AUTO-POPULATE] Extracted text length: ${extractedText.length} characters`);
               console.log(`${'='.repeat(80)}\n`);
-              
+
               // Call universal analysis endpoint
               const analysisRes = await backendFetch("/api/analyze-document", {
                 method: "POST",
@@ -1053,7 +1054,7 @@ export default function AssessmentChooserPage() {
                     setFieldValue(fieldName, value);
                     populatedCount++;
                     console.log(`✓ [AUTO-POPULATE] Populated: ${fieldName} (${value.length} chars)`);
-                    
+
                     // Track toggle fields that should be set to true
                     // Governance
                     if (fieldName === 'governance_policy_type' || fieldName === 'governance_framework') {
@@ -1076,8 +1077,8 @@ export default function AssessmentChooserPage() {
                       toggleFields['fairness_testing'] = true;
                     }
                     // Human Oversight
-                    if (fieldName === 'human_oversight_type' || fieldName === 'human_oversight_processes' || 
-                        fieldName === 'human_oversight_who' || fieldName === 'human_oversight_when' || fieldName === 'human_oversight_how') {
+                    if (fieldName === 'human_oversight_type' || fieldName === 'human_oversight_processes' ||
+                      fieldName === 'human_oversight_who' || fieldName === 'human_oversight_when' || fieldName === 'human_oversight_how') {
                       toggleFields['human_oversight'] = true;
                     }
                     // UK Accountability
@@ -1105,7 +1106,7 @@ export default function AssessmentChooserPage() {
                 console.warn(`   Status: ${analysisRes.status}`);
                 console.warn(`   Status Text: ${analysisRes.statusText}`);
                 console.warn(`   Error:`, errorData);
-                
+
                 // Provide user-friendly error message
                 if (analysisRes.status === 500) {
                   if (errorData.message?.includes('Connection error')) {
@@ -1129,7 +1130,7 @@ export default function AssessmentChooserPage() {
                   console.warn(`   🔴 Issue: Invalid request`);
                   console.warn(`   💡 Check if evidence key is supported`);
                 }
-                
+
                 console.warn(`💡 [AUTO-POPULATE] You can continue filling the form manually`);
                 console.warn(`${'='.repeat(80)}\n`);
                 // Don't throw error - allow user to continue with manual entry
@@ -1323,6 +1324,10 @@ export default function AssessmentChooserPage() {
   if (step === "intro") {
     return (
       <div className="min-h-screen bg-white">
+        <Head>
+          <title>New Assessment | AI Governance</title>
+          <meta name="description" content="Start a new AI compliance assessment." />
+        </Head>
         {isLoggedIn && <Sidebar onLogout={handleLogout} />}
         <div className={`container mx-auto max-w-3xl py-12 px-4 ${isLoggedIn ? 'lg:pl-72 pt-24' : ''}`}>
           <Card className="glass-panel shadow-elevated">
@@ -1511,6 +1516,10 @@ export default function AssessmentChooserPage() {
 
   return (
     <div className="min-h-screen bg-white">
+      <Head>
+        <title>Assessment</title>
+        <meta name="description" content="Take an AI compliance assessment for EU AI Act, MAS, or UK AI Act." />
+      </Head>
       {isLoggedIn && <Sidebar onLogout={handleLogout} />}
       <div className={`container mx-auto max-w-4xl py-12 px-4 ${isLoggedIn ? 'lg:pl-72 pt-24' : ''}`}>
         <Card className="glass-panel shadow-elevated">
@@ -1572,7 +1581,7 @@ export default function AssessmentChooserPage() {
               onSubmit={handleFormSubmit}
             >
               {({ handleSubmit, validateForm, setTouched, errors, setFieldValue, submitForm }) => {
-                
+
                 // Create wrapper function that includes setFieldValue
                 const handleEvidenceFileChangeWithForm = (key: string, file: File | null) => {
                   return handleEvidenceFileChange(key, file, setFieldValue);

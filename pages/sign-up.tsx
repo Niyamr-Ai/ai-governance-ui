@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import { AlertCircle, Loader2, Eye, EyeOff, Shield, Users, Lock, ArrowRight, Sparkles, CheckCircle2 } from "lucide-react";
+import Head from 'next/head';
 
 export default function SignUp() {
   const router = useRouter();
@@ -78,6 +79,10 @@ export default function SignUp() {
 
   return (
     <div className="min-h-screen flex">
+      <Head>
+        <title>Create Account</title>
+        <meta name="description" content="Create an account to start governing your AI systems." />
+      </Head>
       {/* Left Section - Marketing */}
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-blue-50 via-blue-100/50 to-white p-12 flex-col justify-between">
         <div>

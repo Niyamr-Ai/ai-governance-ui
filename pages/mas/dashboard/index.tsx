@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Loader2, RefreshCcw } from "lucide-react";
 import type { MasAssessmentResult, MasComplianceStatus, MasRiskLevel } from "@/types/mas";
+import Head from 'next/head';
 import { DashboardInsightsPanel } from "@/components/ui/dashboard-insights";
 
 export default function MasDashboardPage() {
@@ -62,128 +63,131 @@ export default function MasDashboardPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-    <div className="container mx-auto max-w-6xl py-10 px-4 space-y-8">
-      <div className="flex items-center justify-between">
-        <div>
+      <Head>
+        <title>MAS Dashboard</title>
+        <meta name="description" content="Overview of all MAS AI risk assessments." />
+      </Head>
+      <div className="container mx-auto max-w-6xl py-10 px-4 space-y-8">
+        <div className="flex items-center justify-between">
+          <div>
             <p className="text-sm text-gray-600 mb-1 font-medium">MAS / UK-style AI Risk</p>
-          <h1 className="text-3xl font-bold text-gray-900">MAS Assessments Dashboard</h1>
+            <h1 className="text-3xl font-bold text-gray-900">MAS Assessments Dashboard</h1>
             <p className="text-gray-700 mt-2 font-medium">
-            View all MAS AI risk assessments and track risk/compliance status.
-          </p>
-        </div>
-        <div className="flex gap-3">
-          <Button
-            variant="outline"
+              View all MAS AI risk assessments and track risk/compliance status.
+            </p>
+          </div>
+          <div className="flex gap-3">
+            <Button
+              variant="outline"
               className="border-gray-300 bg-white text-gray-900 hover:bg-gray-100 hover:text-gray-900"
-            onClick={fetchData}
-            disabled={loading}
-          >
-            <RefreshCcw className="h-4 w-4 mr-2" /> Refresh
-          </Button>
-            <Button 
-              onClick={() => router.push("/mas")} 
+              onClick={fetchData}
+              disabled={loading}
+            >
+              <RefreshCcw className="h-4 w-4 mr-2" /> Refresh
+            </Button>
+            <Button
+              onClick={() => router.push("/mas")}
               className="bg-blue-600 hover:bg-blue-700 text-white"
             >
-            New Assessment
-          </Button>
+              New Assessment
+            </Button>
+          </div>
         </div>
-      </div>
 
-      {error && (
+        {error && (
           <Card className="border-red-300 bg-red-50 shadow-sm">
             <CardContent className="py-4">
               <p className="text-red-900 font-semibold">{error}</p>
             </CardContent>
-        </Card>
-      )}
+          </Card>
+        )}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <SummaryCard title="Total assessments" value={summary.total} />
-        <SummaryCard
-          title="High / Critical risk"
-          value={(summary.byRisk.High || 0) + (summary.byRisk.Critical || 0)}
-        />
-        <SummaryCard
-          title="Compliant"
-          value={summary.byStatus.Compliant || 0}
-          subtitle={`Partial: ${summary.byStatus["Partially compliant"] || 0}, Non: ${
-            summary.byStatus["Non-compliant"] || 0
-          }`}
-        />
-      </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <SummaryCard title="Total assessments" value={summary.total} />
+          <SummaryCard
+            title="High / Critical risk"
+            value={(summary.byRisk.High || 0) + (summary.byRisk.Critical || 0)}
+          />
+          <SummaryCard
+            title="Compliant"
+            value={summary.byStatus.Compliant || 0}
+            subtitle={`Partial: ${summary.byStatus["Partially compliant"] || 0}, Non: ${summary.byStatus["Non-compliant"] || 0
+              }`}
+          />
+        </div>
 
-      {/* RAG-Powered MAS Compliance Insights */}
-      {!loading && assessments.length > 0 && (
-        <DashboardInsightsPanel 
-          systemsData={assessments}
-          regulationType="MAS"
-          className="bg-white border-gray-200 shadow-sm"
-        />
-      )}
+        {/* RAG-Powered MAS Compliance Insights */}
+        {!loading && assessments.length > 0 && (
+          <DashboardInsightsPanel
+            systemsData={assessments}
+            regulationType="MAS"
+            className="bg-white border-gray-200 shadow-sm"
+          />
+        )}
 
         <Card className="bg-white border-gray-200 shadow-sm">
           <CardHeader className="bg-white">
             <CardTitle className="text-2xl font-bold text-gray-900">Assessments</CardTitle>
             <CardDescription className="text-gray-700 font-medium">Recent MAS AI risk assessments.</CardDescription>
-        </CardHeader>
+          </CardHeader>
           <CardContent className="bg-white">
-          {loading ? (
+            {loading ? (
               <div className="flex items-center justify-center py-10">
                 <Loader2 className="h-5 w-5 animate-spin mr-2 text-blue-600" />
                 <span className="text-gray-700 font-medium">Loading...</span>
-            </div>
-          ) : assessments.length === 0 ? (
+              </div>
+            ) : assessments.length === 0 ? (
               <div className="text-center py-10">
                 <p className="text-gray-800 font-medium">
-              No assessments yet. Run your first assessment to see results here.
+                  No assessments yet. Run your first assessment to see results here.
                 </p>
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
                   <TableRow className="bg-gray-50">
                     <TableHead className="font-bold text-gray-900">System</TableHead>
                     <TableHead className="font-bold text-gray-900">Risk</TableHead>
                     <TableHead className="font-bold text-gray-900">Compliance</TableHead>
                     <TableHead className="font-bold text-gray-900">Created</TableHead>
                     <TableHead className="text-right font-bold text-gray-900">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {assessments.map((a) => (
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {assessments.map((a) => (
                     <TableRow key={a.id} className="hover:bg-gray-50">
-                    <TableCell>
+                      <TableCell>
                         <div className="font-bold text-gray-900">{a.system_name}</div>
                         <div className="text-sm text-gray-700 font-medium">{a.sector}</div>
-                    </TableCell>
-                    <TableCell>
-                      <StatusBadge level={a.overall_risk_level} />
-                    </TableCell>
-                    <TableCell>
-                      <ComplianceBadge status={a.overall_compliance_status} />
-                    </TableCell>
+                      </TableCell>
+                      <TableCell>
+                        <StatusBadge level={a.overall_risk_level} />
+                      </TableCell>
+                      <TableCell>
+                        <ComplianceBadge status={a.overall_compliance_status} />
+                      </TableCell>
                       <TableCell className="text-sm text-gray-800 font-medium">
-                      {a.created_at
-                        ? new Date(a.created_at).toLocaleDateString()
-                        : "—"}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        variant="outline"
-                        size="sm"
+                        {a.created_at
+                          ? new Date(a.created_at).toLocaleDateString()
+                          : "—"}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="outline"
+                          size="sm"
                           className="border-gray-300 bg-white text-gray-900 hover:bg-gray-100 hover:text-gray-900 font-medium"
-                        onClick={() => router.push(`/mas/${a.id}`)}
-                      >
-                        View details
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+                          onClick={() => router.push(`/mas/${a.id}`)}
+                        >
+                          View details
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
@@ -206,10 +210,10 @@ function StatusBadge({ level }: { level: MasRiskLevel }) {
     level === "Critical"
       ? "bg-red-100 text-red-800 border-red-300"
       : level === "High"
-      ? "bg-orange-100 text-orange-800 border-orange-300"
-      : level === "Medium"
-      ? "bg-yellow-100 text-yellow-800 border-yellow-300"
-      : "bg-green-100 text-green-800 border-green-300";
+        ? "bg-orange-100 text-orange-800 border-orange-300"
+        : level === "Medium"
+          ? "bg-yellow-100 text-yellow-800 border-yellow-300"
+          : "bg-green-100 text-green-800 border-green-300";
   return <Badge className={`${color} font-semibold capitalize`}>{level}</Badge>;
 }
 
@@ -218,7 +222,7 @@ function ComplianceBadge({ status }: { status: MasComplianceStatus }) {
     status === "Compliant"
       ? "bg-green-100 text-green-800 border-green-300"
       : status === "Partially compliant"
-      ? "bg-yellow-100 text-yellow-800 border-yellow-300"
-      : "bg-red-100 text-red-800 border-red-300";
+        ? "bg-yellow-100 text-yellow-800 border-yellow-300"
+        : "bg-red-100 text-red-800 border-red-300";
   return <Badge className={`${color} font-semibold`}>{status}</Badge>;
 }

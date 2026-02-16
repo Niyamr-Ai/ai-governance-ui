@@ -74,6 +74,7 @@ import { Loader2, Shield, AlertTriangle } from "lucide-react";
 import Sidebar from "@/components/sidebar";
 import { supabase } from "@/utils/supabase/client";
 import { backendFetch } from "@/utils/backend-fetch";
+import Head from 'next/head';
 
 
 
@@ -253,7 +254,7 @@ export default function EUAssessmentPage() {
     const extractSystemId = (): string | undefined => {
       // First try from query
       let systemIdValue = systemId as string | undefined;
-      
+
       // Fallback: extract from URL path if query param is missing
       if ((!systemIdValue || systemIdValue === 'undefined') && router.asPath) {
         const pathMatch = router.asPath.match(/\/assessment\/eu\/([^/?]+)/);
@@ -262,7 +263,7 @@ export default function EUAssessmentPage() {
           console.log(`🔧 [EU-ASSESSMENT] Extracted systemId from URL path: ${systemIdValue}`);
         }
       }
-      
+
       return systemIdValue;
     };
 
@@ -285,7 +286,7 @@ export default function EUAssessmentPage() {
         return;
       }
     }
-    
+
     // Final validation
     if (systemIdValue === 'undefined') {
       console.error(`❌ [EU-ASSESSMENT] systemId is literally 'undefined' string`);
@@ -305,7 +306,7 @@ export default function EUAssessmentPage() {
         setError(null);
 
         console.log(`📡 [EU-ASSESSMENT] Fetching system data from database...`);
-        
+
         // Fetch system data
         const { data: systemData, error: systemError } = await supabase
           .from("ai_systems")
@@ -362,7 +363,7 @@ export default function EUAssessmentPage() {
         const finalValues = assessment?.answers ?? defaults;
         console.log(`✅ [EU-ASSESSMENT] Setting initial values (${assessment ? 'from existing assessment' : 'using defaults'})`);
         setInitialValues(finalValues);
-        
+
         console.log(`\n${'='.repeat(80)}`);
         console.log(`✅ [EU-ASSESSMENT] Assessment loaded successfully`);
         console.log(`   System ID: ${systemIdValue}`);
@@ -377,7 +378,7 @@ export default function EUAssessmentPage() {
         console.error(`   Error stack:`, err.stack);
         console.error(`${'='.repeat(80)}\n`);
         setError(`Failed to load assessment: ${err.message}`);
-        
+
         // Still set defaults so form can render
         console.log(`🔧 [EU-ASSESSMENT] Setting default values as fallback...`);
         const defaults = euQuestions.reduce((acc, q) => {
@@ -399,7 +400,7 @@ export default function EUAssessmentPage() {
     await supabase.auth.signOut();
     router.push("/");
   };
-  
+
 
 
 
@@ -450,17 +451,17 @@ export default function EUAssessmentPage() {
         const dataProcessingLocations = systemData?.data_processing_locations || [];
         console.log(`📋 [EU-ASSESSMENT] Data processing locations:`, dataProcessingLocations);
 
-        const hasMultipleJurisdictions = 
+        const hasMultipleJurisdictions =
           (dataProcessingLocations.includes("European Union") || dataProcessingLocations.includes("EU") ||
-           dataProcessingLocations.some((loc: string) => 
-             ["Austria", "Belgium", "Bulgaria", "Croatia", "Cyprus", "Czechia",
-              "Denmark", "Estonia", "Finland", "France", "Germany", "Greece",
-              "Hungary", "Ireland", "Italy", "Latvia", "Lithuania", "Luxembourg",
-              "Malta", "Netherlands", "Poland", "Portugal", "Romania", "Slovakia",
-              "Slovenia", "Spain", "Sweden"].some(c => c.toLowerCase() === loc.toLowerCase())
-           )) &&
+            dataProcessingLocations.some((loc: string) =>
+              ["Austria", "Belgium", "Bulgaria", "Croatia", "Cyprus", "Czechia",
+                "Denmark", "Estonia", "Finland", "France", "Germany", "Greece",
+                "Hungary", "Ireland", "Italy", "Latvia", "Lithuania", "Luxembourg",
+                "Malta", "Netherlands", "Poland", "Portugal", "Romania", "Slovakia",
+                "Slovenia", "Spain", "Sweden"].some(c => c.toLowerCase() === loc.toLowerCase())
+            )) &&
           ((dataProcessingLocations.includes("United Kingdom") || dataProcessingLocations.includes("UK")) ||
-           dataProcessingLocations.includes("Singapore"));
+            dataProcessingLocations.includes("Singapore"));
 
         console.log(`🔍 [EU-ASSESSMENT] Multiple jurisdictions detected: ${hasMultipleJurisdictions}`);
 
@@ -496,9 +497,13 @@ export default function EUAssessmentPage() {
     console.log(`   router.isReady: ${router.isReady}`);
     console.log(`   systemId: ${systemId}`);
     console.log(`${'='.repeat(80)}\n`);
-    
+
     return (
       <div className="min-h-screen bg-white">
+        <Head>
+          <title>Loading Assessment | AI Governance</title>
+          <meta name="description" content="Loading the EU AI Act compliance assessment..." />
+        </Head>
         <Sidebar onLogout={handleLogout} />
         <div className="container mx-auto max-w-4xl py-12 px-4 lg:pl-72 pt-24">
           <div className="flex items-center justify-center min-h-[400px]">
@@ -518,6 +523,10 @@ export default function EUAssessmentPage() {
   if (error && !initialValues) {
     return (
       <div className="min-h-screen bg-white">
+        <Head>
+          <title>Assessment Error | AI Governance</title>
+          <meta name="description" content="An error occurred while loading the assessment." />
+        </Head>
         <Sidebar onLogout={handleLogout} />
         <div className="container mx-auto max-w-4xl py-12 px-4 lg:pl-72 pt-24">
           <Card className="glass-panel shadow-elevated">
@@ -538,6 +547,10 @@ export default function EUAssessmentPage() {
 
   return (
     <div className="min-h-screen bg-white">
+      <Head>
+        <title>EU AI Act Assessment</title>
+        <meta name="description" content="Complete the EU AI Act compliance assessment for your system." />
+      </Head>
       <Sidebar onLogout={handleLogout} />
       <div className="container mx-auto max-w-4xl py-12 px-4 lg:pl-72 pt-24">
         <Card className="glass-panel shadow-elevated">
@@ -570,110 +583,110 @@ export default function EUAssessmentPage() {
                     setTouched(allFields);
                     handleSubmit(e);
                   }} className="space-y-6">
-  {/* TODO: render euQuestions here */}
+                    {/* TODO: render euQuestions here */}
                     {euQuestions.map((q) => {
-  // conditional logic (e.g. q7 → q7a)
-  if (q.conditional) {
-    const parentValue = values[q.conditional.dependsOn];
-    if (parentValue !== q.conditional.value) return null;
-  }
+                      // conditional logic (e.g. q7 → q7a)
+                      if (q.conditional) {
+                        const parentValue = values[q.conditional.dependsOn];
+                        if (parentValue !== q.conditional.value) return null;
+                      }
 
-  // Get field error safely
-  const fieldError = errors[q.id];
-  const hasFieldError = touched[q.id] && typeof fieldError === "string";
+                      // Get field error safely
+                      const fieldError = errors[q.id];
+                      const hasFieldError = touched[q.id] && typeof fieldError === "string";
 
-  return (
-    <Card key={q.id} className="rounded-xl border">
-      <CardHeader>
-        <CardTitle className="text-base">
-          {q.title}
-        </CardTitle>
-      </CardHeader>
+                      return (
+                        <Card key={q.id} className="rounded-xl border">
+                          <CardHeader>
+                            <CardTitle className="text-base">
+                              {q.title}
+                            </CardTitle>
+                          </CardHeader>
 
-      <CardContent className="space-y-3">
-        {/* TEXT */}
-        {q.type === "text" && (
-          <>
-            <Textarea
-              value={values[q.id]}
-              onChange={(e) => setFieldValue(q.id, e.target.value)}
-              placeholder={q.placeholder}
-              className={`rounded-xl ${hasFieldError
-                ? "border-red-500 focus:ring-red-500"
-                : ""
-                }`}
-            />
-            {hasFieldError && (
-              <p className="text-xs text-red-500 mt-1">
-                {fieldError}
-              </p>
-            )}
-          </>
-        )}
+                          <CardContent className="space-y-3">
+                            {/* TEXT */}
+                            {q.type === "text" && (
+                              <>
+                                <Textarea
+                                  value={values[q.id]}
+                                  onChange={(e) => setFieldValue(q.id, e.target.value)}
+                                  placeholder={q.placeholder}
+                                  className={`rounded-xl ${hasFieldError
+                                    ? "border-red-500 focus:ring-red-500"
+                                    : ""
+                                    }`}
+                                />
+                                {hasFieldError && (
+                                  <p className="text-xs text-red-500 mt-1">
+                                    {fieldError}
+                                  </p>
+                                )}
+                              </>
+                            )}
 
-        {/* RADIO */}
-        {q.type === "radio" && (
-          <>
-            <div className="space-y-2">
-              {q.options?.map((opt) => (
-                <label key={opt.value} className="flex items-center gap-2">
-                  <input
-                    type="radio"
-                    name={q.id}
-                    checked={values[q.id] === opt.value}
-                    onChange={() => setFieldValue(q.id, opt.value)}
-                  />
-                  <span>{opt.label}</span>
-                </label>
-              ))}
-            </div>
-            {hasFieldError && (
-              <p className="text-xs text-red-500 mt-1">
-                {fieldError}
-              </p>
-            )}
-          </>
-        )}
+                            {/* RADIO */}
+                            {q.type === "radio" && (
+                              <>
+                                <div className="space-y-2">
+                                  {q.options?.map((opt) => (
+                                    <label key={opt.value} className="flex items-center gap-2">
+                                      <input
+                                        type="radio"
+                                        name={q.id}
+                                        checked={values[q.id] === opt.value}
+                                        onChange={() => setFieldValue(q.id, opt.value)}
+                                      />
+                                      <span>{opt.label}</span>
+                                    </label>
+                                  ))}
+                                </div>
+                                {hasFieldError && (
+                                  <p className="text-xs text-red-500 mt-1">
+                                    {fieldError}
+                                  </p>
+                                )}
+                              </>
+                            )}
 
-        {/* CHECKBOX */}
-        {q.type === "checkbox" && (
-          <>
-            <div className="space-y-2">
-              {q.options?.map((opt) => {
-                const checked = values[q.id].includes(opt.value);
+                            {/* CHECKBOX */}
+                            {q.type === "checkbox" && (
+                              <>
+                                <div className="space-y-2">
+                                  {q.options?.map((opt) => {
+                                    const checked = values[q.id].includes(opt.value);
 
-                return (
-                  <label key={opt.value} className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      onChange={() => {
-                        if (checked) {
-                          setFieldValue(
-                            q.id,
-                            values[q.id].filter((v: string) => v !== opt.value)
-                          );
-                        } else {
-                          setFieldValue(q.id, [...values[q.id], opt.value]);
-                        }
-                      }}
-                    />
-                    <span>{opt.label}</span>
-                  </label>
-                );
-              })}
-            </div>
-            {hasFieldError && (
-              <p className="text-xs text-red-500 mt-1">
-                {fieldError}
-              </p>
-            )}
-          </>
-        )}
-      </CardContent>
-    </Card>
-  );
-})}
+                                    return (
+                                      <label key={opt.value} className="flex items-center gap-2">
+                                        <input
+                                          type="checkbox"
+                                          checked={checked}
+                                          onChange={() => {
+                                            if (checked) {
+                                              setFieldValue(
+                                                q.id,
+                                                values[q.id].filter((v: string) => v !== opt.value)
+                                              );
+                                            } else {
+                                              setFieldValue(q.id, [...values[q.id], opt.value]);
+                                            }
+                                          }}
+                                        />
+                                        <span>{opt.label}</span>
+                                      </label>
+                                    );
+                                  })}
+                                </div>
+                                {hasFieldError && (
+                                  <p className="text-xs text-red-500 mt-1">
+                                    {fieldError}
+                                  </p>
+                                )}
+                              </>
+                            )}
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
 
 
                     {error && (
