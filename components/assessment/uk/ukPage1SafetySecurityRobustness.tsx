@@ -109,6 +109,29 @@ export default function UkPage1SafetySecurityRobustness({
                 <Label className="text-sm font-medium text-foreground">
                   How frequently do you conduct robustness testing?
                 </Label>
+                <Textarea
+                  value={values.robustness_testing_frequency_text || ""}
+                  onChange={(e) =>
+                    setFieldValue("robustness_testing_frequency_text", e.target.value)
+                  }
+                  placeholder="e.g., Monthly, Quarterly, Before each release, Continuously"
+                  className={`rounded-xl min-h-[80px] ${errors.robustness_testing_frequency_text && touched.robustness_testing_frequency_text
+                    ? "border-red-500 focus:ring-red-500"
+                    : ""
+                    }`}
+                />
+                {touched.robustness_testing_frequency_text &&
+                  typeof errors.robustness_testing_frequency_text === "string" && (
+                    <p className="text-xs text-red-500 mt-1">
+                      {errors.robustness_testing_frequency_text}
+                    </p>
+                  )}
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-foreground">
+                  Upload robustness testing frequency document (Optional)
+                </Label>
                 <div className="relative flex items-center gap-3">
                   <EvidenceUpload
                     label="Upload robustness testing frequency document"

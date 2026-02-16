@@ -12,11 +12,13 @@ import {
   AlertDescription,
 } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
-import { AlertCircle, Loader2, Eye, EyeOff, Shield, Users, Lock, ArrowRight, Sparkles, CheckCircle2 } from "lucide-react";
+import { AlertCircle, Loader2, Eye, EyeOff, Shield, Users, Lock, ArrowRight, Sparkles, CheckCircle2, ArrowLeft } from "lucide-react";
 
 export default function SignUp() {
   const router = useRouter();
 
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -26,12 +28,20 @@ export default function SignUp() {
   const [success, setSuccess] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
     setSuccess(null);
+
+    // Validate required fields
+    if (!firstName.trim() || !lastName.trim()) {
+      setError("First name and last name are required");
+      setLoading(false);
+      return;
+    }
 
     // Validate passwords match
     if (password !== confirmPassword) {
@@ -40,24 +50,180 @@ export default function SignUp() {
       return;
     }
 
-    const { error } = await supabase.auth.signUp({
+    // Strategy: Try to sign up and check the response carefully
+    // Supabase behavior when email confirmation is enabled:
+    // - New user: Returns { data: { user: {...}, session: null }, error: null }
+    // - Existing user: Returns { data: { user: null, session: null }, error: null } (for security)
+    // 
+    // However, sometimes Supabase might return the existing user object.
+    // We need to check multiple indicators to detect existing accounts.
+    
+    const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
+    const signupStartTime = Date.now();
+    
+    console.log('[Sign-up] Attempting signup for:', email);
+    
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || window.location.origin}/dashboard`,
+        emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || window.location.origin}/auth/callback?redirect_to=/dashboard`,
+        data: {
+          first_name: firstName.trim(),
+          last_name: lastName.trim(),
+          full_name: fullName,
+          name: fullName, // Also set 'name' field which Supabase uses for display name
+        },
+      },
+    });
+    
+    console.log('[Sign-up] Supabase response:', {
+      hasError: !!error,
+      errorMessage: error?.message,
+      hasUser: !!data?.user,
+      userId: data?.user?.id,
+      userCreatedAt: data?.user?.created_at,
+      emailConfirmed: !!data?.user?.email_confirmed_at
+    });
+
+    // Check for explicit errors first
+    if (error) {
+      const errorMessage = error.message.toLowerCase();
+      
+      if (
+        errorMessage.includes('user already registered') ||
+        errorMessage.includes('email already registered') ||
+        errorMessage.includes('already exists') ||
+        errorMessage.includes('already been registered') ||
+        errorMessage.includes('duplicate') ||
+        errorMessage.includes('email address is already') ||
+        errorMessage.includes('email already in use') ||
+        error.code === 'signup_disabled'
+      ) {
+        setError("An account with this email already exists. Please sign in instead.");
+      } else if (errorMessage.includes('rate limit')) {
+        setError("Too many sign-up attempts. Please wait a few minutes before trying again.");
+      } else {
+        setError(error.message);
+      }
+      setLoading(false);
+      return;
+    }
+
+    // CRITICAL CHECK 1: If data.user is null, account already exists
+    // This is the primary indicator when email confirmation is enabled
+    if (!data || !data.user) {
+      setError("An account with this email already exists. Please sign in instead.");
+      setLoading(false);
+      return;
+    }
+
+    // CRITICAL CHECK 2: Verify the user was just created
+    // When Supabase returns an existing user, the created_at will be from when it was originally created
+    // New signups should have a created_at timestamp very close to now (within 2 seconds)
+    const signupEndTime = Date.now();
+    const userCreatedAt = data.user.created_at ? new Date(data.user.created_at).getTime() : 0;
+    
+    // Calculate absolute time difference (handle negative values from clock skew)
+    const timeDiff = Math.abs(signupEndTime - userCreatedAt);
+    
+    console.log('[Sign-up] Checking user creation time:', {
+      userId: data.user.id,
+      createdAt: data.user.created_at,
+      createdAtTimestamp: userCreatedAt,
+      signupEndTime,
+      timeDiffMs: signupEndTime - userCreatedAt, // Show raw diff for debugging
+      timeDiffMsAbs: timeDiff,
+      timeDiffSeconds: Math.floor(timeDiff / 1000),
+      emailConfirmed: !!data.user.email_confirmed_at,
+      emailConfirmedAt: data.user.email_confirmed_at
+    });
+    
+    // CRITICAL: If user was created more than 3 seconds before OR after signup, it's an existing account
+    // (New accounts should be created within 1-2 seconds of the signup call)
+    // Negative timeDiff means user was "created" after signup ended (impossible for new accounts)
+    const rawTimeDiff = signupEndTime - userCreatedAt;
+    // Lower threshold to catch even small negative values (like -399ms) which indicate existing account
+    if (rawTimeDiff < -100 || timeDiff > 3000) {
+      console.log('[Sign-up] ❌ User creation time mismatch:', {
+        rawTimeDiff,
+        timeDiff,
+        reason: rawTimeDiff < -100 ? 'User created after signup (impossible - existing account)' : 'User created too long ago (existing account)'
+      });
+      setError("An account with this email already exists. Please sign in instead.");
+      setLoading(false);
+      return;
+    }
+    
+    // CRITICAL CHECK 3: If user is already confirmed, it's definitely an existing account
+    // (New signups won't be confirmed immediately - they need to click email link)
+    if (data.user.email_confirmed_at) {
+      const confirmedAt = new Date(data.user.email_confirmed_at).getTime();
+      const confirmedTimeDiff = signupEndTime - confirmedAt;
+      
+      console.log('[Sign-up] User email confirmation check:', {
+        confirmedAt,
+        confirmedTimeDiffMs: confirmedTimeDiff,
+        confirmedTimeDiffSeconds: Math.floor(Math.abs(confirmedTimeDiff) / 1000)
+      });
+      
+      // If email was confirmed (and it's not a brand new account), it's existing
+      // Allow 2 seconds for edge cases where confirmation happens instantly
+      if (Math.abs(confirmedTimeDiff) > 2000) {
+        console.log('[Sign-up] ❌ User already confirmed:', confirmedTimeDiff, 'ms difference - EXISTING ACCOUNT');
+        setError("An account with this email already exists. Please sign in instead.");
+        setLoading(false);
+        return;
+      }
+    }
+    
+    // Additional check: If user metadata doesn't match what we're trying to set, it might be existing
+    // But this is less reliable, so we'll use it as a secondary check
+    const userMetadata = data.user.user_metadata || {};
+    if (userMetadata.first_name && userMetadata.first_name !== firstName.trim()) {
+      console.log('[Sign-up] ⚠️ User metadata mismatch - might be existing account');
+      // Don't fail on this alone, but log it
+    }
+    
+    console.log('[Sign-up] ✅ New account created successfully');
+
+    // Success! Account created
+    setSuccess("Account created successfully! Please check your email (including spam folder) to verify your account. Click the confirmation link to complete signup.");
+    setLoading(false);
+    
+    // Clear form
+    setFirstName("");
+    setLastName("");
+    setEmail("");
+    setPassword("");
+    setConfirmPassword("");
+  };
+
+  const handleResendConfirmation = async () => {
+    if (!email) {
+      setError("Please enter your email address first.");
+      return;
+    }
+
+    setResendLoading(true);
+    setError(null);
+
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email: email,
+      options: {
+        emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || window.location.origin}/auth/callback?redirect_to=/dashboard`,
       },
     });
 
     if (error) {
       setError(error.message);
-      setLoading(false);
+      setResendLoading(false);
       return;
     }
 
-    setSuccess(
-      "Account created! Please check your email to verify your account."
-    );
-    setLoading(false);
+    setSuccess("Confirmation email sent! Please check your inbox (including spam folder) and click the link to verify your account.");
+    setResendLoading(false);
   };
 
   const handleGoogleSignUp = async () => {
@@ -159,6 +325,15 @@ export default function SignUp() {
       {/* Right Section - Sign-up Form */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-8 lg:p-12 bg-white">
         <div className="w-full max-w-md space-y-6">
+          {/* Back Button */}
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to home
+          </Link>
+
           {/* Welcome Message */}
           <div className="space-y-1">
             <h2 className="text-3xl font-semibold text-foreground">
@@ -218,6 +393,39 @@ export default function SignUp() {
 
           {/* Email/Password Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="firstName" className="text-sm font-medium">
+                  First Name
+                </Label>
+                <Input
+                  id="firstName"
+                  type="text"
+                  placeholder="John"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  className="rounded-xl"
+                  required
+                  disabled={loading || googleLoading}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="lastName" className="text-sm font-medium">
+                  Last Name
+                </Label>
+                <Input
+                  id="lastName"
+                  type="text"
+                  placeholder="Doe"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  className="rounded-xl"
+                  required
+                  disabled={loading || googleLoading}
+                />
+              </div>
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="email" className="text-sm font-medium">
                 Email address
@@ -307,7 +515,28 @@ export default function SignUp() {
             {success && (
               <Alert className="bg-green-50 border-green-200">
                 <CheckCircle2 className="h-4 w-4 text-green-600" />
-                <AlertDescription className="text-green-800">{success}</AlertDescription>
+                <AlertDescription className="text-green-800">
+                  {success}
+                  <div className="mt-3">
+                    <Button
+                      type="button"
+                      onClick={handleResendConfirmation}
+                      variant="outline"
+                      size="sm"
+                      disabled={resendLoading}
+                      className="w-full"
+                    >
+                      {resendLoading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Sending...
+                        </>
+                      ) : (
+                        "Resend Confirmation Email"
+                      )}
+                    </Button>
+                  </div>
+                </AlertDescription>
               </Alert>
             )}
 
