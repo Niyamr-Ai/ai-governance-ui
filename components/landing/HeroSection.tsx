@@ -104,12 +104,32 @@ const HeroSection: React.FC = () => {
             className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-fade-in-up"
             style={{ animationDelay: "0.3s" }}
           >
-            <Button variant="hero" size="xl" className="group min-w-[180px]">
+            <Button 
+              variant="hero" 
+              size="xl" 
+              className="group min-w-[180px]"
+              onClick={() => {
+                const footer = document.querySelector('footer');
+                if (footer) {
+                  footer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+              }}
+            >
               Get a Demo
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" />
             </Button>
 
-            <Button variant="hero-outline" size="xl" className="group min-w-[180px]">
+            <Button 
+              variant="hero-outline" 
+              size="xl" 
+              className="group min-w-[180px]"
+              onClick={() => {
+                const platformSection = document.querySelector('#platform');
+                if (platformSection) {
+                  platformSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+              }}
+            >
               <Play className="w-5 h-5 group-hover:scale-110 transition-transform duration-300" />
               Explore Platform
             </Button>

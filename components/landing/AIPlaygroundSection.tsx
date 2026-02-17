@@ -267,7 +267,7 @@ function RiskCategoriesGrid() {
     return (
         <div className="glass-panel rounded-3xl p-6 lg:p-8 shadow-premium">
             <div className="flex items-center gap-3 mb-6">
-                <div className="p-2 rounded-lg bg-accent/20 border border-accent/20">
+                <div className="p-2 rounded-lg bg-accent/20">
                     <ShieldAlert className="w-5 h-5 text-accent" />
                 </div>
                 <h3 className="text-xl font-bold text-foreground">Enterprise Risk Coverage</h3>

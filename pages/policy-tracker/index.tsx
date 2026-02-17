@@ -1,12 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, ShieldCheck, FileText, Globe, Building2, Loader2, ExternalLink } from "lucide-react";
+import { Plus, ShieldCheck, FileText, Globe, Building2, Loader2, ExternalLink, Menu, X, LayoutDashboard, Layers, TestTube } from "lucide-react";
 import { supabase } from "@/utils/supabase/client";
 import { backendFetch } from "@/utils/backend-fetch";
 import Sidebar from "@/components/sidebar";
@@ -14,11 +14,34 @@ import type { Policy, ComplianceStatus } from "../../types/policy";
 
 export default function PolicyTrackerPage() {
   const router = useRouter();
+  const pathname = usePathname();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [externalPolicies, setExternalPolicies] = useState<Policy[]>([]);
   const [internalPolicies, setInternalPolicies] = useState<Policy[]>([]);
   const [loadingPolicies, setLoadingPolicies] = useState(true);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  // Navigation items matching the sidebar
+  const navItems = [
+    { label: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
+    { label: "Discovery", icon: Layers, href: "/discovery" },
+    { label: "Documentation", icon: FileText, href: "/documentation" },
+    { label: "Policy Tracker", icon: ShieldCheck, href: "/policy-tracker" },
+    { label: "Red Teaming", icon: TestTube, href: "/red-teaming" },
+  ];
+
+  // Prevent body scroll when mobile menu is open
+  useEffect(() => {
+    if (isMobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isMobileMenuOpen]);
 
   useEffect(() => {
     const init = async () => {
@@ -83,16 +106,80 @@ export default function PolicyTrackerPage() {
     <div className="min-h-screen bg-background">
       <Sidebar onLogout={handleLogout} />
       
-      <div className={`p-6 lg:p-8 ${isLoggedIn ? 'lg:pl-72 pt-24' : ''}`}>
+      {/* Mobile Header */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 glass-panel shadow-soft border-b border-border/30">
+        <div className="flex items-center justify-between px-6 h-16">
+          <h1 className="text-xl font-bold text-foreground">
+            Policy <span className="gradient-text">Tracker</span>
+          </h1>
+          <button
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className="p-2 text-foreground hover:bg-secondary/50 rounded-lg transition-colors"
+            aria-label="Toggle menu"
+          >
+            {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </button>
+        </div>
+      </div>
+
+      {/* Mobile Menu Overlay */}
+      {isMobileMenuOpen && (
+        <>
+          {/* Dark Overlay */}
+          <div
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden"
+            onClick={() => setIsMobileMenuOpen(false)}
+          />
+          
+          {/* Mobile Menu */}
+          <div className="lg:hidden fixed top-16 left-0 right-0 bottom-0 z-50 bg-background border-t border-border/30 overflow-y-auto">
+            <div className="px-6 py-6">
+              <div className="flex flex-col gap-1">
+                {navItems.map(({ label, icon: Icon, href }) => {
+                  const isActive = pathname === href || pathname?.startsWith(href + "/");
+                  return (
+                    <Link
+                      key={label}
+                      href={href}
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+                        isActive
+                          ? "bg-primary/10 text-primary font-medium"
+                          : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
+                      }`}
+                    >
+                      <Icon className="h-5 w-5 flex-shrink-0" />
+                      <span className="text-sm">{label}</span>
+                    </Link>
+                  );
+                })}
+                <div className="pt-4 mt-4 border-t border-border/30">
+                  <button
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      handleLogout();
+                    }}
+                    className="flex items-center gap-3 px-4 py-3 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 transition-all w-full text-left"
+                  >
+                    <span className="text-sm font-medium">Logout</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+      
+      <div className={`p-6 lg:p-8 ${isLoggedIn ? 'lg:pl-72 pt-24' : 'pt-24 lg:pt-6'}`}>
         <div className="max-w-7xl mx-auto space-y-8">
           {/* Header */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-4xl lg:text-5xl font-extrabold text-foreground">
+                <h1 className="hidden lg:block text-4xl lg:text-5xl font-extrabold text-foreground">
                   Policy <span className="gradient-text">Tracker</span>
                 </h1>
-                <p className="text-muted-foreground mt-3 text-lg font-medium">
+                <p className="text-muted-foreground mt-3 text-base lg:text-lg font-medium">
                   Track external AI regulations and manage internal organizational policies
                 </p>
               </div>

@@ -1,6 +1,7 @@
 "use client";
 import { useState } from 'react';
 import { AlertTriangle, TrendingDown, Eye, ShieldAlert, Zap, CheckCircle, Activity, Lock } from 'lucide-react';
+import Link from 'next/link';
 
 export default function ChallengeSection() {
   const [activeTab, setActiveTab] = useState('challenge');
@@ -109,7 +110,7 @@ export default function ChallengeSection() {
           {/* LEFT SIDE - THE CHALLENGE */}
           <div className={`
             space-y-6 transition-all duration-700
-            ${activeTab === 'challenge' ? 'opacity-100 scale-100' : 'opacity-30 scale-95'}
+            ${activeTab === 'challenge' ? 'opacity-100 scale-100' : 'opacity-30 scale-95 pointer-events-none'}
           `}>
             <div className="glass-panel p-8 border-2 border-red-500/20 shadow-premium rounded-xl">
               <div className="flex items-center gap-4 mb-6">
@@ -128,7 +129,7 @@ export default function ChallengeSection() {
                 {challenges.map((challenge, idx) => (
                   <div 
                     key={idx}
-                    className="group relative p-5 rounded-xl border border-border/30 bg-background/50 hover:border-red-500/30 transition-all duration-300 hover:shadow-lg"
+                    className="group relative p-5 rounded-xl border border-border/30 bg-background/50 hover:border-red-500/30 transition-all duration-300 hover:shadow-lg overflow-hidden"
                     style={{ animationDelay: `${idx * 0.1}s` }}
                   >
                     <div className="flex items-start gap-4">
@@ -150,8 +151,10 @@ export default function ChallengeSection() {
                       </div>
                     </div>
                     
-                    {/* Danger pulse effect */}
-                    <div className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-red-500 opacity-0 group-hover:opacity-100 animate-ping" />
+                    {/* Danger pulse effect - only show when challenge tab is active */}
+                    {activeTab === 'challenge' && (
+                      <div className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-red-500 opacity-0 group-hover:opacity-100 animate-ping" />
+                    )}
                   </div>
                 ))}
               </div>
@@ -177,7 +180,7 @@ export default function ChallengeSection() {
           {/* RIGHT SIDE - THE SOLUTION */}
           <div className={`
             space-y-6 transition-all duration-700
-            ${activeTab === 'solution' ? 'opacity-100 scale-100' : 'opacity-30 scale-95'}
+            ${activeTab === 'solution' ? 'opacity-100 scale-100' : 'opacity-30 scale-95 pointer-events-none'}
           `}>
             <div className="glass-panel-glow p-8 border-2 border-primary/20 shadow-premium">
               <div className="flex items-center gap-4 mb-6">
@@ -196,7 +199,7 @@ export default function ChallengeSection() {
                 {solutions.map((solution, idx) => (
                   <div 
                     key={idx}
-                    className="group relative p-5 rounded-xl border border-border/30 bg-background/50 hover:border-primary/30 transition-all duration-300 hover:shadow-blue"
+                    className="group relative p-5 rounded-xl border border-border/30 bg-background/50 hover:border-primary/30 transition-all duration-300 hover:shadow-blue overflow-hidden"
                     style={{ animationDelay: solution.delay }}
                   >
                     <div className="flex items-start gap-4">
@@ -218,8 +221,10 @@ export default function ChallengeSection() {
                       </div>
                     </div>
                     
-                    {/* Success pulse effect */}
-                    <div className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-green-500 opacity-0 group-hover:opacity-100 animate-ping" />
+                    {/* Success pulse effect - only show when solution tab is active */}
+                    {activeTab === 'solution' && (
+                      <div className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-green-500 opacity-0 group-hover:opacity-100 animate-ping" />
+                    )}
                   </div>
                 ))}
               </div>
@@ -240,9 +245,12 @@ export default function ChallengeSection() {
                 Join 500+ enterprises building AI with confidence
               </p>
             </div>
-            <button className="px-8 py-4 bg-gradient-to-r from-primary to-accent text-white font-semibold rounded-xl shadow-glow hover:shadow-glow-accent transition-all duration-300 hover:scale-105 whitespace-nowrap">
+            <Link 
+              href="/sign-up"
+              className="px-8 py-4 bg-gradient-to-r from-primary to-accent text-white font-semibold rounded-xl shadow-glow hover:shadow-glow-accent transition-all duration-300 hover:scale-105 whitespace-nowrap inline-block text-center"
+            >
               Start Free Trial
-            </button>
+            </Link>
           </div>
         </div>
       </div>

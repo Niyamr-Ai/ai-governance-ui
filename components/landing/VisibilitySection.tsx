@@ -144,8 +144,8 @@ export default function VisibilitySection() {
             </div>
           ))}
 
-          {/* Stats Overlay */}
-          <div className="absolute bottom-6 left-6 glass rounded-xl p-4 shadow-soft">
+          {/* Stats Overlay - Hidden on mobile to prevent overlap */}
+          <div className="hidden md:block absolute bottom-6 left-6 glass rounded-xl p-4 shadow-soft">
             <p className="text-xs text-muted-foreground mb-2">Processing Speed</p>
             <div className="flex items-center gap-2">
               <div className="flex gap-1">
@@ -157,8 +157,8 @@ export default function VisibilitySection() {
             </div>
           </div>
 
-          {/* Activity Feed */}
-          <div className="absolute bottom-6 right-6 glass rounded-xl p-4 max-w-xs shadow-soft">
+          {/* Activity Feed - Adjusted for mobile */}
+          <div className="absolute bottom-4 md:bottom-6 left-4 right-4 md:left-auto md:right-6 glass rounded-xl p-4 max-w-xs md:max-w-xs shadow-soft">
             <p className="text-xs text-muted-foreground mb-3">Live Processing</p>
             <div className="space-y-2">
               {[

@@ -1308,8 +1308,8 @@ export default function MasAssessmentPage() {
     return (
         <div className="min-h-screen bg-white">
             <Sidebar />
-            <div className="lg:pl-72 pt-24 px-4">
-                <div className="container mx-auto max-w-4xl">
+            <div className="lg:pl-72 pt-16 lg:pt-24 px-0 lg:px-4">
+                <div className="container mx-auto max-w-4xl py-4 px-2 lg:py-12 lg:px-4">
                     <Card className="glass-panel shadow-elevated">
                         <CardHeader>
                             <CardTitle>
@@ -1447,7 +1447,11 @@ export default function MasAssessmentPage() {
                                                 </Button>
 
                                                 {masCurrentPage < masPages.length - 1 ? (
-                                                    <Button type="button" onClick={handleNext}>
+                                                    <Button 
+                                                        type="button" 
+                                                        onClick={handleNext}
+                                                        className="hover:bg-emerald-700"
+                                                    >
                                                         Next
                                                     </Button>
                                                 ) : (
@@ -1455,6 +1459,7 @@ export default function MasAssessmentPage() {
                                                         type="button"
                                                         disabled={isSubmitting}
                                                         onClick={() => submitForm()}
+                                                        className="hover:bg-emerald-700"
                                                     >
                                                         {isSubmitting ? "Submitting..." : "Submit Assessment"}
                                                     </Button>

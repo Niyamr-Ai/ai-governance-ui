@@ -42,7 +42,7 @@ export default function UkPage1SafetySecurityRobustness({
             <div className="ml-4 flex items-center gap-2">
               <span className={`text-xs font-bold px-2 py-1 rounded ${values.robustness_testing
                 ? "text-blue-500 bg-emerald-300"
-                : "text-red-500 bg-blue-400"
+                : "text-red-500"
                 }`}>
                 {values.robustness_testing ? "YES" : "NO"}
               </span>
@@ -230,7 +230,7 @@ export default function UkPage1SafetySecurityRobustness({
             <div className="ml-4 flex items-center gap-2">
               <span className={`text-xs font-bold px-2 py-1 rounded ${values.red_teaming
                 ? "text-blue-500 bg-emerald-300"
-                : "text-red-500 bg-blue-400"
+                : "text-red-500"
                 }`}>
                 {values.red_teaming ? "YES" : "NO"}
               </span>
@@ -364,7 +364,7 @@ export default function UkPage1SafetySecurityRobustness({
             <div className="ml-4 flex items-center gap-2">
               <span className={`text-xs font-bold px-2 py-1 rounded ${values.misuse_prevention
                 ? "text-blue-500 bg-emerald-300"
-                : "text-red-500 bg-blue-400"
+                : "text-red-500"
                 }`}>
                 {values.misuse_prevention ? "YES" : "NO"}
               </span>
@@ -445,7 +445,7 @@ export default function UkPage1SafetySecurityRobustness({
             <div className="ml-4 flex items-center gap-2">
               <span className={`text-xs font-bold px-2 py-1 rounded ${values.cybersecurity
                 ? "text-blue-500 bg-emerald-300"
-                : "text-red-500 bg-blue-400"
+                : "text-red-500"
                 }`}>
                 {values.cybersecurity ? "YES" : "NO"}
               </span>
@@ -576,7 +576,7 @@ export default function UkPage1SafetySecurityRobustness({
             <div className="ml-4 flex items-center gap-2">
               <span className={`text-xs font-bold px-2 py-1 rounded ${values.safety_testing
                 ? "text-blue-500 bg-emerald-300"
-                : "text-red-500 bg-blue-400"
+                : "text-red-500"
                 }`}>
                 {values.safety_testing ? "YES" : "NO"}
               </span>

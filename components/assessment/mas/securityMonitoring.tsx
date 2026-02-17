@@ -307,7 +307,7 @@ export default function SecurityMonitoring({
                   <span
                     className={`text-xs font-bold px-2 py-1 rounded ${values.security_penetration_testing
                         ? "text-blue-500 bg-emerald-300"
-                        : "text-red-500 bg-blue-400"
+                        : "text-red-500"
                       }`}
                   >
                     {values.security_penetration_testing ? "YES" : "NO"}
@@ -324,7 +324,7 @@ export default function SecurityMonitoring({
                     }
                     className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${values.security_penetration_testing
                         ? "text-blue-500 bg-emerald-300"
-                        : "text-red-500 bg-blue-400"
+                        : "text-red-500"
                       }`}
                     style={{
                       backgroundColor: values.security_penetration_testing
@@ -449,7 +449,7 @@ export default function SecurityMonitoring({
                   <span
                     className={`text-xs font-bold px-2 py-1 rounded ${values.monitoring_plan
                         ? "text-blue-500 bg-emerald-300"
-                        : "text-red-500 bg-blue-400"
+                        : "text-red-500"
                       }`}
                   >
                     {values.monitoring_plan ? "YES" : "NO"}
@@ -466,7 +466,7 @@ export default function SecurityMonitoring({
                     }
                     className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${values.monitoring_plan
                         ? "text-blue-500 bg-emerald-300"
-                        : "text-red-500 bg-blue-400"
+                        : "text-red-500"
                       }`}
                     style={{
                       backgroundColor: values.monitoring_plan
@@ -811,7 +811,7 @@ export default function SecurityMonitoring({
                   <span
                     className={`text-xs font-bold px-2 py-1 rounded ${values.monitoring_kill_switch
                         ? "text-blue-500 bg-emerald-300"
-                        : "text-red-500 bg-blue-400"
+                        : "text-red-500"
                       }`}
                   >
                     {values.monitoring_kill_switch ? "YES" : "NO"}
@@ -828,7 +828,7 @@ export default function SecurityMonitoring({
                     }
                     className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${values.monitoring_kill_switch
                         ? "text-blue-500 bg-emerald-300"
-                        : "text-red-500 bg-blue-400"
+                        : "text-red-500"
                       }`}
                     style={{
                       backgroundColor: values.monitoring_kill_switch
@@ -892,7 +892,7 @@ export default function SecurityMonitoring({
                   <span
                     className={`text-xs font-bold px-2 py-1 rounded ${values.capability_training
                         ? "text-blue-500 bg-emerald-300"
-                        : "text-red-500 bg-blue-400"
+                        : "text-red-500"
                       }`}
                   >
                     {values.capability_training ? "YES" : "NO"}
@@ -909,7 +909,7 @@ export default function SecurityMonitoring({
                     }
                     className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${values.capability_training
                         ? "text-blue-500 bg-emerald-300"
-                        : "text-red-500 bg-blue-400"
+                        : "text-red-500"
                       }`}
                     style={{
                       backgroundColor: values.capability_training
@@ -1010,10 +1010,10 @@ export default function SecurityMonitoring({
                       documentation
                     </Label>
                     <EvidenceUpload
-                  label="Upload security documentation or security assessment reports"
+                  label=""
                   accept=".pdf,.doc,.docx"
                   onFileSelect={(file) =>
-                    handleEvidenceFileChange("security_evidence", file)
+                    handleEvidenceFileChange("capability_evidence", file)
                   }
                 />
                   </div>

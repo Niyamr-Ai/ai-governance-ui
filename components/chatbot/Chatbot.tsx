@@ -356,7 +356,7 @@ export default function Chatbot() {
       {/* Floating Chat Button */}
       <Button
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-50 hover:scale-105 transition-transform bg-blue-600 text-white hover:bg-blue-600 hover:text-white"
+        className="fixed bottom-4 right-4 lg:bottom-6 lg:right-6 h-14 w-14 rounded-full shadow-lg z-50 hover:scale-105 transition-transform bg-blue-600 text-white hover:bg-blue-600 hover:text-white"
         size="icon"
         variant="default"
         aria-label="Open AI Governance Copilot"
@@ -370,9 +370,15 @@ export default function Chatbot() {
 
       {/* Chat Panel */}
       {isOpen && (
-        <Card className="fixed bottom-24 right-6 w-1/2 h-[600px] flex flex-col shadow-2xl z-50 border-2">
+        <>
+          {/* Dark Overlay for Mobile */}
+          <div
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden"
+            onClick={() => setIsOpen(false)}
+          />
+          <Card className="fixed bottom-0 left-0 right-0 lg:bottom-24 lg:left-auto lg:right-6 w-full lg:w-1/2 max-w-[calc(100vw-3rem)] lg:max-w-none h-[85vh] lg:h-[600px] flex flex-col shadow-2xl z-50 border-2 lg:border-2 bg-slate-50 dark:bg-slate-900 rounded-t-xl lg:rounded-lg">
           {/* Header */}
-          <div className="p-4 border-b flex items-center justify-between bg-primary/5">
+          <div className="p-4 border-b flex items-center justify-between bg-slate-100 dark:bg-slate-800">
             <div className="flex items-center gap-2">
               <MessageCircle className="h-5 w-5 text-primary" />
               <h3 className="font-semibold text-sm">AI Governance Copilot</h3>
@@ -400,7 +406,7 @@ export default function Chatbot() {
           </div>
 
           {/* Messages Area */}
-          <ScrollArea className="flex-1 p-4">
+          <ScrollArea className="flex-1 p-4 bg-slate-50 dark:bg-slate-900">
             {messages.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground">
                 <MessageCircle className="h-32 w-32 mb-6 mt-5 opacity-50" />
@@ -427,10 +433,10 @@ export default function Chatbot() {
                     }`}
                   >
                     <div
-                      className={`max-w-[80%] rounded-lg p-3 text-sm ${
+                      className={`max-w-[80%] rounded-xl px-4 py-3 text-sm ${
                         message.role === 'user'
                           ? 'bg-primary text-primary-foreground'
-                          : 'bg-muted'
+                          : 'bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-slate-100'
                       }`}
                     >
                       {message.role === 'user' ? (
@@ -484,7 +490,7 @@ export default function Chatbot() {
           )}
 
           {/* Input Area */}
-          <div className="p-4 border-t">
+          <div className="p-4 border-t bg-slate-100 dark:bg-slate-800">
             <div className="flex gap-2">
               <Input
                 ref={inputRef}
@@ -509,6 +515,7 @@ export default function Chatbot() {
             </div>
           </div>
         </Card>
+        </>
       )}
     </>
   );

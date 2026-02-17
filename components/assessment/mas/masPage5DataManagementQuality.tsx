@@ -75,7 +75,7 @@ export default function MasPage5DataManagementQuality({
             <div className="ml-4 flex items-center gap-2">
               <span className={`text-xs font-bold px-2 py-1 rounded ${values.data_quality_checks
                 ? "text-blue-500 bg-emerald-300"
-                : "text-red-500 bg-blue-400"
+                : "text-red-500"
                 }`}>
                 {values.data_quality_checks ? "YES" : "NO"}
               </span>
@@ -199,7 +199,7 @@ export default function MasPage5DataManagementQuality({
             <div className="ml-4 flex items-center gap-2">
               <span className={`text-xs font-bold px-2 py-1 rounded ${values.data_lineage_tracking
                 ? "text-blue-500 bg-emerald-300"
-                : "text-red-500 bg-blue-400"
+                : "text-red-500"
                 }`}>
                 {values.data_lineage_tracking ? "YES" : "NO"}
               </span>
@@ -343,7 +343,7 @@ export default function MasPage5DataManagementQuality({
             <div className="ml-4 flex items-center gap-2">
               <span className={`text-xs font-bold px-2 py-1 rounded ${values.data_synthetic_usage
                 ? "text-blue-500 bg-emerald-300"
-                : "text-red-500 bg-blue-400"
+                : "text-red-500"
                 }`}>
                 {values.data_synthetic_usage ? "YES" : "NO"}
               </span>
@@ -395,7 +395,7 @@ export default function MasPage5DataManagementQuality({
             <div className="ml-4 flex items-center gap-2">
               <span className={`text-xs font-bold px-2 py-1 rounded ${values.data_dpia_conducted
                 ? "text-blue-500 bg-emerald-300"
-                : "text-red-500 bg-blue-400"
+                : "text-red-500"
                 }`}>
                 {values.data_dpia_conducted ? "YES" : "NO"}
               </span>
@@ -447,7 +447,7 @@ export default function MasPage5DataManagementQuality({
             <div className="ml-4 flex items-center gap-2">
               <span className={`text-xs font-bold px-2 py-1 rounded ${values.data_cross_border
                 ? "text-blue-500 bg-emerald-300"
-                : "text-red-500 bg-blue-400"
+                : "text-red-500"
                 }`}>
                 {values.data_cross_border ? "YES" : "NO"}
               </span>

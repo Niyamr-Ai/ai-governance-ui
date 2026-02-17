@@ -44,7 +44,7 @@ import {
 import Link from "next/link";
 import { supabase } from "@/utils/supabase/client";
 import { backendFetch } from "@/utils/backend-fetch";
-import Sidebar from "@/components/sidebar";
+import AuthenticatedLayout from "@/components/layout/AuthenticatedLayout";
 import type { DocumentationWithSystemInfo } from "../../types/documentation";
 
 export default function DocumentationPage() {
@@ -52,27 +52,11 @@ export default function DocumentationPage() {
   const [documentation, setDocumentation] = useState<DocumentationWithSystemInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  
   // Filters
   const [regulationFilter, setRegulationFilter] = useState<string>("all");
   const [documentTypeFilter, setDocumentTypeFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
-
-  // Check authentication status
-  useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setIsLoggedIn(!!user);
-    };
-    checkAuth();
-  }, []);
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push("/");
-  };
 
   useEffect(() => {
     fetchDocumentation();
@@ -183,12 +167,8 @@ export default function DocumentationPage() {
   );
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Left sidebar - Only visible when logged in */}
-      <Sidebar onLogout={handleLogout} />
-
-      <div className={`p-6 lg:p-8 ${isLoggedIn ? 'lg:pl-72 pt-24' : ''}`}>
-        <div className="max-w-7xl mx-auto space-y-6">
+    <AuthenticatedLayout showLoading={loading}>
+      <div className="max-w-7xl mx-auto space-y-6">
           {/* Header */}
           <div className="flex items-center justify-between">
             <div>
@@ -432,8 +412,7 @@ export default function DocumentationPage() {
             </CardContent>
           </Card>
         </div>
-      </div>
-    </div>
+    </AuthenticatedLayout>
   );
 }
 

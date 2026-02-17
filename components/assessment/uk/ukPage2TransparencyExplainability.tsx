@@ -40,7 +40,7 @@ export default function UkPage2TransparencyExplainability({
             <div className="ml-4 flex items-center gap-2">
               <span className={`text-xs font-bold px-2 py-1 rounded ${values.user_disclosure
                   ? "text-blue-500 bg-emerald-300"
-                  : "text-red-500 bg-blue-400"
+                  : "text-red-500"
                 }`}>
                 {values.user_disclosure ? "YES" : "NO"}
               </span>
@@ -163,7 +163,7 @@ export default function UkPage2TransparencyExplainability({
             <div className="ml-4 flex items-center gap-2">
               <span className={`text-xs font-bold px-2 py-1 rounded ${values.explainability
                   ? "text-blue-500 bg-emerald-300"
-                  : "text-red-500 bg-blue-400"
+                  : "text-red-500"
                 }`}>
                 {values.explainability ? "YES" : "NO"}
               </span>
@@ -288,7 +288,7 @@ export default function UkPage2TransparencyExplainability({
             <div className="ml-4 flex items-center gap-2">
               <span className={`text-xs font-bold px-2 py-1 rounded ${values.documentation
                   ? "text-blue-500 bg-emerald-300"
-                  : "text-red-500 bg-blue-400"
+                  : "text-red-500"
                 }`}>
                 {values.documentation ? "YES" : "NO"}
               </span>
@@ -383,7 +383,7 @@ export default function UkPage2TransparencyExplainability({
             <div className="ml-4 flex items-center gap-2">
               <span className={`text-xs font-bold px-2 py-1 rounded ${values.transparency_reports
                   ? "text-blue-500 bg-emerald-300"
-                  : "text-red-500 bg-blue-400"
+                  : "text-red-500"
                 }`}>
                 {values.transparency_reports ? "YES" : "NO"}
               </span>

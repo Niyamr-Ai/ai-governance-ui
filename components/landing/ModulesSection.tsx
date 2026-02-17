@@ -82,16 +82,21 @@ export default function ModulesSection() {
                 </p>
 
                 <div className="mt-6 pt-6 border-t border-border/30">
-                  <button className="text-sm font-medium text-primary hover:text-accent transition-colors flex items-center gap-2 group/link">
+                  <button 
+                    className="text-sm font-medium text-primary hover:text-accent transition-colors flex items-center gap-2 group/link"
+                    onClick={() => {
+                      const contactSection = document.querySelector('#contact');
+                      if (contactSection) {
+                        contactSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      }
+                    }}
+                  >
                     Learn more
                     <svg className="w-4 h-4 transform group-hover/link:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                     </svg>
                   </button>
                 </div>
-
-                <div className="absolute -top-2 -right-2 w-4 h-4 rounded-full bg-gradient-to-br from-primary to-accent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                <div className="absolute -bottom-2 -left-2 w-3 h-3 rounded-full bg-gradient-to-br from-accent to-primary opacity-0 group-hover:opacity-100 transition-opacity duration-500 delay-100" />
               </div>
 
               {index < modules.length - 1 && (index + 1) % 3 !== 0 && (

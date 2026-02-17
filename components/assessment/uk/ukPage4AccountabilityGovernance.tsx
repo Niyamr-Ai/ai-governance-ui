@@ -39,7 +39,7 @@ export default function UkPage4AccountabilityGovernance({
             <div className="ml-4 flex items-center gap-2">
               <span className={`text-xs font-bold px-2 py-1 rounded ${values.accountability_framework
                 ? "text-blue-500 bg-emerald-300"
-                : "text-red-500 bg-blue-400"
+                : "text-red-500"
                 }`}>
                 {values.accountability_framework ? "YES" : "NO"}
               </span>
@@ -142,7 +142,7 @@ export default function UkPage4AccountabilityGovernance({
             <div className="ml-4 flex items-center gap-2">
               <span className={`text-xs font-bold px-2 py-1 rounded ${values.human_oversight
                 ? "text-blue-500 bg-emerald-300"
-                : "text-red-500 bg-blue-400"
+                : "text-red-500"
                 }`}>
                 {values.human_oversight ? "YES" : "NO"}
               </span>
@@ -271,7 +271,7 @@ export default function UkPage4AccountabilityGovernance({
             <div className="ml-4 flex items-center gap-2">
               <span className={`text-xs font-bold px-2 py-1 rounded ${values.risk_management
                 ? "text-blue-500 bg-emerald-300"
-                : "text-red-500 bg-blue-400"
+                : "text-red-500"
                 }`}>
                 {values.risk_management ? "YES" : "NO"}
               </span>
@@ -374,7 +374,7 @@ export default function UkPage4AccountabilityGovernance({
             <div className="ml-4 flex items-center gap-2">
               <span className={`text-xs font-bold px-2 py-1 rounded ${values.governance_structure
                 ? "text-blue-500 bg-emerald-300"
-                : "text-red-500 bg-blue-400"
+                : "text-red-500"
                 }`}>
                 {values.governance_structure ? "YES" : "NO"}
               </span>
@@ -449,7 +449,7 @@ export default function UkPage4AccountabilityGovernance({
             <div className="ml-4 flex items-center gap-2">
               <span className={`text-xs font-bold px-2 py-1 rounded ${values.audit_trail
                 ? "text-blue-500 bg-emerald-300"
-                : "text-red-500 bg-blue-400"
+                : "text-red-500"
                 }`}>
                 {values.audit_trail ? "YES" : "NO"}
               </span>
@@ -593,7 +593,7 @@ export default function UkPage4AccountabilityGovernance({
             <div className="ml-4 flex items-center gap-2">
               <span className={`text-xs font-bold px-2 py-1 rounded ${values.ethics_committee
                 ? "text-blue-500 bg-emerald-300"
-                : "text-red-500 bg-blue-400"
+                : "text-red-500"
                 }`}>
                 {values.ethics_committee ? "YES" : "NO"}
               </span>

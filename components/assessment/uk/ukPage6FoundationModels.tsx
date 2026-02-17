@@ -67,7 +67,7 @@ export default function UkPage6FoundationModels({
                 <div className="ml-4 flex items-center gap-2">
                   <span className={`text-xs font-bold px-2 py-1 rounded ${values.foundation_model_cards
                       ? "text-blue-500 bg-emerald-300"
-                      : "text-red-500 bg-blue-400"
+                      : "text-red-500"
                     }`}>
                     {values.foundation_model_cards ? "YES" : "NO"}
                   </span>
@@ -233,7 +233,7 @@ export default function UkPage6FoundationModels({
             <div className="ml-4 flex items-center gap-2">
               <span className={`text-xs font-bold px-2 py-1 rounded ${values.regulatory_sandbox
                   ? "text-blue-500 bg-emerald-300"
-                  : "text-red-500 bg-blue-400"
+                  : "text-red-500"
                 }`}>
                 {values.regulatory_sandbox ? "YES" : "NO"}
               </span>

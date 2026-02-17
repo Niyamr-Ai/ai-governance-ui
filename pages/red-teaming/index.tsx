@@ -39,7 +39,7 @@ import {
   Zap,
   Target,
 } from "lucide-react";
-import Sidebar from "@/components/sidebar";
+import AuthenticatedLayout from "@/components/layout/AuthenticatedLayout";
 import { supabase } from "@/utils/supabase/client";
 import { backendFetch } from "@/utils/backend-fetch";
 import { TargetedRedTeamingPanel } from "@/components/ui/targeted-red-teaming";
@@ -89,7 +89,6 @@ export default function RedTeamingPage() {
   const [results, setResults] = useState<RedTeamingResult[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showRunDialog, setShowRunDialog] = useState(false);
   const [runningTests, setRunningTests] = useState(false);
   const [selectedAttackTypes, setSelectedAttackTypes] = useState<string[]>([]);
@@ -99,20 +98,6 @@ export default function RedTeamingPage() {
   const [systemNames, setSystemNames] = useState<Record<string, string>>({});
   const [filterSystemId, setFilterSystemId] = useState<string>("all");
   const [expandedSystems, setExpandedSystems] = useState<Set<string>>(new Set());
-
-  // Check authentication status
-  useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setIsLoggedIn(!!user);
-    };
-    checkAuth();
-  }, []);
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push("/");
-  };
 
   // Fetch AI systems and red teaming results
   useEffect(() => {
@@ -302,27 +287,9 @@ export default function RedTeamingPage() {
     highRisk: results.filter(r => r.risk_level === "HIGH").length,
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-white">
-        {isLoggedIn && <Sidebar onLogout={handleLogout} />}
-        <div className={`container mx-auto max-w-7xl py-8 px-4 ${isLoggedIn ? 'lg:pl-72 pt-24' : ''}`}>
-          <div className="flex items-center justify-center min-h-[400px]">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-              <p className="text-muted-foreground">Loading red teaming results...</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-white">
-      {isLoggedIn && <Sidebar onLogout={handleLogout} />}
-
-      <div className={`container mx-auto max-w-7xl py-8 px-4 ${isLoggedIn ? 'lg:pl-72 pt-24' : ''}`}>
+    <AuthenticatedLayout showLoading={loading}>
+      <div className="container mx-auto max-w-7xl">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between">
@@ -748,7 +715,7 @@ export default function RedTeamingPage() {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </AuthenticatedLayout>
   );
 }
 
