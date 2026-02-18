@@ -4,7 +4,7 @@
  * RiskDetail Component
  * 
  * Displays detailed information about a specific risk assessment.
- * Shows summary, metrics, risk level, mitigation status, and evidence links.
+ * Shows summary, risk level, mitigation status, and evidence links.
  */
 
 import {
@@ -23,7 +23,7 @@ import { ExternalLink, AlertTriangle, CheckCircle2, Clock, FileText, XCircle, Se
 import { toast } from "sonner";
 import type { RiskAssessment, RiskLevel, MitigationStatus, AssessmentStatus } from "@/types/risk-assessment";
 import { format } from "date-fns";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { isActionDisabled, getDisabledReason } from "@/lib/lifecycle-governance-helpers";
@@ -86,6 +86,13 @@ export default function RiskDetail({
   const [error, setError] = useState<string | null>(null);
   const [showRejectForm, setShowRejectForm] = useState(false);
   const [isUpdatingMitigation, setIsUpdatingMitigation] = useState(false);
+  // Local state for mitigation status to update UI immediately
+  const [localMitigationStatus, setLocalMitigationStatus] = useState<MitigationStatus>(assessment.mitigation_status);
+
+  // Sync local state when assessment prop changes
+  useEffect(() => {
+    setLocalMitigationStatus(assessment.mitigation_status);
+  }, [assessment.mitigation_status]);
 
   const isCreator = currentUserId && assessment.assessed_by === currentUserId;
   const getRiskBadge = (level: RiskLevel) => {
@@ -265,6 +272,9 @@ export default function RiskDetail({
   };
 
   const handleMitigationStatusChange = async (newStatus: MitigationStatus) => {
+    // Update local state immediately for instant UI feedback
+    setLocalMitigationStatus(newStatus);
+    
     try {
       setIsUpdatingMitigation(true);
       setError(null);
@@ -275,43 +285,42 @@ export default function RiskDetail({
       });
 
       if (!res.ok) {
+        // Revert local state on error
+        setLocalMitigationStatus(assessment.mitigation_status);
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to update mitigation status");
+        const errorMsg = err.error || "Failed to update mitigation status";
+        setError(errorMsg);
+        toast.error(errorMsg);
+        throw new Error(errorMsg);
       }
 
-      if (onStatusChange) onStatusChange();
+      // Get updated assessment data
+      const response = await res.json();
+      
+      // Update local state with server response to ensure sync
+      if (response.assessment?.mitigation_status) {
+        setLocalMitigationStatus(response.assessment.mitigation_status);
+      }
+      
+      // Show success message with formatted status name
+      const statusLabel = newStatus === 'not_started' ? 'Not Started' : 
+                         newStatus === 'in_progress' ? 'In Progress' : 
+                         'Mitigated';
+      toast.success(`Mitigation status updated to "${statusLabel}"`);
+      
+      // Refresh the parent component to show updated status
+      // This will reload the assessment data from the server
+      if (onStatusChange) {
+        onStatusChange();
+      }
     } catch (err: any) {
-      setError(err.message || "Failed to update mitigation status");
+      // Error already handled above, local state already reverted
+      console.error("Error updating mitigation status:", err);
     } finally {
       setIsUpdatingMitigation(false);
     }
   };
 
-  const renderMetrics = () => {
-    if (!assessment.metrics || Object.keys(assessment.metrics).length === 0) {
-      return (
-        <p className="text-muted-foreground italic">No metrics provided</p>
-      );
-    }
-
-    return (
-      <div className="space-y-2">
-        {Object.entries(assessment.metrics).map(([key, value]) => (
-          <div
-            key={key}
-            className="flex justify-between items-center py-2 border-b border-border/50"
-          >
-            <span className="text-muted-foreground font-medium capitalize">
-              {key.replace(/_/g, " ")}:
-            </span>
-            <span className="text-foreground">
-              {typeof value === "boolean" ? (value ? "Yes" : "No") : String(value)}
-            </span>
-          </div>
-        ))}
-      </div>
-    );
-  };
 
   return (
     <Card className="glass-card shadow-premium rounded-2xl border-0 bg-gradient-to-br from-white/90 via-white/80 to-white/70 backdrop-blur-xl">
@@ -348,15 +357,15 @@ export default function RiskDetail({
           <div>
             <p className="text-sm text-muted-foreground mb-2">Mitigation Status</p>
             <div className="flex items-center gap-2">
-              {getMitigationBadge(assessment.mitigation_status)}
-              {/* Allow updating mitigation status for approved/submitted assessments */}
-              {currentUserId && (assessment.status === 'approved' || assessment.status === 'submitted') && (() => {
+              {getMitigationBadge(localMitigationStatus)}
+              {/* Allow updating mitigation status ONLY for submitted assessments (not approved) */}
+              {currentUserId && assessment.status === 'submitted' && (() => {
                 const mitigationDisabled = isActionDisabled(lifecycleStage, systemType, 'update_mitigation', assessment.status);
                 const mitigationReason = getDisabledReason(lifecycleStage, systemType, 'update_mitigation', assessment.status);
                 
                 const selectComponent = (
                   <Select
-                    value={assessment.mitigation_status}
+                    value={localMitigationStatus}
                     onValueChange={(value) => handleMitigationStatusChange(value as MitigationStatus)}
                     disabled={isUpdatingMitigation || mitigationDisabled}
                   >
@@ -394,6 +403,25 @@ export default function RiskDetail({
                 
                 return selectComponent;
               })()}
+              {/* Show read-only badge for approved assessments */}
+              {assessment.status === 'approved' && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="cursor-not-allowed opacity-60">
+                        <Select disabled value={localMitigationStatus}>
+                          <SelectTrigger className="w-[140px] h-8 bg-background/50 border-border/50 text-foreground text-xs cursor-not-allowed">
+                            <SelectValue />
+                          </SelectTrigger>
+                        </Select>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      <p className="text-sm">Mitigation status cannot be changed after approval. Assessment is finalized.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
             </div>
           </div>
         </div>
@@ -444,14 +472,6 @@ export default function RiskDetail({
           <p className="text-foreground/80 whitespace-pre-wrap leading-relaxed">
             {assessment.summary}
           </p>
-        </div>
-
-        {/* Metrics */}
-        <div>
-          <p className="text-sm text-muted-foreground mb-3 font-semibold">Metrics</p>
-          <div className="bg-background/50 rounded-lg p-4 border border-border">
-            {renderMetrics()}
-          </div>
         </div>
 
         {/* Evidence Links */}
@@ -586,9 +606,33 @@ export default function RiskDetail({
 
           {/* Error Message */}
           {error && (
-            <Alert variant="destructive" className="bg-red-900/50 border-red-700/50">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription className="text-red-300">{error}</AlertDescription>
+            <Alert 
+              variant="destructive" 
+              className="bg-gradient-to-r from-amber-50 to-red-50 dark:from-amber-950/30 dark:to-red-950/30 border-2 border-amber-200 dark:border-amber-800 rounded-lg shadow-lg"
+            >
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0 mt-0.5">
+                  <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                </div>
+                <div className="flex-1 space-y-2">
+                  <AlertDescription className="text-amber-900 dark:text-amber-100 font-medium text-sm leading-relaxed">
+                    {error}
+                  </AlertDescription>
+                  {error.includes('Prohibited') && (
+                    <div className="mt-3 pt-3 border-t border-amber-200 dark:border-amber-800">
+                      <p className="text-xs text-amber-800 dark:text-amber-200 mb-2 font-semibold">
+                        What you can do:
+                      </p>
+                      <ul className="text-xs text-amber-700 dark:text-amber-300 space-y-1 list-disc list-inside">
+                        <li>Review your EU AI Act compliance assessment</li>
+                        <li>Remove prohibited practices from your system</li>
+                        <li>Update the system's risk tier classification</li>
+                        <li>Contact your compliance officer for assistance</li>
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              </div>
             </Alert>
           )}
         </div>

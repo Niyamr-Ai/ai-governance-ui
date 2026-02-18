@@ -71,7 +71,7 @@ const getScoreColorLight = (score: number) => {
 };
 
 // Helper function to format JSON strings as readable text and convert markdown to HTML
-function formatTextContent(text: string): string {
+function formatTextContent(text: string, removeMainHeading?: string): string {
   if (!text) return "";
   
   // Try to parse as JSON
@@ -87,6 +87,29 @@ function formatTextContent(text: string): string {
   // Convert markdown syntax to formatted text
   let formatted = text;
   
+  // Remove duplicate main headings if specified (e.g., "Remediation Plan", "Re-assessment Timeline")
+  if (removeMainHeading) {
+    // Escape special regex characters in the heading
+    const escapedHeading = removeMainHeading.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    // Remove lines that are exactly the heading (with or without markdown formatting)
+    const headingPatterns = [
+      new RegExp(`^\\s*##?\\s*${escapedHeading}\\s*$`, 'gmi'),
+      new RegExp(`^\\s*\\*\\*${escapedHeading}\\*\\*\\s*$`, 'gmi'),
+      new RegExp(`^\\s*${escapedHeading}\\s*$`, 'gmi'),
+    ];
+    headingPatterns.forEach(pattern => {
+      formatted = formatted.replace(pattern, '');
+    });
+    // Also remove "Prioritized actions to address identified risks" if it appears right after Remediation Plan
+    if (removeMainHeading.toLowerCase().includes('remediation')) {
+      formatted = formatted.replace(/^\s*Prioritized actions to address identified risks\s*$/gmi, '');
+    }
+    // Remove "Re-Assessment Timeline" variations
+    if (removeMainHeading.toLowerCase().includes('re-assessment') || removeMainHeading.toLowerCase().includes('reassessment')) {
+      formatted = formatted.replace(/^\s*Re[- ]?Assessment Timeline\s*$/gmi, '');
+    }
+  }
+  
   // Convert ## headings to bold text with spacing
   formatted = formatted.replace(/^##\s+(.+)$/gm, '\n\n**$1**\n');
   
@@ -101,6 +124,9 @@ function formatTextContent(text: string): string {
   
   // Clean up extra newlines (but keep double newlines for spacing)
   formatted = formatted.replace(/\n{4,}/g, '\n\n\n');
+  
+  // Remove leading/trailing whitespace and extra blank lines at start
+  formatted = formatted.trim().replace(/^\n+/, '');
   
   return formatted.trim();
 }
@@ -196,7 +222,11 @@ export default function AutomatedRiskAssessmentPage() {
       });
       
       if (!res.ok) {
-        throw new Error("Failed to generate assessment");
+        const errorData = await res.json().catch(() => ({}));
+        if (res.status === 403 && errorData.prohibited_system) {
+          throw new Error(errorData.error || "Cannot generate automated risk assessment for prohibited systems");
+        }
+        throw new Error(errorData.error || "Failed to generate assessment");
       }
       
       const data = await res.json();
@@ -231,20 +261,82 @@ export default function AutomatedRiskAssessmentPage() {
   }
 
   if (error) {
+    const isProhibitedError = error.toLowerCase().includes('prohibited');
     return (
       <div className="min-h-screen bg-white">
         <Sidebar onLogout={handleLogout} />
 
         <div className={`flex items-center justify-center min-h-screen p-6 ${isLoggedIn ? 'lg:pl-72' : ''}`}>
-          <Card className="max-w-md glass-panel shadow-elevated border-red-200">
-            <CardHeader>
-              <CardTitle className="text-red-600">Error</CardTitle>
+          <Card className={`max-w-lg glass-panel shadow-elevated ${isProhibitedError ? 'border-amber-200' : 'border-red-200'}`}>
+            <CardHeader className="pb-4">
+              <div className="flex items-center gap-3">
+                <div className={`p-2 rounded-lg ${isProhibitedError ? 'bg-amber-100' : 'bg-red-100'}`}>
+                  <AlertTriangle className={`h-6 w-6 ${isProhibitedError ? 'text-amber-600' : 'text-red-600'}`} />
+                </div>
+                <CardTitle className={`text-xl ${isProhibitedError ? 'text-amber-900' : 'text-red-900'}`}>
+                  {isProhibitedError ? 'Prohibited System' : 'Error'}
+                </CardTitle>
+              </div>
             </CardHeader>
-            <CardContent>
-              <p className="text-red-700 mb-4">{error}</p>
-              <Button onClick={fetchAssessment} variant="outline" className="w-full rounded-xl">
-                Retry
-              </Button>
+            <CardContent className="space-y-5">
+              <div className={`p-5 rounded-xl ${isProhibitedError ? 'bg-gradient-to-br from-amber-50 to-orange-50 border-2 border-amber-200' : 'bg-red-50 border-2 border-red-200'}`}>
+                <p className={`text-base font-medium leading-relaxed ${isProhibitedError ? 'text-amber-900' : 'text-red-900'}`}>
+                  {isProhibitedError 
+                    ? "This system has been classified as 'Prohibited' under the EU AI Act. Automated risk assessments cannot be generated for prohibited systems."
+                    : error
+                  }
+                </p>
+              </div>
+              
+              {isProhibitedError && (
+                <div className="space-y-3">
+                  <p className="text-sm font-semibold text-foreground">Next Steps:</p>
+                  <div className="space-y-2.5">
+                    <div className="flex items-start gap-3 p-3 rounded-lg bg-slate-50 border border-slate-200">
+                      <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center mt-0.5">
+                        <span className="text-xs font-bold text-primary">1</span>
+                      </div>
+                      <p className="text-sm text-foreground leading-relaxed pt-0.5">
+                        Review your EU AI Act compliance assessment
+                      </p>
+                    </div>
+                    <div className="flex items-start gap-3 p-3 rounded-lg bg-slate-50 border border-slate-200">
+                      <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center mt-0.5">
+                        <span className="text-xs font-bold text-primary">2</span>
+                      </div>
+                      <p className="text-sm text-foreground leading-relaxed pt-0.5">
+                        Remove or modify prohibited practices from your system
+                      </p>
+                    </div>
+                    <div className="flex items-start gap-3 p-3 rounded-lg bg-slate-50 border border-slate-200">
+                      <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center mt-0.5">
+                        <span className="text-xs font-bold text-primary">3</span>
+                      </div>
+                      <p className="text-sm text-foreground leading-relaxed pt-0.5">
+                        Re-submit the compliance assessment with corrected information
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              <div className="pt-2">
+                <Button 
+                  onClick={() => router.push('/dashboard')} 
+                  className="w-full rounded-xl bg-primary hover:bg-primary/90 text-white"
+                >
+                  Back to Dashboard
+                </Button>
+                {!isProhibitedError && (
+                  <Button 
+                    onClick={fetchAssessment} 
+                    variant="outline" 
+                    className="w-full mt-3 rounded-xl"
+                  >
+                    Retry
+                  </Button>
+                )}
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -319,14 +411,11 @@ export default function AutomatedRiskAssessmentPage() {
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <h1 className="text-4xl lg:text-5xl font-extrabold text-foreground mb-3 flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-primary/10 border border-primary/20">
-                <Shield className="h-8 w-8 text-primary" />
-              </div>
+            <h1 className="text-4xl lg:text-5xl font-extrabold text-foreground mb-3">
               <span>Automated <span className="gradient-text">Risk Assessment</span></span>
             </h1>
             <p className="text-muted-foreground font-medium text-lg">
-              System ID: {systemId?.substring(0, 8)}... • Assessed: {new Date(assessment.assessed_at).toLocaleDateString()}
+              System ID: {systemId} • Assessed: {new Date(assessment.assessed_at).toLocaleDateString()}
             </p>
           </div>
           <div className="flex gap-3">
@@ -405,10 +494,10 @@ export default function AutomatedRiskAssessmentPage() {
           </Card>
         </div>
 
-        {/* Risk Heatmap */}
+        {/* Risk Dimensions */}
         <Card className="glass-panel shadow-elevated border-border/50 hover:shadow-blue transition-all duration-300">
           <CardHeader className="border-b border-border/30 pb-4">
-            <CardTitle className="text-2xl font-bold text-foreground">Risk Dimension Heatmap</CardTitle>
+            <CardTitle className="text-2xl font-bold text-foreground">Risk Dimension</CardTitle>
             <CardDescription className="text-muted-foreground mt-1 text-base">
               Visual representation of risk scores across 5 dimensions
             </CardDescription>
@@ -458,8 +547,16 @@ export default function AutomatedRiskAssessmentPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-6">
-            <div className="prose prose-slate max-w-none">
-              <p className="text-foreground whitespace-pre-wrap leading-relaxed text-base">{assessment.executive_summary}</p>
+            <div className="prose prose-slate max-w-none prose-headings:text-foreground prose-strong:text-foreground prose-ul:text-foreground prose-li:text-foreground">
+              <div 
+                className="text-foreground whitespace-pre-wrap leading-relaxed"
+                dangerouslySetInnerHTML={{
+                  __html: formatTextContent(assessment.executive_summary)
+                    .replace(/\*\*(.+?)\*\*/g, '<strong class="text-foreground font-semibold">$1</strong>')
+                    .replace(/•/g, '<span class="text-primary mr-2 font-bold">•</span>')
+                    .replace(/\n/g, '<br />')
+                }}
+              />
             </div>
           </CardContent>
         </Card>
@@ -587,7 +684,7 @@ export default function AutomatedRiskAssessmentPage() {
               <div 
                 className="text-foreground whitespace-pre-wrap leading-relaxed"
                 dangerouslySetInnerHTML={{
-                  __html: formatTextContent(assessment.detailed_findings)
+                  __html: formatTextContent(assessment.detailed_findings, 'Detailed Findings')
                     .replace(/\*\*(.+?)\*\*/g, '<strong class="text-foreground font-semibold">$1</strong>')
                     .replace(/•/g, '<span class="text-primary mr-2 font-bold">•</span>')
                     .replace(/\n/g, '<br />')
@@ -610,7 +707,7 @@ export default function AutomatedRiskAssessmentPage() {
               <div 
                 className="text-foreground whitespace-pre-wrap leading-relaxed"
                 dangerouslySetInnerHTML={{
-                  __html: formatTextContent(assessment.remediation_plan)
+                  __html: formatTextContent(assessment.remediation_plan, 'Remediation Plan')
                     .replace(/\*\*(.+?)\*\*/g, '<strong class="text-foreground font-semibold">$1</strong>')
                     .replace(/•/g, '<span class="text-primary mr-2 font-bold">•</span>')
                     .replace(/\n/g, '<br />')
@@ -636,7 +733,7 @@ export default function AutomatedRiskAssessmentPage() {
                 <div 
                   className="text-foreground whitespace-pre-wrap leading-relaxed"
                   dangerouslySetInnerHTML={{
-                    __html: formatTextContent(assessment.re_assessment_timeline || '')
+                    __html: formatTextContent(assessment.re_assessment_timeline || '', 'Re-assessment Timeline')
                       .replace(/\*\*(.+?)\*\*/g, '<strong class="text-foreground font-semibold">$1</strong>')
                       .replace(/•/g, '<span class="text-primary mr-2 font-bold">•</span>')
                       .replace(/\n/g, '<br />')
