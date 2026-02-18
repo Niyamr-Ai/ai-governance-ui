@@ -10,6 +10,7 @@ import { Loader2, Shield, CheckCircle2, XCircle, AlertTriangle, FileText, Extern
 import Sidebar from "@/components/sidebar";
 import { supabase } from "@/utils/supabase/client";
 import { backendFetch } from "@/utils/backend-fetch";
+import Head from 'next/head';
 
 type JurisdictionResult = {
   id: "UK" | "EU" | "MAS";
@@ -275,6 +276,10 @@ export default function MultiJurisdictionResultsPage() {
 
   return (
     <div className="min-h-screen bg-white">
+      <Head>
+        <title>Multi-Jurisdiction Compliance Results</title>
+        <meta name="description" content="View compliance assessment results across multiple jurisdictions." />
+      </Head>
       <Sidebar />
       <div className="lg:pl-72 pt-24 p-8">
         <div className="container mx-auto max-w-5xl space-y-6">

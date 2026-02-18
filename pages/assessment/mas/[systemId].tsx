@@ -36,6 +36,7 @@ import { Loader2, Shield } from "lucide-react";
 import Sidebar from "@/components/sidebar";
 import { supabase } from "@/utils/supabase/client";
 import { backendFetch } from "@/utils/backend-fetch";
+import Head from 'next/head';
 
 
 
@@ -987,17 +988,17 @@ export default function MasAssessmentPage() {
 
             // Check if this is part of a multi-jurisdiction assessment
             const dataProcessingLocations = data.data_processing_locations || [];
-            const hasMultipleJurisdictions = 
+            const hasMultipleJurisdictions =
                 dataProcessingLocations.includes("Singapore") &&
                 ((dataProcessingLocations.includes("United Kingdom") || dataProcessingLocations.includes("UK")) ||
-                 (dataProcessingLocations.includes("European Union") || dataProcessingLocations.includes("EU") ||
-                  dataProcessingLocations.some((loc: string) => 
-                    ["Austria", "Belgium", "Bulgaria", "Croatia", "Cyprus", "Czechia",
-                     "Denmark", "Estonia", "Finland", "France", "Germany", "Greece",
-                     "Hungary", "Ireland", "Italy", "Latvia", "Lithuania", "Luxembourg",
-                     "Malta", "Netherlands", "Poland", "Portugal", "Romania", "Slovakia",
-                     "Slovenia", "Spain", "Sweden"].some(c => c.toLowerCase() === loc.toLowerCase())
-                  )));
+                    (dataProcessingLocations.includes("European Union") || dataProcessingLocations.includes("EU") ||
+                        dataProcessingLocations.some((loc: string) =>
+                            ["Austria", "Belgium", "Bulgaria", "Croatia", "Cyprus", "Czechia",
+                                "Denmark", "Estonia", "Finland", "France", "Germany", "Greece",
+                                "Hungary", "Ireland", "Italy", "Latvia", "Lithuania", "Luxembourg",
+                                "Malta", "Netherlands", "Poland", "Portugal", "Romania", "Slovakia",
+                                "Slovenia", "Spain", "Sweden"].some(c => c.toLowerCase() === loc.toLowerCase())
+                        )));
 
             console.log(`\n${'='.repeat(80)}`);
             console.log(`🔄 [MAS-ASSESSMENT] Loading MAS assessment`);
@@ -1094,17 +1095,17 @@ export default function MasAssessmentPage() {
             const dataProcessingLocations = systemData?.data_processing_locations || [];
             console.log(`📋 [MAS-ASSESSMENT] Data processing locations:`, dataProcessingLocations);
 
-            const hasMultipleJurisdictions = 
+            const hasMultipleJurisdictions =
                 dataProcessingLocations.includes("Singapore") &&
                 ((dataProcessingLocations.includes("United Kingdom") || dataProcessingLocations.includes("UK")) ||
-                 (dataProcessingLocations.includes("European Union") || dataProcessingLocations.includes("EU") ||
-                  dataProcessingLocations.some((loc: string) => 
-                    ["Austria", "Belgium", "Bulgaria", "Croatia", "Cyprus", "Czechia",
-                     "Denmark", "Estonia", "Finland", "France", "Germany", "Greece",
-                     "Hungary", "Ireland", "Italy", "Latvia", "Lithuania", "Luxembourg",
-                     "Malta", "Netherlands", "Poland", "Portugal", "Romania", "Slovakia",
-                     "Slovenia", "Spain", "Sweden"].some(c => c.toLowerCase() === loc.toLowerCase())
-                  )));
+                    (dataProcessingLocations.includes("European Union") || dataProcessingLocations.includes("EU") ||
+                        dataProcessingLocations.some((loc: string) =>
+                            ["Austria", "Belgium", "Bulgaria", "Croatia", "Cyprus", "Czechia",
+                                "Denmark", "Estonia", "Finland", "France", "Germany", "Greece",
+                                "Hungary", "Ireland", "Italy", "Latvia", "Lithuania", "Luxembourg",
+                                "Malta", "Netherlands", "Poland", "Portugal", "Romania", "Slovakia",
+                                "Slovenia", "Spain", "Sweden"].some(c => c.toLowerCase() === loc.toLowerCase())
+                        )));
 
             console.log(`🔍 [MAS-ASSESSMENT] Multiple jurisdictions detected: ${hasMultipleJurisdictions}`);
 
@@ -1168,12 +1169,12 @@ export default function MasAssessmentPage() {
                         console.log(`📋 [AUTO-POPULATE] Evidence key: ${key}`);
                         console.log(`📄 [AUTO-POPULATE] Extracted text length: ${extractedText.length} characters`);
                         console.log(`${'='.repeat(80)}\n`);
-                        
+
                         // Normalize evidence key: remove 'mas_' prefix if present (backend expects keys without prefix)
                         const normalizedKey = key.startsWith('mas_') ? key.replace(/^mas_/, '') : key;
-                        
+
                         console.log(`🔧 [AUTO-POPULATE] Normalizing evidence key: ${key} -> ${normalizedKey}`);
-                        
+
                         // Call universal analysis endpoint
                         const analysisRes = await backendFetch("/api/analyze-document", {
                             method: "POST",
@@ -1201,7 +1202,7 @@ export default function MasAssessmentPage() {
                                     setFieldValue(fieldName, value);
                                     populatedCount++;
                                     console.log(`✓ [AUTO-POPULATE] Populated: ${fieldName} (${value.length} chars)`);
-                                    
+
                                     // Track toggle fields that should be set to true
                                     // Governance
                                     if (fieldName === 'governance_policy_type' || fieldName === 'governance_framework') {
@@ -1224,7 +1225,7 @@ export default function MasAssessmentPage() {
                                         toggleFields['fairness_testing'] = true;
                                     }
                                     // Human Oversight
-                                    if (fieldName === 'human_oversight_type' || fieldName === 'human_oversight_processes' || 
+                                    if (fieldName === 'human_oversight_type' || fieldName === 'human_oversight_processes' ||
                                         fieldName === 'human_oversight_who' || fieldName === 'human_oversight_when' || fieldName === 'human_oversight_how') {
                                         toggleFields['human_oversight'] = true;
                                     }
@@ -1298,15 +1299,54 @@ export default function MasAssessmentPage() {
     type FormValues = MasValues;
 
     if (!systemId) {
-        return <div className="p-8">Invalid system</div>;
+        return (
+            <div className="min-h-screen bg-white">
+                <Head>
+                    <title>Invalid System | AI Governance</title>
+                    <meta name="description" content="The requested system ID is invalid or missing." />
+                </Head>
+                <Sidebar />
+                <div className="lg:pl-72 pt-24 p-8">
+                    <Card className="glass-panel shadow-elevated max-w-md mx-auto">
+                        <CardHeader>
+                            <CardTitle className="text-red-600">Invalid System</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <p className="text-muted-foreground">System ID is missing from the URL. Please navigate from the dashboard.</p>
+                            <Button onClick={() => router.push("/dashboard")} className="mt-4 w-full rounded-xl">
+                                Go to Dashboard
+                            </Button>
+                        </CardContent>
+                    </Card>
+                </div>
+            </div>
+        );
     }
 
     if (!masInitialFromDb) {
-        return <div className="p-8">Loading assessment…</div>;
+        return (
+            <div className="min-h-screen bg-white">
+                <Head>
+                    <title>Loading Assessment | AI Governance</title>
+                    <meta name="description" content="Loading the MAS AI risk management assessment..." />
+                </Head>
+                <Sidebar />
+                <div className="lg:pl-72 pt-24 p-8 flex items-center justify-center min-h-[400px]">
+                    <div className="text-center">
+                        <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
+                        <p className="text-muted-foreground">Loading MAS assessment…</p>
+                    </div>
+                </div>
+            </div>
+        );
     }
 
     return (
         <div className="min-h-screen bg-white">
+            <Head>
+                <title>MAS Assessment</title>
+                <meta name="description" content="Complete the MAS AI risk management framework compliance assessment." />
+            </Head>
             <Sidebar />
             <div className="lg:pl-72 pt-16 lg:pt-24 px-0 lg:px-4">
                 <div className="container mx-auto max-w-4xl py-4 px-2 lg:py-12 lg:px-4">
@@ -1331,8 +1371,8 @@ export default function MasAssessmentPage() {
                                     <div
                                         className="bg-purple-600 h-2 rounded-full transition-all"
                                         style={{
-                                            width: `${isMultiJurisdiction 
-                                                ? ((masCurrentPage) / (masPages.length - 1)) * 100 
+                                            width: `${isMultiJurisdiction
+                                                ? ((masCurrentPage) / (masPages.length - 1)) * 100
                                                 : ((masCurrentPage + 1) / masPages.length) * 100}%`,
                                         }}
                                     />
@@ -1430,7 +1470,7 @@ export default function MasAssessmentPage() {
                                                 <SecurityMonitoring
                                                     masCurrentPage={masCurrentPage}
                                                     handleEvidenceFileChange={handleEvidenceFileChangeWithForm}
-                                                    // evidenceContent={evidenceContent}
+                                                // evidenceContent={evidenceContent}
                                                 />
                                             )}
 
@@ -1481,7 +1521,7 @@ export default function MasAssessmentPage() {
 
 // Prevent static generation - this page requires Formik context at runtime
 export async function getServerSideProps() {
-  return {
-    props: {},
-  };
+    return {
+        props: {},
+    };
 }

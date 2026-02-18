@@ -11,27 +11,27 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from "@/components/ui/table";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { 
-  FileText, 
-  Loader2, 
-  AlertCircle, 
-  CheckCircle2, 
+import {
+  FileText,
+  Loader2,
+  AlertCircle,
+  CheckCircle2,
   RefreshCw,
   ExternalLink,
   Filter,
@@ -46,12 +46,14 @@ import { supabase } from "@/utils/supabase/client";
 import { backendFetch } from "@/utils/backend-fetch";
 import AuthenticatedLayout from "@/components/layout/AuthenticatedLayout";
 import type { DocumentationWithSystemInfo } from "../../types/documentation";
+import Head from 'next/head';
 
 export default function DocumentationPage() {
   const router = useRouter();
   const [documentation, setDocumentation] = useState<DocumentationWithSystemInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
   // Filters
   const [regulationFilter, setRegulationFilter] = useState<string>("all");
   const [documentTypeFilter, setDocumentTypeFilter] = useState<string>("all");
@@ -66,7 +68,7 @@ export default function DocumentationPage() {
     try {
       setLoading(true);
       setError(null);
-      
+
       const params = new URLSearchParams();
       if (regulationFilter !== "all") params.append("regulation_type", regulationFilter);
       if (documentTypeFilter !== "all") params.append("document_type", documentTypeFilter);
@@ -75,8 +77,8 @@ export default function DocumentationPage() {
       const res = await backendFetch(
         `/api/documentation?${params.toString()}`
       );
-      
-      
+
+
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.error || "Failed to fetch documentation");
@@ -168,6 +170,10 @@ export default function DocumentationPage() {
 
   return (
     <AuthenticatedLayout showLoading={loading}>
+      <Head>
+        <title>Documentation | AI Governance</title>
+        <meta name="description" content="View and manage all compliance documentation across all AI systems." />
+      </Head>
       <div className="max-w-7xl mx-auto space-y-6">
           {/* Header */}
           <div className="flex items-center justify-between">
@@ -415,4 +421,5 @@ export default function DocumentationPage() {
     </AuthenticatedLayout>
   );
 }
+
 

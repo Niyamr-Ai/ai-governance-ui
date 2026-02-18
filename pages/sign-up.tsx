@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import { AlertCircle, Loader2, Eye, EyeOff, Shield, Users, Lock, ArrowRight, Sparkles, CheckCircle2, ArrowLeft } from "lucide-react";
-
+import Head from 'next/head';
 export default function SignUp() {
   const router = useRouter();
 
@@ -57,12 +57,12 @@ export default function SignUp() {
     // 
     // However, sometimes Supabase might return the existing user object.
     // We need to check multiple indicators to detect existing accounts.
-    
+
     const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
     const signupStartTime = Date.now();
-    
+
     console.log('[Sign-up] Attempting signup for:', email);
-    
+
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -76,7 +76,7 @@ export default function SignUp() {
         },
       },
     });
-    
+
     console.log('[Sign-up] Supabase response:', {
       hasError: !!error,
       errorMessage: error?.message,
@@ -90,7 +90,7 @@ export default function SignUp() {
     // Check for explicit errors first
     if (error) {
       const errorMessage = error.message.toLowerCase();
-      
+
       if (
         errorMessage.includes('user already registered') ||
         errorMessage.includes('email already registered') ||
@@ -124,13 +124,13 @@ export default function SignUp() {
     // New signups should have a created_at timestamp very close to now (within 1 second)
     const signupEndTime = Date.now();
     const userCreatedAt = data.user.created_at ? new Date(data.user.created_at).getTime() : 0;
-    
+
     // Calculate raw time difference (signupEndTime - userCreatedAt)
     // Positive = user created before signup ended (normal for new accounts)
     // Negative = user created after signup ended (impossible for new accounts = existing account)
     const rawTimeDiff = signupEndTime - userCreatedAt;
     const timeDiff = Math.abs(rawTimeDiff);
-    
+
     console.log('[Sign-up] Checking user creation time:', {
       userId: data.user.id,
       createdAt: data.user.created_at,
@@ -144,9 +144,9 @@ export default function SignUp() {
       emailConfirmedAt: data.user.email_confirmed_at,
       lastSignInAt: data.user.last_sign_in_at
     });
-    
+
     // CRITICAL: Multiple checks to detect existing accounts
-    
+
     // Check 2a: PRIMARY CHECK - If user was created BEFORE signup started, it's definitely an existing account
     // This is the most reliable check - works regardless of when account was created (5 minutes or 10 years ago)
     // New accounts are created AFTER signupStartTime (when we call signUp)
@@ -160,7 +160,7 @@ export default function SignUp() {
       const timeBeforeSignupStartHours = Math.floor(timeBeforeSignupStartMinutes / 60);
       const timeBeforeSignupStartDays = Math.floor(timeBeforeSignupStartHours / 24);
       const timeBeforeSignupStartYears = Math.floor(timeBeforeSignupStartDays / 365);
-      
+
       console.log('[Sign-up] ❌ User created before signup started (EXISTING ACCOUNT):', {
         userCreatedAt,
         signupStartTime,
@@ -172,19 +172,19 @@ export default function SignUp() {
         timeBeforeSignupStartYears,
         reason: timeBeforeSignupStartYears > 0
           ? `User created ${timeBeforeSignupStartYears} year(s) ago - EXISTING ACCOUNT`
-          : timeBeforeSignupStartDays > 0 
-          ? `User created ${timeBeforeSignupStartDays} day(s) ago - EXISTING ACCOUNT`
-          : timeBeforeSignupStartHours > 0
-          ? `User created ${timeBeforeSignupStartHours} hour(s) ago - EXISTING ACCOUNT`
-          : timeBeforeSignupStartMinutes > 0
-          ? `User created ${timeBeforeSignupStartMinutes} minute(s) ago - EXISTING ACCOUNT`
-          : 'User created before signup call - EXISTING ACCOUNT'
+          : timeBeforeSignupStartDays > 0
+            ? `User created ${timeBeforeSignupStartDays} day(s) ago - EXISTING ACCOUNT`
+            : timeBeforeSignupStartHours > 0
+              ? `User created ${timeBeforeSignupStartHours} hour(s) ago - EXISTING ACCOUNT`
+              : timeBeforeSignupStartMinutes > 0
+                ? `User created ${timeBeforeSignupStartMinutes} minute(s) ago - EXISTING ACCOUNT`
+                : 'User created before signup call - EXISTING ACCOUNT'
       });
       setError("An account with this email already exists. Please sign in instead.");
       setLoading(false);
       return;
     }
-    
+
     // Check 2b: If rawTimeDiff is negative (user created AFTER signup ended), it's impossible for new accounts
     // This indicates Supabase returned an existing user
     if (rawTimeDiff < -50) {
@@ -196,7 +196,7 @@ export default function SignUp() {
       setLoading(false);
       return;
     }
-    
+
     // Check 2c: If user was created more than 2 seconds before signup ended, it's likely an existing account
     // (New accounts should be created within 1-2 seconds)
     // This will catch accounts created days/weeks/months ago (rawTimeDiff will be huge)
@@ -205,7 +205,7 @@ export default function SignUp() {
       const timeDiffMinutes = Math.floor(timeDiffSeconds / 60);
       const timeDiffHours = Math.floor(timeDiffMinutes / 60);
       const timeDiffDays = Math.floor(timeDiffHours / 24);
-      
+
       console.log('[Sign-up] ❌ User created too long ago:', {
         rawTimeDiff,
         timeDiffSeconds,
@@ -215,16 +215,16 @@ export default function SignUp() {
         reason: timeDiffDays > 0
           ? `User created ${timeDiffDays} day(s) ago - EXISTING ACCOUNT`
           : timeDiffHours > 0
-          ? `User created ${timeDiffHours} hour(s) ago - EXISTING ACCOUNT`
-          : timeDiffMinutes > 0
-          ? `User created ${timeDiffMinutes} minute(s) ago - EXISTING ACCOUNT`
-          : 'User created too long ago - EXISTING ACCOUNT'
+            ? `User created ${timeDiffHours} hour(s) ago - EXISTING ACCOUNT`
+            : timeDiffMinutes > 0
+              ? `User created ${timeDiffMinutes} minute(s) ago - EXISTING ACCOUNT`
+              : 'User created too long ago - EXISTING ACCOUNT'
       });
       setError("An account with this email already exists. Please sign in instead.");
       setLoading(false);
       return;
     }
-    
+
     // Check 2d: If user has last_sign_in_at set, it's definitely an existing account
     if (data.user.last_sign_in_at) {
       console.log('[Sign-up] ❌ User has last_sign_in_at:', {
@@ -235,11 +235,11 @@ export default function SignUp() {
       setLoading(false);
       return;
     }
-    
+
     // Check 2e: If user has app_metadata with provider info (OAuth), it's an existing account
     if (data.user.app_metadata && Object.keys(data.user.app_metadata).length > 0) {
-      const hasProvider = data.user.app_metadata.provider || 
-                         (data.user.app_metadata.providers && data.user.app_metadata.providers.length > 0);
+      const hasProvider = data.user.app_metadata.provider ||
+        (data.user.app_metadata.providers && data.user.app_metadata.providers.length > 0);
       if (hasProvider) {
         console.log('[Sign-up] ❌ User has OAuth provider metadata:', {
           appMetadata: data.user.app_metadata,
@@ -250,19 +250,19 @@ export default function SignUp() {
         return;
       }
     }
-    
+
     // CRITICAL CHECK 3: If user is already confirmed, it's definitely an existing account
     // (New signups won't be confirmed immediately - they need to click email link)
     if (data.user.email_confirmed_at) {
       const confirmedAt = new Date(data.user.email_confirmed_at).getTime();
       const confirmedTimeDiff = signupEndTime - confirmedAt;
-      
+
       console.log('[Sign-up] User email confirmation check:', {
         confirmedAt,
         confirmedTimeDiffMs: confirmedTimeDiff,
         confirmedTimeDiffSeconds: Math.floor(Math.abs(confirmedTimeDiff) / 1000)
       });
-      
+
       // If email was confirmed (and it's not a brand new account), it's existing
       // Allow 2 seconds for edge cases where confirmation happens instantly
       if (Math.abs(confirmedTimeDiff) > 2000) {
@@ -272,7 +272,7 @@ export default function SignUp() {
         return;
       }
     }
-    
+
     // Additional check: If user metadata doesn't match what we're trying to set, it might be existing
     // But this is less reliable, so we'll use it as a secondary check
     const userMetadata = data.user.user_metadata || {};
@@ -280,13 +280,13 @@ export default function SignUp() {
       console.log('[Sign-up] ⚠️ User metadata mismatch - might be existing account');
       // Don't fail on this alone, but log it
     }
-    
+
     console.log('[Sign-up] ✅ New account created successfully');
 
     // Success! Account created
     setSuccess("Account created successfully! Please check your email (including spam folder) to verify your account. Click the confirmation link to complete signup.");
     setLoading(false);
-    
+
     // Clear form
     setFirstName("");
     setLastName("");
@@ -340,6 +340,10 @@ export default function SignUp() {
 
   return (
     <div className="min-h-screen flex">
+      <Head>
+        <title>Create Account</title>
+        <meta name="description" content="Create an account to start governing your AI systems." />
+      </Head>
       {/* Left Section - Marketing */}
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-blue-50 via-blue-100/50 to-white p-12 flex-col justify-between">
         <div>

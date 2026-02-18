@@ -2,10 +2,15 @@
 
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
+import Head from 'next/head';
 
 export default function DashboardFeaturesPage() {
   return (
     <main className="min-h-screen bg-gradient-to-b from-gray-50 to-white text-gray-900">
+      <Head>
+        <title>Dashboard Features</title>
+        <meta name="description" content="Explore the features of the unified AI governance dashboard." />
+      </Head>
       <div className="mx-auto max-w-5xl px-6 py-12 space-y-10">
         <header className="space-y-3">
           <p className="text-sm font-semibold text-blue-600 uppercase tracking-wide">Dashboard</p>

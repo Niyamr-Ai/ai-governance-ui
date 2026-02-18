@@ -23,6 +23,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Loader2 } from "lucide-react";
+import Head from 'next/head';
 
 type BoolKey =
   | "uses_personal_data"
@@ -106,6 +107,10 @@ export default function MasAssessmentFormPage() {
 
   return (
     <div className="container mx-auto max-w-5xl py-10 px-4 space-y-8">
+      <Head>
+        <title>MAS Assessment</title>
+        <meta name="description" content="MAS (Monetary Authority of Singapore) AI risk assessment form." />
+      </Head>
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm text-slate-200 mb-1">MAS / UK-style AI Risk</p>
@@ -134,12 +139,12 @@ export default function MasAssessmentFormPage() {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
-      <Card className="bg-slate-900 border-slate-700 text-slate-100">
+        <Card className="bg-slate-900 border-slate-700 text-slate-100">
           <CardHeader>
-          <CardTitle>System Profile</CardTitle>
-          <CardDescription className="text-slate-300">
-            Core details about this AI system.
-          </CardDescription>
+            <CardTitle>System Profile</CardTitle>
+            <CardDescription className="text-slate-300">
+              Core details about this AI system.
+            </CardDescription>
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">

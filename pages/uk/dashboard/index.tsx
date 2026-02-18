@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Loader2, RefreshCcw, Shield, Plus, TrendingUp, AlertTriangle, CheckCircle, CheckCircle2, XCircle } from "lucide-react";
 import type { UKAssessmentResult, UKRiskLevel, UKComplianceStatus } from "@/types/uk";
+import Head from 'next/head';
 import Sidebar from "@/components/sidebar";
 import { supabase } from "@/utils/supabase/client";
 
@@ -112,6 +113,10 @@ export default function UKDashboardPage() {
 
   return (
     <div className="min-h-screen bg-white">
+      <Head>
+        <title>UK AI Act Dashboard</title>
+        <meta name="description" content="Overview of all UK AI regulatory framework assessments." />
+      </Head>
       {/* Sidebar */}
       <Sidebar onLogout={handleLogout} />
 
@@ -138,8 +143,8 @@ export default function UKDashboardPage() {
             >
               <RefreshCcw className="h-4 w-4 mr-2" /> Refresh
             </Button>
-            <Button 
-              onClick={() => router.push("/assessment")} 
+            <Button
+              onClick={() => router.push("/assessment")}
               variant="hero"
               className="rounded-xl"
             >
@@ -166,9 +171,8 @@ export default function UKDashboardPage() {
           <SummaryCard
             title="Compliant"
             value={summary.byStatus.Compliant || 0}
-            subtitle={`Partial: ${summary.byStatus["Partially compliant"] || 0}, Non: ${
-              summary.byStatus["Non-compliant"] || 0
-            }`}
+            subtitle={`Partial: ${summary.byStatus["Partially compliant"] || 0}, Non: ${summary.byStatus["Non-compliant"] || 0
+              }`}
           />
         </div>
 
@@ -228,31 +232,31 @@ export default function UKDashboardPage() {
                             <ComplianceBadge status={a.overall_assessment} />
                           </TableCell>
                           <TableCell className="py-4 text-center">
-                            <PrincipleStatusBadge 
+                            <PrincipleStatusBadge
                               meetsPrinciple={a.safety_and_security?.meetsPrinciple ?? false}
                               principle="Safety & Security"
                             />
                           </TableCell>
                           <TableCell className="py-4 text-center">
-                            <PrincipleStatusBadge 
+                            <PrincipleStatusBadge
                               meetsPrinciple={a.transparency?.meetsPrinciple ?? false}
                               principle="Transparency"
                             />
                           </TableCell>
                           <TableCell className="py-4 text-center">
-                            <PrincipleStatusBadge 
+                            <PrincipleStatusBadge
                               meetsPrinciple={a.fairness?.meetsPrinciple ?? false}
                               principle="Fairness"
                             />
                           </TableCell>
                           <TableCell className="py-4 text-center">
-                            <PrincipleStatusBadge 
+                            <PrincipleStatusBadge
                               meetsPrinciple={a.governance?.meetsPrinciple ?? false}
                               principle="Governance"
                             />
                           </TableCell>
                           <TableCell className="py-4 text-center">
-                            <PrincipleStatusBadge 
+                            <PrincipleStatusBadge
                               meetsPrinciple={a.contestability?.meetsPrinciple ?? false}
                               principle="Contestability"
                             />
@@ -313,10 +317,10 @@ function RiskLevelBadge({ level }: { level: UKRiskLevel }) {
     level === "Frontier / High-Impact Model"
       ? "bg-red-50 text-red-700 border-red-200 hover:bg-red-100"
       : level === "High-Risk (Sector)"
-      ? "bg-red-50 text-red-700 border-red-200 hover:bg-red-100"
-      : level === "Medium-Risk"
-      ? "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100"
-      : "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100";
+        ? "bg-red-50 text-red-700 border-red-200 hover:bg-red-100"
+        : level === "Medium-Risk"
+          ? "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100"
+          : "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100";
   return <Badge className={`${color} font-semibold px-2.5 py-1 rounded-full shadow-sm hover:shadow-md transition-all`}>{level}</Badge>;
 }
 
@@ -325,8 +329,8 @@ function ComplianceBadge({ status }: { status: UKComplianceStatus }) {
     status === "Compliant"
       ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
       : status === "Partially compliant"
-      ? "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100"
-      : "bg-red-50 text-red-700 border-red-200 hover:bg-red-100";
+        ? "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100"
+        : "bg-red-50 text-red-700 border-red-200 hover:bg-red-100";
   return (
     <Badge className={`${color} font-semibold px-2.5 py-1 rounded-full shadow-sm hover:shadow-md transition-all flex items-center gap-1.5`}>
       {status === "Compliant" && <CheckCircle className="w-3.5 h-3.5" />}
@@ -337,11 +341,11 @@ function ComplianceBadge({ status }: { status: UKComplianceStatus }) {
   );
 }
 
-function PrincipleStatusBadge({ 
-  meetsPrinciple, 
-  principle 
-}: { 
-  meetsPrinciple: boolean; 
+function PrincipleStatusBadge({
+  meetsPrinciple,
+  principle
+}: {
+  meetsPrinciple: boolean;
   principle: string;
 }) {
   if (meetsPrinciple) {

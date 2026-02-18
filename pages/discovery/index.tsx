@@ -68,6 +68,7 @@ import { SmartShadowAIAssessment } from "../../components/ui/smart-shadow-ai-ass
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import type { BaseDiscoveredAIAsset } from "../../types/discovery";
 import type { DiscoveredAIAsset } from "@/types/discovery";
+import Head from 'next/head';
 
 interface DiscoveryStats {
   total: number;
@@ -311,6 +312,10 @@ export default function DiscoveryDashboard() {
 
   return (
     <AuthenticatedLayout showLoading={loading}>
+      <Head>
+        <title>Discovery | AI Governance</title>
+        <meta name="description" content="Discover and manage AI systems in use, detect Shadow AI." />
+      </Head>
       <div className="space-y-8">
           {/* Header */}
           <div className="max-w-7xl mx-auto space-y-3">

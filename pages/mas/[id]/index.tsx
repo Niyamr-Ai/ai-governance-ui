@@ -16,6 +16,7 @@ import { Loader2, ArrowLeft } from "lucide-react";
 import type { MasAssessmentResult, MasComplianceStatus, MasRiskLevel } from "@/types/mas";
 import { supabase } from "@/utils/supabase/client";
 import Sidebar from "@/components/sidebar";
+import Head from 'next/head';
 
 async function backendFetch(
   path: string,
@@ -131,18 +132,18 @@ export default function MasAssessmentDetailPage() {
 
             if (!systemError && systemData) {
               const dataProcessingLocations = systemData.data_processing_locations || [];
-              
+
               // Check if system has multiple jurisdictions
               const hasUK = dataProcessingLocations.includes("United Kingdom") || dataProcessingLocations.includes("UK");
-              const hasEU = dataProcessingLocations.includes("European Union") || 
-                           dataProcessingLocations.includes("EU") ||
-                           dataProcessingLocations.some((loc: string) =>
-                             ["Austria", "Belgium", "Bulgaria", "Croatia", "Cyprus", "Czechia",
-                              "Denmark", "Estonia", "Finland", "France", "Germany", "Greece",
-                              "Hungary", "Ireland", "Italy", "Latvia", "Lithuania", "Luxembourg",
-                              "Malta", "Netherlands", "Poland", "Portugal", "Romania", "Slovakia",
-                              "Slovenia", "Spain", "Sweden"].some(c => c.toLowerCase() === loc.toLowerCase())
-                           );
+              const hasEU = dataProcessingLocations.includes("European Union") ||
+                dataProcessingLocations.includes("EU") ||
+                dataProcessingLocations.some((loc: string) =>
+                  ["Austria", "Belgium", "Bulgaria", "Croatia", "Cyprus", "Czechia",
+                    "Denmark", "Estonia", "Finland", "France", "Germany", "Greece",
+                    "Hungary", "Ireland", "Italy", "Latvia", "Lithuania", "Luxembourg",
+                    "Malta", "Netherlands", "Poland", "Portugal", "Romania", "Slovakia",
+                    "Slovenia", "Spain", "Sweden"].some(c => c.toLowerCase() === loc.toLowerCase())
+                );
               const hasSingapore = dataProcessingLocations.includes("Singapore");
 
               // Multi-jurisdiction if Singapore + (UK or EU)
@@ -161,7 +162,7 @@ export default function MasAssessmentDetailPage() {
         setLoading(false);
       }
     };
-    
+
     fetchAssessment();
   }, [router.isReady, id]);
 
@@ -209,28 +210,32 @@ export default function MasAssessmentDetailPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <Head>
+        <title>MAS Assessment Detail</title>
+        <meta name="description" content="View detailed MAS AI risk assessment results." />
+      </Head>
       <Sidebar onLogout={handleLogout} />
       <div className={`container mx-auto max-w-6xl py-10 px-4 space-y-8 ${isLoggedIn ? 'lg:pl-72 pt-24' : ''}`}>
-      <div className="flex items-center justify-end">
-        <div className="flex gap-3">
-          {data?.system_id && isMultiJurisdiction && (
+        <div className="flex items-center justify-end">
+          <div className="flex gap-3">
+            {data?.system_id && isMultiJurisdiction && (
+              <Button
+                variant="default"
+                className="bg-primary text-white hover:bg-primary/90"
+                onClick={() => router.push(`/compliance/multi/${data.system_id}`)}
+              >
+                Back to Multi-Jurisdiction Results
+              </Button>
+            )}
             <Button
-              variant="default"
-              className="bg-primary text-white hover:bg-primary/90"
-              onClick={() => router.push(`/compliance/multi/${data.system_id}`)}
+              variant="outline"
+              className="border-gray-300 bg-white text-gray-900 hover:bg-gray-100 hover:text-gray-900"
+              onClick={() => router.push("/dashboard")}
             >
-              Back to Multi-Jurisdiction Results
+              Back to Dashboard
             </Button>
-          )}
-          <Button
-            variant="outline"
-            className="border-gray-300 bg-white text-gray-900 hover:bg-gray-100 hover:text-gray-900"
-            onClick={() => router.push("/dashboard")}
-          >
-            Back to Dashboard
-          </Button>
+          </div>
         </div>
-      </div>
 
         {/* MAS Compliance Progress */}
         {(() => {
@@ -239,7 +244,7 @@ export default function MasAssessmentDetailPage() {
           const totalPillars = pillars.length;
           const compliancePercentage = (compliantCount / totalPillars) * 100;
           const averageScore = pillars.reduce((sum, p) => sum + (p?.score ?? 0), 0) / totalPillars;
-          
+
           return (
             <Card className="bg-white border-gray-200 shadow-sm">
               <CardHeader className="bg-white">
@@ -273,119 +278,119 @@ export default function MasAssessmentDetailPage() {
             <CardDescription className="text-gray-600 font-medium">MAS / UK-style AI Risk</CardDescription>
             <CardTitle className="text-3xl text-gray-900 font-bold">{data.system_name}</CardTitle>
             <p className="text-gray-700 text-base">{data.description}</p>
-          <div className="flex flex-wrap gap-2 mt-2">
+            <div className="flex flex-wrap gap-2 mt-2">
               <Badge className="bg-blue-100 text-blue-800 border-blue-300 font-medium">
-              Sector: {data.sector || "—"}
-            </Badge>
+                Sector: {data.sector || "—"}
+              </Badge>
               <Badge className="bg-gray-100 text-gray-800 border-gray-300 capitalize font-medium">
-              Status: {data.system_status}
-            </Badge>
-            <StatusBadge level={data.overall_risk_level} />
-            <ComplianceBadge status={data.overall_compliance_status} />
-          </div>
-        </CardHeader>
+                Status: {data.system_status}
+              </Badge>
+              <StatusBadge level={data.overall_risk_level} />
+              <ComplianceBadge status={data.overall_compliance_status} />
+            </div>
+          </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-white">
-          <InfoItem label="Owner" value={data.owner} />
-          <InfoItem label="Jurisdiction" value={data.jurisdiction} />
-          <InfoItem label="Business use case" value={data.business_use_case} />
-          <InfoItem
-            label="Data types"
-            value={data.data_types}
-            className="md:col-span-3"
-          />
-          <InfoItem
-            label="Flags"
-            value={[
-              data.uses_personal_data ? "Personal data" : null,
-              data.uses_special_category_data ? "Special category data" : null,
-              data.uses_third_party_ai ? "Third-party AI" : null,
-            ]
-              .filter(Boolean)
-              .join(" • ") || "None indicated"}
-            className="md:col-span-3"
-          />
-          <InfoItem
-            label="Created at"
-            value={data.created_at ? new Date(data.created_at).toLocaleString() : "—"}
-          />
-        </CardContent>
-      </Card>
+            <InfoItem label="Owner" value={data.owner} />
+            <InfoItem label="Jurisdiction" value={data.jurisdiction} />
+            <InfoItem label="Business use case" value={data.business_use_case} />
+            <InfoItem
+              label="Data types"
+              value={data.data_types}
+              className="md:col-span-3"
+            />
+            <InfoItem
+              label="Flags"
+              value={[
+                data.uses_personal_data ? "Personal data" : null,
+                data.uses_special_category_data ? "Special category data" : null,
+                data.uses_third_party_ai ? "Third-party AI" : null,
+              ]
+                .filter(Boolean)
+                .join(" • ") || "None indicated"}
+              className="md:col-span-3"
+            />
+            <InfoItem
+              label="Created at"
+              value={data.created_at ? new Date(data.created_at).toLocaleString() : "—"}
+            />
+          </CardContent>
+        </Card>
 
         <Card className="bg-white border-gray-200 shadow-sm">
           <CardHeader className="bg-white">
             <CardTitle className="text-2xl text-gray-900 font-bold">Pillar overview</CardTitle>
             <CardDescription className="text-gray-600">Snapshot of status and scores.</CardDescription>
-        </CardHeader>
+          </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white">
+            {pillarOrder.map((key) => {
+              const pillar = data[key] as any;
+              return (
+                <div
+                  key={key}
+                  className="border-2 border-gray-200 rounded-lg p-4 flex flex-col gap-3 bg-white hover:border-blue-300 transition-colors"
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-base font-semibold text-gray-900">{pillarLabels[key]}</p>
+                      <div className="text-sm text-gray-600 font-medium mt-1">Score: {pillar?.score ?? 0}/100</div>
+                    </div>
+                    <ComplianceBadge status={pillar?.status || "Partially compliant"} />
+                  </div>
+                  <Progress value={pillar?.score ?? 0} className="h-2" />
+                </div>
+              );
+            })}
+          </CardContent>
+        </Card>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {pillarOrder.map((key) => {
             const pillar = data[key] as any;
             return (
-              <div
-                key={key}
-                  className="border-2 border-gray-200 rounded-lg p-4 flex flex-col gap-3 bg-white hover:border-blue-300 transition-colors"
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                      <p className="text-base font-semibold text-gray-900">{pillarLabels[key]}</p>
-                      <div className="text-sm text-gray-600 font-medium mt-1">Score: {pillar?.score ?? 0}/100</div>
-                  </div>
-                  <ComplianceBadge status={pillar?.status || "Partially compliant"} />
-                </div>
-                <Progress value={pillar?.score ?? 0} className="h-2" />
-              </div>
-            );
-          })}
-        </CardContent>
-      </Card>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {pillarOrder.map((key) => {
-          const pillar = data[key] as any;
-          return (
               <Card key={key} className="bg-white border-gray-200 shadow-sm">
                 <CardHeader className="bg-white">
                   <CardTitle className="text-xl text-gray-900 font-bold">{pillarLabels[key]}</CardTitle>
-                <CardDescription className="flex items-center gap-3">
-                  <ComplianceBadge status={pillar?.status || "Partially compliant"} />
+                  <CardDescription className="flex items-center gap-3">
+                    <ComplianceBadge status={pillar?.status || "Partially compliant"} />
                     <span className="text-gray-700 font-semibold">Score: {pillar?.score ?? 0}/100</span>
-                </CardDescription>
-              </CardHeader>
+                  </CardDescription>
+                </CardHeader>
                 <CardContent className="space-y-4 bg-white">
-                <div>
+                  <div>
                     <p className="text-sm font-bold text-gray-900 mb-2">Gaps</p>
                     <ul className="list-disc list-inside text-sm space-y-1 text-gray-700">
-                    {(pillar?.gaps || ["No gaps provided"]).map((item: string, idx: number) => (
+                      {(pillar?.gaps || ["No gaps provided"]).map((item: string, idx: number) => (
                         <li key={idx} className="text-gray-800">{item}</li>
-                    ))}
-                  </ul>
-                </div>
-                <div>
+                      ))}
+                    </ul>
+                  </div>
+                  <div>
                     <p className="text-sm font-bold text-gray-900 mb-2">Recommended actions</p>
                     <ul className="list-disc list-inside text-sm space-y-1 text-gray-700">
-                    {(pillar?.recommendations || ["No recommendations provided"]).map(
-                      (item: string, idx: number) => (
+                      {(pillar?.recommendations || ["No recommendations provided"]).map(
+                        (item: string, idx: number) => (
                           <li key={idx} className="text-gray-800">{item}</li>
-                      )
-                    )}
-                  </ul>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
+                        )
+                      )}
+                    </ul>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
 
         <Card className="bg-white border-gray-200 shadow-sm">
           <CardHeader className="bg-white">
             <CardTitle className="text-2xl text-gray-900 font-bold">Summary</CardTitle>
             <CardDescription className="text-gray-600">
-            Overall risk and compliance narrative (100-200 words).
-          </CardDescription>
-        </CardHeader>
+              Overall risk and compliance narrative (100-200 words).
+            </CardDescription>
+          </CardHeader>
           <CardContent className="bg-white">
             <p className="text-gray-800 whitespace-pre-line leading-relaxed text-base">{data.summary}</p>
           </CardContent>
-      </Card>
+        </Card>
       </div>
     </div>
   );
@@ -396,10 +401,10 @@ function StatusBadge({ level }: { level: MasRiskLevel }) {
     level === "Critical"
       ? "bg-red-100 text-red-800 border-red-300"
       : level === "High"
-      ? "bg-orange-100 text-orange-800 border-orange-300"
-      : level === "Medium"
-      ? "bg-yellow-100 text-yellow-800 border-yellow-300"
-      : "bg-green-100 text-green-800 border-green-300";
+        ? "bg-orange-100 text-orange-800 border-orange-300"
+        : level === "Medium"
+          ? "bg-yellow-100 text-yellow-800 border-yellow-300"
+          : "bg-green-100 text-green-800 border-green-300";
   return <Badge className={`${color} font-semibold capitalize`}>{level}</Badge>;
 }
 
@@ -408,8 +413,8 @@ function ComplianceBadge({ status }: { status: MasComplianceStatus }) {
     status === "Compliant"
       ? "bg-green-100 text-green-800 border-green-300"
       : status === "Partially compliant"
-      ? "bg-yellow-100 text-yellow-800 border-yellow-300"
-      : "bg-red-100 text-red-800 border-red-300";
+        ? "bg-yellow-100 text-yellow-800 border-yellow-300"
+        : "bg-red-100 text-red-800 border-red-300";
   return <Badge className={`${color} font-semibold`}>{status}</Badge>;
 }
 

@@ -36,6 +36,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/utils/supabase/client";
+import Head from 'next/head';
 
 async function backendFetch(
   path: string,
@@ -220,12 +221,12 @@ export default function ComplianceResultPage() {
   // For prohibited and minimal-risk systems, show all as "Not Applicable"
   const obligationsData = isNotApplicable
     ? [
-        { name: "Not Applicable", value: totalObligations, color: "#6b7280", gradientId: "notApplicableGradient" },
-      ]
+      { name: "Not Applicable", value: totalObligations, color: "#6b7280", gradientId: "notApplicableGradient" },
+    ]
     : [
-        { name: "Fulfilled", value: fulfilledObligations, color: COLORS.fulfilled, gradientId: "fulfilledGradient" },
-        { name: "Missing", value: high_risk_missing.length, color: COLORS.missing, gradientId: "missingGradient" },
-      ];
+      { name: "Fulfilled", value: fulfilledObligations, color: COLORS.fulfilled, gradientId: "fulfilledGradient" },
+      { name: "Missing", value: high_risk_missing.length, color: COLORS.missing, gradientId: "missingGradient" },
+    ];
 
   // Data for bar chart - Individual Obligations with varied colors
   const obligationColors = [
@@ -266,10 +267,10 @@ export default function ComplianceResultPage() {
   // Data for monitoring status
   const monitoringData = monitoring_required
     ? [
-        { name: "Post-Market Monitoring", value: post_market_monitoring ? 100 : 0 },
-        { name: "Incident Reporting", value: incident_reporting ? 100 : 0 },
-        { name: "FRIA Completed", value: fria_completed ? 100 : 0 },
-      ]
+      { name: "Post-Market Monitoring", value: post_market_monitoring ? 100 : 0 },
+      { name: "Incident Reporting", value: incident_reporting ? 100 : 0 },
+      { name: "FRIA Completed", value: fria_completed ? 100 : 0 },
+    ]
     : [];
 
   // Handle case where ID is not available (server-side rendering)
@@ -288,6 +289,10 @@ export default function ComplianceResultPage() {
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-white via-gray-50 to-blue-50 py-8 px-4 sm:px-6 lg:px-8">
+      <Head>
+        <title>Compliance Details</title>
+        <meta name="description" content="Detailed view of the AI compliance assessment." />
+      </Head>
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header Section */}
         <div className="flex items-center justify-between">
@@ -305,8 +310,8 @@ export default function ComplianceResultPage() {
             )}
           </div>
           <div className="flex gap-2">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               className="border-gray-300 bg-white text-gray-900 hover:bg-gray-100 hover:text-gray-900"
               onClick={() => router.push("/dashboard")}
             >
@@ -360,11 +365,11 @@ export default function ComplianceResultPage() {
                 )}
               </div>
               <div className={`text-sm mt-1 ${isNotApplicable ? 'text-gray-500' : 'text-slate-400'}`}>
-                {isProhibited 
-                  ? 'Not Applicable - System is Prohibited' 
-                  : isMinimalRisk 
-                  ? 'Not Applicable - Minimal-risk systems do not require high-risk obligations'
-                  : `${compliancePercentage}% Complete`}
+                {isProhibited
+                  ? 'Not Applicable - System is Prohibited'
+                  : isMinimalRisk
+                    ? 'Not Applicable - Minimal-risk systems do not require high-risk obligations'
+                    : `${compliancePercentage}% Complete`}
               </div>
             </CardContent>
           </Card>
@@ -432,14 +437,14 @@ export default function ComplianceResultPage() {
                     strokeWidth={1}
                   >
                     {obligationsData.map((entry, index) => (
-                      <Cell 
-                        key={`cell-${index}`} 
+                      <Cell
+                        key={`cell-${index}`}
                         fill={entry.gradientId ? `url(#${entry.gradientId})` : entry.color}
                         style={{ filter: "drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1))" }}
                       />
                     ))}
                   </Pie>
-                  <ChartTooltip 
+                  <ChartTooltip
                     content={({ active, payload }) => {
                       if (active && payload && payload.length) {
                         const data = payload[0];
@@ -495,8 +500,8 @@ export default function ComplianceResultPage() {
                       height={70}
                       axisLine={{ stroke: "#cbd5e1" }}
                     />
-                    <YAxis 
-                      domain={[0, 100]} 
+                    <YAxis
+                      domain={[0, 100]}
                       tick={{ fill: "#64748b", fontSize: 10 }}
                       axisLine={{ stroke: "#cbd5e1" }}
                       width={35}
@@ -529,9 +534,9 @@ export default function ComplianceResultPage() {
                                 )}
                               </div>
                               <p className="text-sm text-muted-foreground mt-2">
-                                {isNotApplicableTooltip 
-                                  ? (isProhibited 
-                                    ? "System is prohibited - obligations do not apply" 
+                                {isNotApplicableTooltip
+                                  ? (isProhibited
+                                    ? "System is prohibited - obligations do not apply"
                                     : "Minimal-risk systems do not require high-risk obligations")
                                   : `Score: ${data.value}%`}
                               </p>
@@ -541,8 +546,8 @@ export default function ComplianceResultPage() {
                         return null;
                       }}
                     />
-                    <Bar 
-                      dataKey="value" 
+                    <Bar
+                      dataKey="value"
                       radius={[8, 8, 0, 0]}
                       style={{ filter: "drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1))" }}
                     >
@@ -570,10 +575,10 @@ export default function ComplianceResultPage() {
                 {isProhibited
                   ? "Obligations are not applicable for prohibited systems"
                   : isMinimalRisk
-                  ? "High-risk obligations are not applicable for minimal-risk systems"
-                  : high_risk_all_fulfilled
-                  ? "All obligations are fulfilled"
-                  : `${high_risk_missing.length} obligation(s) missing`}
+                    ? "High-risk obligations are not applicable for minimal-risk systems"
+                    : high_risk_all_fulfilled
+                      ? "All obligations are fulfilled"
+                      : `${high_risk_missing.length} obligation(s) missing`}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -583,13 +588,12 @@ export default function ComplianceResultPage() {
                   return (
                     <div
                       key={key}
-                      className={`flex items-center justify-between p-3 rounded-lg border ${
-                        isNotApplicable
-                          ? "bg-gray-100 border-gray-300"
-                          : isFulfilled
+                      className={`flex items-center justify-between p-3 rounded-lg border ${isNotApplicable
+                        ? "bg-gray-100 border-gray-300"
+                        : isFulfilled
                           ? "bg-emerald-50 border-emerald-200"
                           : "bg-red-50 border-red-200"
-                      }`}
+                        }`}
                     >
                       <div className="flex items-center gap-3">
                         {isNotApplicable ? (
@@ -605,9 +609,9 @@ export default function ComplianceResultPage() {
                         variant={isNotApplicable ? "secondary" : (isFulfilled ? "default" : "destructive")}
                         className={isNotApplicable
                           ? "bg-gray-500/80 text-white border-gray-400/50"
-                          : isFulfilled 
-                          ? "bg-emerald-600/80 text-foreground border-emerald-500/50" 
-                          : "bg-red-600/80 text-foreground border-red-500/50"}
+                          : isFulfilled
+                            ? "bg-emerald-600/80 text-foreground border-emerald-500/50"
+                            : "bg-red-600/80 text-foreground border-red-500/50"}
                       >
                         {isNotApplicable ? "Not Applicable" : (isFulfilled ? "Fulfilled" : "Missing")}
                       </Badge>
@@ -637,9 +641,8 @@ export default function ComplianceResultPage() {
                         return (
                           <div
                             key={key}
-                            className={`flex items-center gap-2 p-2 rounded ${
-                              isFulfilled ? "bg-emerald-50 border border-emerald-200" : "bg-red-50 border border-red-200"
-                            }`}
+                            className={`flex items-center gap-2 p-2 rounded ${isFulfilled ? "bg-emerald-50 border border-emerald-200" : "bg-red-50 border border-red-200"
+                              }`}
                           >
                             {isFulfilled ? (
                               <CheckCircle2 className="h-4 w-4 text-emerald-600" />
@@ -655,8 +658,8 @@ export default function ComplianceResultPage() {
                 ) : (
                   <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
                     <p className="text-sm text-muted-foreground">
-                      <strong className="text-foreground">Transparency Requirements:</strong> Not required for this AI system. 
-                      Transparency obligations (Article 50) apply to limited-risk AI systems that 
+                      <strong className="text-foreground">Transparency Requirements:</strong> Not required for this AI system.
+                      Transparency obligations (Article 50) apply to limited-risk AI systems that
                       interact with humans, generate synthetic content, or perform emotion/biometric recognition.
                     </p>
                   </div>
@@ -667,9 +670,8 @@ export default function ComplianceResultPage() {
                     <h4 className="font-semibold text-foreground mb-2">Monitoring & FRIA</h4>
                     <div className="space-y-2">
                       <div
-                        className={`flex items-center gap-2 p-2 rounded ${
-                          post_market_monitoring ? "bg-emerald-50 border border-emerald-200" : "bg-red-50 border border-red-200"
-                        }`}
+                        className={`flex items-center gap-2 p-2 rounded ${post_market_monitoring ? "bg-emerald-50 border border-emerald-200" : "bg-red-50 border border-red-200"
+                          }`}
                       >
                         {post_market_monitoring ? (
                           <CheckCircle2 className="h-4 w-4 text-emerald-600" />
@@ -681,9 +683,8 @@ export default function ComplianceResultPage() {
                         </span>
                       </div>
                       <div
-                        className={`flex items-center gap-2 p-2 rounded ${
-                          incident_reporting ? "bg-emerald-50 border border-emerald-200" : "bg-red-50 border border-red-200"
-                        }`}
+                        className={`flex items-center gap-2 p-2 rounded ${incident_reporting ? "bg-emerald-50 border border-emerald-200" : "bg-red-50 border border-red-200"
+                          }`}
                       >
                         {incident_reporting ? (
                           <CheckCircle2 className="h-4 w-4 text-emerald-600" />
@@ -695,9 +696,8 @@ export default function ComplianceResultPage() {
                         </span>
                       </div>
                       <div
-                        className={`flex items-center gap-2 p-2 rounded ${
-                          fria_completed ? "bg-emerald-50 border border-emerald-200" : "bg-red-50 border border-red-200"
-                        }`}
+                        className={`flex items-center gap-2 p-2 rounded ${fria_completed ? "bg-emerald-50 border border-emerald-200" : "bg-red-50 border border-red-200"
+                          }`}
                       >
                         {fria_completed ? (
                           <CheckCircle2 className="h-4 w-4 text-emerald-600" />
@@ -713,8 +713,8 @@ export default function ComplianceResultPage() {
                 ) : (
                   <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
                     <p className="text-sm text-muted-foreground">
-                      <strong className="text-foreground">Monitoring & FRIA:</strong> Not required for this AI system. 
-                      Post-market monitoring and Fundamental Rights Impact Assessment (FRIA) 
+                      <strong className="text-foreground">Monitoring & FRIA:</strong> Not required for this AI system.
+                      Post-market monitoring and Fundamental Rights Impact Assessment (FRIA)
                       are mandatory for high-risk AI systems only.
                     </p>
                   </div>
@@ -752,11 +752,11 @@ export default function ComplianceResultPage() {
                     if (!str || str.length === 0) return str;
                     return str.charAt(0).toUpperCase() + str.slice(1);
                   };
-                  
-                  const formattedValue = Array.isArray(value) 
+
+                  const formattedValue = Array.isArray(value)
                     ? value.map(v => capitalizeFirst(String(v))).join(", ")
                     : capitalizeFirst(String(value));
-                  
+
                   return (
                     <div key={key} className="p-3 bg-gray-50 rounded-lg border border-gray-200">
                       <div className="font-semibold text-foreground mb-1">{key}</div>

@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import Sidebar from "@/components/sidebar";
 import { supabase } from "@/utils/supabase/client";
+import Head from 'next/head';
 
 async function backendFetch(
   path: string,
@@ -79,7 +80,7 @@ export default function UKAssessmentDetailPage() {
         setLoading(false);
         return;
       }
-      
+
       try {
         const res = await backendFetch(`/api/uk-compliance/${id}`);
         if (!res.ok) {
@@ -100,18 +101,18 @@ export default function UKAssessmentDetailPage() {
 
             if (!systemError && systemData) {
               const dataProcessingLocations = systemData.data_processing_locations || [];
-              
+
               // Check if system has multiple jurisdictions
               const hasUK = dataProcessingLocations.includes("United Kingdom") || dataProcessingLocations.includes("UK");
-              const hasEU = dataProcessingLocations.includes("European Union") || 
-                           dataProcessingLocations.includes("EU") ||
-                           dataProcessingLocations.some((loc: string) =>
-                             ["Austria", "Belgium", "Bulgaria", "Croatia", "Cyprus", "Czechia",
-                              "Denmark", "Estonia", "Finland", "France", "Germany", "Greece",
-                              "Hungary", "Ireland", "Italy", "Latvia", "Lithuania", "Luxembourg",
-                              "Malta", "Netherlands", "Poland", "Portugal", "Romania", "Slovakia",
-                              "Slovenia", "Spain", "Sweden"].some(c => c.toLowerCase() === loc.toLowerCase())
-                           );
+              const hasEU = dataProcessingLocations.includes("European Union") ||
+                dataProcessingLocations.includes("EU") ||
+                dataProcessingLocations.some((loc: string) =>
+                  ["Austria", "Belgium", "Bulgaria", "Croatia", "Cyprus", "Czechia",
+                    "Denmark", "Estonia", "Finland", "France", "Germany", "Greece",
+                    "Hungary", "Ireland", "Italy", "Latvia", "Lithuania", "Luxembourg",
+                    "Malta", "Netherlands", "Poland", "Portugal", "Romania", "Slovakia",
+                    "Slovenia", "Spain", "Sweden"].some(c => c.toLowerCase() === loc.toLowerCase())
+                );
               const hasSingapore = dataProcessingLocations.includes("Singapore");
 
               // Multi-jurisdiction if UK + (EU or Singapore)
@@ -158,8 +159,8 @@ export default function UKAssessmentDetailPage() {
                 </AlertDescription>
               </Alert>
               <div className="flex gap-3 mt-4">
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   className="border-gray-300 bg-white text-gray-900 hover:bg-gray-100 hover:text-gray-900 rounded-xl"
                   onClick={() => router.push("/dashboard")}
                 >
@@ -259,6 +260,10 @@ export default function UKAssessmentDetailPage() {
 
   return (
     <div className="min-h-screen bg-background">
+      <Head>
+        <title>UK Assessment Detail</title>
+        <meta name="description" content="View detailed UK AI regulatory framework assessment results." />
+      </Head>
       <Sidebar onLogout={handleLogout} />
       <div className={`container mx-auto max-w-6xl py-10 px-4 space-y-8 ${isLoggedIn ? 'lg:pl-72 pt-24' : ''}`}>
         <div className="flex items-center justify-between">
@@ -271,26 +276,26 @@ export default function UKAssessmentDetailPage() {
               Assessment ID: {id} • {new Date(data.created_at).toLocaleDateString()}
             </p>
           </div>
-        <div className="flex gap-3">
           <div className="flex gap-3">
-            {data.system_id && isMultiJurisdiction && (
-              <Button 
-                variant="default" 
-                className="bg-primary text-white hover:bg-primary/90"
-                onClick={() => router.push(`/compliance/multi/${data.system_id}`)}
+            <div className="flex gap-3">
+              {data.system_id && isMultiJurisdiction && (
+                <Button
+                  variant="default"
+                  className="bg-primary text-white hover:bg-primary/90"
+                  onClick={() => router.push(`/compliance/multi/${data.system_id}`)}
+                >
+                  Back to Multi-Jurisdiction Results
+                </Button>
+              )}
+              <Button
+                variant="outline"
+                className="border-gray-300 bg-white text-gray-900 hover:bg-gray-100 hover:text-gray-900"
+                onClick={() => router.push("/dashboard")}
               >
-                Back to Multi-Jurisdiction Results
+                Back to Dashboard
               </Button>
-            )}
-            <Button 
-              variant="outline" 
-              className="border-gray-300 bg-white text-gray-900 hover:bg-gray-100 hover:text-gray-900"
-              onClick={() => router.push("/dashboard")}
-            >
-              Back to Dashboard
-            </Button>
+            </div>
           </div>
-        </div>
         </div>
 
         {/* Risk Level and Overall Assessment */}
@@ -329,7 +334,7 @@ export default function UKAssessmentDetailPage() {
           const metCount = principles.filter(p => p?.meetsPrinciple).length;
           const totalPrinciples = principles.length;
           const compliancePercentage = (metCount / totalPrinciples) * 100;
-          
+
           return (
             <Card className="glass-panel border-border/50 shadow-elevated">
               <CardHeader className="bg-secondary/30">
@@ -345,7 +350,7 @@ export default function UKAssessmentDetailPage() {
                     <span className="text-lg font-bold text-foreground">{Math.round(compliancePercentage)}%</span>
                   </div>
                   <div className="relative h-4 w-full overflow-hidden rounded-full bg-secondary/50">
-                    <div 
+                    <div
                       className="h-full bg-gradient-to-r from-primary to-emerald-500 transition-all duration-500 ease-out"
                       style={{ width: `${compliancePercentage}%` }}
                     />

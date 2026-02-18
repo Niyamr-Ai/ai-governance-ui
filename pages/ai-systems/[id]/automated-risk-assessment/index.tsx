@@ -10,6 +10,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import type { AutomatedRiskAssessment } from "@/types/automated-risk-assessment";
 import Sidebar from "@/components/sidebar";
 import { supabase } from "@/utils/supabase/client";
+import Head from 'next/head';
 
 async function backendFetch(
   path: string,
@@ -73,7 +74,7 @@ const getScoreColorLight = (score: number) => {
 // Helper function to format JSON strings as readable text and convert markdown to HTML
 function formatTextContent(text: string, removeMainHeading?: string): string {
   if (!text) return "";
-  
+
   // Try to parse as JSON
   try {
     const parsed = JSON.parse(text);
@@ -83,7 +84,7 @@ function formatTextContent(text: string, removeMainHeading?: string): string {
   } catch {
     // Not JSON, continue to markdown processing
   }
-  
+
   // Convert markdown syntax to formatted text
   let formatted = text;
   
@@ -112,16 +113,16 @@ function formatTextContent(text: string, removeMainHeading?: string): string {
   
   // Convert ## headings to bold text with spacing
   formatted = formatted.replace(/^##\s+(.+)$/gm, '\n\n**$1**\n');
-  
+
   // Convert ### headings
   formatted = formatted.replace(/^###\s+(.+)$/gm, '\n\n**$1**\n');
-  
+
   // Convert bullet points (- or *) - preserve them for HTML rendering
   formatted = formatted.replace(/^[-*]\s+(.+)$/gm, '• $1');
-  
+
   // Convert numbered lists (keep the numbers)
   // formatted = formatted.replace(/^\d+\.\s+(.+)$/gm, '$1');
-  
+
   // Clean up extra newlines (but keep double newlines for spacing)
   formatted = formatted.replace(/\n{4,}/g, '\n\n\n');
   
@@ -135,7 +136,7 @@ function formatObjectAsText(obj: any, indent = 0): string {
   if (typeof obj !== 'object' || obj === null) {
     return String(obj);
   }
-  
+
   if (Array.isArray(obj)) {
     return obj.map((item, idx) => {
       if (typeof item === 'object' && item !== null) {
@@ -144,7 +145,7 @@ function formatObjectAsText(obj: any, indent = 0): string {
       return `${'  '.repeat(indent)}• ${item}`;
     }).join('\n\n');
   }
-  
+
   return Object.entries(obj)
     .map(([key, value]) => {
       const formattedKey = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
@@ -185,21 +186,21 @@ export default function AutomatedRiskAssessmentPage() {
 
   const fetchAssessment = async () => {
     if (!systemId) return;
-    
+
     try {
       setLoading(true);
       setError(null);
       const res = await backendFetch(`/api/ai-systems/${systemId}/automated-risk-assessment`);
-      
+
       if (res.status === 404) {
         setAssessment(null);
         return;
       }
-      
+
       if (!res.ok) {
         throw new Error("Failed to fetch assessment");
       }
-      
+
       const data = await res.json();
       setAssessment(data);
     } catch (err: any) {
@@ -212,7 +213,7 @@ export default function AutomatedRiskAssessmentPage() {
 
   const generateAssessment = async () => {
     if (!systemId) return;
-    
+
     try {
       setGenerating(true);
       setError(null);
@@ -220,7 +221,7 @@ export default function AutomatedRiskAssessmentPage() {
         method: "POST",
         body: JSON.stringify({ trigger_type: "manual" }),
       });
-      
+
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
         if (res.status === 403 && errorData.prohibited_system) {
@@ -228,7 +229,7 @@ export default function AutomatedRiskAssessmentPage() {
         }
         throw new Error(errorData.error || "Failed to generate assessment");
       }
-      
+
       const data = await res.json();
       setAssessment(data);
     } catch (err: any) {
@@ -246,7 +247,11 @@ export default function AutomatedRiskAssessmentPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-white">
-       <Sidebar onLogout={handleLogout} />
+        <Head>
+          <title>Loading Assessment | AI Governance</title>
+          <meta name="description" content="Loading automated risk assessment..." />
+        </Head>
+        <Sidebar onLogout={handleLogout} />
         <div className={`flex items-center justify-center min-h-screen ${isLoggedIn ? 'lg:pl-72' : ''}`}>
           <div className="text-center">
             <div className="relative">
@@ -264,6 +269,10 @@ export default function AutomatedRiskAssessmentPage() {
     const isProhibitedError = error.toLowerCase().includes('prohibited');
     return (
       <div className="min-h-screen bg-white">
+        <Head>
+          <title>Assessment Error | AI Governance</title>
+          <meta name="description" content="An error occurred while loading the rick assessment." />
+        </Head>
         <Sidebar onLogout={handleLogout} />
 
         <div className={`flex items-center justify-center min-h-screen p-6 ${isLoggedIn ? 'lg:pl-72' : ''}`}>
@@ -347,6 +356,10 @@ export default function AutomatedRiskAssessmentPage() {
   if (!assessment) {
     return (
       <div className="min-h-screen bg-white">
+        <Head>
+          <title>Generate Assessment | AI Governance</title>
+          <meta name="description" content="Generate a new automated risk assessment for your AI system." />
+        </Head>
         <Sidebar onLogout={handleLogout} />
 
         <div className={`flex items-center justify-center min-h-screen p-6 ${isLoggedIn ? 'lg:pl-72' : ''}`}>
@@ -404,6 +417,10 @@ export default function AutomatedRiskAssessmentPage() {
 
   return (
     <div className="min-h-screen bg-background">
+      <Head>
+        <title>Automated Risk Assessment</title>
+        <meta name="description" content="AI-powered automated risk assessment report." />
+      </Head>
       {/* Sidebar */}
       <Sidebar onLogout={handleLogout} />
 
@@ -506,13 +523,13 @@ export default function AutomatedRiskAssessmentPage() {
             <ResponsiveContainer width="100%" height={350}>
               <BarChart data={heatmapData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" opacity={0.5} />
-                <XAxis 
-                  dataKey="dimension" 
-                  stroke="#64748b" 
+                <XAxis
+                  dataKey="dimension"
+                  stroke="#64748b"
                   tick={{ fill: '#64748b', fontSize: 12, fontWeight: 500 }}
                 />
-                <YAxis 
-                  domain={[0, 10]} 
+                <YAxis
+                  domain={[0, 10]}
                   stroke="#64748b"
                   tick={{ fill: '#64748b', fontSize: 12 }}
                 />
@@ -571,9 +588,9 @@ export default function AutomatedRiskAssessmentPage() {
                     {key.replace('_', ' ')} Risk
                   </CardTitle>
                   <Badge className={`${getRiskLevelColor(
-                    detail.score >= 9 ? 'Critical' : 
-                    detail.score >= 7 ? 'High' : 
-                    detail.score >= 4 ? 'Medium' : 'Low'
+                    detail.score >= 9 ? 'Critical' :
+                      detail.score >= 7 ? 'High' :
+                        detail.score >= 4 ? 'Medium' : 'Low'
                   )} font-bold px-3 py-1.5`}>
                     {detail.score}/10
                   </Badge>
@@ -647,8 +664,8 @@ export default function AutomatedRiskAssessmentPage() {
                           item.status === 'compliant'
                             ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
                             : item.status === 'non_compliant'
-                            ? 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100'
-                            : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'
+                              ? 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100'
+                              : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'
                         }
                         variant="outline"
                       >
@@ -681,7 +698,7 @@ export default function AutomatedRiskAssessmentPage() {
           </CardHeader>
           <CardContent className="pt-6">
             <div className="prose prose-slate max-w-none prose-headings:text-foreground prose-strong:text-foreground prose-ul:text-foreground prose-li:text-foreground">
-              <div 
+              <div
                 className="text-foreground whitespace-pre-wrap leading-relaxed"
                 dangerouslySetInnerHTML={{
                   __html: formatTextContent(assessment.detailed_findings, 'Detailed Findings')
@@ -704,7 +721,7 @@ export default function AutomatedRiskAssessmentPage() {
           </CardHeader>
           <CardContent className="pt-6">
             <div className="prose prose-slate max-w-none prose-headings:text-foreground prose-strong:text-foreground prose-ul:text-foreground prose-li:text-foreground">
-              <div 
+              <div
                 className="text-foreground whitespace-pre-wrap leading-relaxed"
                 dangerouslySetInnerHTML={{
                   __html: formatTextContent(assessment.remediation_plan, 'Remediation Plan')
@@ -730,7 +747,7 @@ export default function AutomatedRiskAssessmentPage() {
             </CardHeader>
             <CardContent className="pt-6">
               <div className="prose prose-slate max-w-none prose-headings:text-foreground prose-strong:text-foreground prose-ul:text-foreground prose-li:text-foreground">
-                <div 
+                <div
                   className="text-foreground whitespace-pre-wrap leading-relaxed"
                   dangerouslySetInnerHTML={{
                     __html: formatTextContent(assessment.re_assessment_timeline || '', 'Re-assessment Timeline')

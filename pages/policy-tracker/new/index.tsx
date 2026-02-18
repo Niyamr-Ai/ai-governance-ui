@@ -16,6 +16,7 @@ import type {
 } from "@/types/policy";
 
 import { supabase } from "@/utils/supabase/client";
+import Head from 'next/head';
 
 export default function CreateInternalPolicyPage() {
   const router = useRouter();
@@ -62,6 +63,10 @@ export default function CreateInternalPolicyPage() {
 
   return (
     <AuthenticatedLayout>
+      <Head>
+        <title>Create Internal Policy | Policy Tracker</title>
+        <meta name="description" content="Create a new internal AI policy for your organization." />
+      </Head>
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -247,4 +252,3 @@ export default function CreateInternalPolicyPage() {
     </AuthenticatedLayout>
   );
 }
-

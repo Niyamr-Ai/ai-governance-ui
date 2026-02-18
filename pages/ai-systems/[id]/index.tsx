@@ -35,6 +35,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import TasksTab from "@/components/ai-systems-details/Tasks/TasksTab";
 import Sidebar from "@/components/sidebar";
 import { supabase } from "@/utils/supabase/client";
+import Head from 'next/head';
 
 export default function AISystemDetailPage() {
   const params = useParams();
@@ -267,7 +268,7 @@ export default function AISystemDetailPage() {
 
     // Check if system is prohibited
     const isProhibited = complianceData?.eu && (complianceData.eu.risk_tier === 'Prohibited' || complianceData.eu.prohibited_practices_detected);
-    
+
     if (isProhibited && newStage === 'Deployed') {
       toast.error(
         "Cannot deploy to Production: This system has been classified as 'Prohibited' under the EU AI Act. Prohibited AI practices cannot be deployed.",
@@ -414,6 +415,10 @@ export default function AISystemDetailPage() {
 
   return (
     <div className="min-h-screen bg-white">
+      <Head>
+        <title>AI System Details</title>
+        <meta name="description" content="Detailed information and risk management for an AI system." />
+      </Head>
       {/* Sidebar */}
       <Sidebar onLogout={handleLogout} />
 

@@ -5,6 +5,7 @@ import { supabase } from "@/utils/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import Head from 'next/head';
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
@@ -53,6 +54,10 @@ export default function ForgotPassword() {
 
   return (
     <div className="w-full flex items-center justify-center min-h-[calc(100vh-8rem)] py-12 px-6">
+      <Head>
+        <title>Forgot Password</title>
+        <meta name="description" content="Reset your account password." />
+      </Head>
       <form
         onSubmit={handleSubmit}
         className="flex flex-col gap-4 w-full max-w-sm bg-card border border-border rounded-xl p-6 shadow-soft"

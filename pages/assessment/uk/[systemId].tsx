@@ -34,6 +34,7 @@ import { Loader2, Shield } from "lucide-react";
 import Sidebar from "@/components/sidebar";
 import { supabase } from "@/utils/supabase/client";
 import { backendFetch } from "@/utils/backend-fetch";
+import Head from 'next/head';
 
 
 
@@ -665,145 +666,145 @@ export default function UkAssessmentPage() {
       // Clear accountability framework
       accountability_framework: Yup.boolean()
         .oneOf([true, false], "Please indicate whether a clear accountability framework exists"),
-    
+
       accountability_framework_structure: Yup.string().when("accountability_framework", {
         is: true,
         then: (s) =>
           s.required("Please describe the structure of your accountability framework. Enter null if nothing to show"),
       }),
-    
+
       accountability_roles: Yup.string().when("accountability_framework", {
         is: true,
         then: (s) =>
           s.required("Please describe the accountability roles and responsibilities. Enter null if nothing to show"),
       }),
-    
+
       // accountability_framework_evidence: Yup.string().when("accountability_framework", {
       //   is: true,
       //   then: (s) =>
       //     s.required("Please provide evidence supporting your accountability framework. Enter null if nothing to show"),
       // }),
-    
+
       // Human oversight mechanisms
       human_oversight: Yup.boolean()
         .oneOf([true, false], "Please indicate whether human oversight mechanisms are in place"),
-    
+
       human_oversight_who: Yup.string().when("human_oversight", {
         is: true,
         then: (s) =>
           s.required("Please specify who provides human oversight. Enter null if nothing to show"),
       }),
-    
+
       human_oversight_when: Yup.string().when("human_oversight", {
         is: true,
         then: (s) =>
           s.required("Please specify when human oversight occurs. Enter null if nothing to show"),
       }),
-    
+
       human_oversight_how: Yup.string().when("human_oversight", {
         is: true,
         then: (s) =>
           s.required("Please describe how human oversight is implemented. Enter null if nothing to show"),
       }),
-    
+
       // human_oversight_evidence: Yup.string().when("human_oversight", {
       //   is: true,
       //   then: (s) =>
       //     s.required("Please provide evidence of human oversight mechanisms. Enter null if nothing to show"),
       // }),
-    
+
       // Risk management processes
       risk_management: Yup.boolean()
         .oneOf([true, false], "Please indicate whether risk management processes are in place"),
-    
+
       risk_management_processes: Yup.string().when("risk_management", {
         is: true,
         then: (s) =>
           s.required("Please describe your risk management processes. Enter null if nothing to show"),
       }),
-    
+
       risk_management_documentation: Yup.string().when("risk_management", {
         is: true,
         then: (s) =>
           s.required("Please describe how risks are documented. Enter null if nothing to show"),
       }),
-    
+
       // risk_management_evidence: Yup.string().when("risk_management", {
       //   is: true,
       //   then: (s) =>
       //     s.required("Please provide evidence of risk management processes. Enter null if nothing to show"),
       // }),
-    
+
       // Governance structure and roles
       governance_structure: Yup.boolean()
         .oneOf([true, false], "Please indicate whether a governance structure exists"),
-    
+
       governance_board_involvement: Yup.string().when("governance_structure", {
         is: true,
         then: (s) =>
           s.required("Please describe board involvement in AI governance. Enter null if nothing to show"),
       }),
-    
+
       governance_committees: Yup.string().when("governance_structure", {
         is: true,
         then: (s) =>
           s.required("Please describe AI governance committees. Enter null if nothing to show"),
       }),
-    
+
       // Audit trail and record-keeping
       audit_trail: Yup.boolean()
         .oneOf([true, false], "Please indicate whether audit trails are maintained"),
-    
+
       audit_trail_what: Yup.string().when("audit_trail", {
         is: true,
         then: (s) =>
           s.required("Please specify what is logged in audit trails. Enter null if nothing to show"),
       }),
-    
+
       audit_trail_retention: Yup.string().when("audit_trail", {
         is: true,
         then: (s) =>
           s.required("Please specify audit trail retention period. Enter null if nothing to show"),
       }),
-    
+
       audit_trail_access: Yup.string().when("audit_trail", {
         is: true,
         then: (s) =>
           s.required("Please specify who has access to audit trails. Enter null if nothing to show"),
       }),
-    
+
       // audit_trail_evidence: Yup.string().when("audit_trail", {
       //   is: true,
       //   then: (s) =>
       //     s.required("Please provide evidence of audit trail implementation. Enter null if nothing to show"),
       // }),
-    
+
       // Senior management oversight
       senior_management_oversight: Yup.string()
         .required("Please describe senior management oversight of AI systems. Enter null if nothing to show"),
-    
+
       // Ethics committee
       ethics_committee: Yup.boolean()
         .oneOf([true, false], "Please indicate whether an ethics committee exists"),
-    
+
       ethics_committee_details: Yup.string().when("ethics_committee", {
         is: true,
         then: (s) =>
           s.required("Please describe your ethics committee structure and role"),
       }),
-    
+
       // Policy assignment and review frequency
       policy_assignment: Yup.string()
         .required("Please describe policy assignment and review frequency. Enter null if nothing to show"),
-    
+
       // Training requirements
       training_requirements: Yup.string()
         .required("Please describe training requirements for AI system staff"),
-    
+
       // Escalation procedures
       escalation_procedures: Yup.string()
         .required("Please describe escalation procedures for AI-related issues. Enter null if nothing to show"),
-    
+
       // Accountable person (required field)
       accountable_person: Yup.string()
         .required("Please specify who is accountable for this AI system. Enter null if nothing to show"),
@@ -1080,16 +1081,16 @@ export default function UkAssessmentPage() {
 
       // Check if this is part of a multi-jurisdiction assessment
       const dataProcessingLocations = data.data_processing_locations || [];
-      const hasMultipleJurisdictions = 
+      const hasMultipleJurisdictions =
         (dataProcessingLocations.includes("United Kingdom") || dataProcessingLocations.includes("UK")) &&
         (dataProcessingLocations.includes("European Union") || dataProcessingLocations.includes("EU") ||
-         dataProcessingLocations.some((loc: string) => 
-           ["Austria", "Belgium", "Bulgaria", "Croatia", "Cyprus", "Czechia",
-            "Denmark", "Estonia", "Finland", "France", "Germany", "Greece",
-            "Hungary", "Ireland", "Italy", "Latvia", "Lithuania", "Luxembourg",
-            "Malta", "Netherlands", "Poland", "Portugal", "Romania", "Slovakia",
-            "Slovenia", "Spain", "Sweden"].some(c => c.toLowerCase() === loc.toLowerCase())
-         )) ||
+          dataProcessingLocations.some((loc: string) =>
+            ["Austria", "Belgium", "Bulgaria", "Croatia", "Cyprus", "Czechia",
+              "Denmark", "Estonia", "Finland", "France", "Germany", "Greece",
+              "Hungary", "Ireland", "Italy", "Latvia", "Lithuania", "Luxembourg",
+              "Malta", "Netherlands", "Poland", "Portugal", "Romania", "Slovakia",
+              "Slovenia", "Spain", "Sweden"].some(c => c.toLowerCase() === loc.toLowerCase())
+          )) ||
         dataProcessingLocations.includes("Singapore");
 
       console.log(`\n${'='.repeat(80)}`);
@@ -1172,51 +1173,51 @@ export default function UkAssessmentPage() {
     const data = await res.json();
     const assessmentId = data.id || systemId;
 
-      // Check if this is part of a multi-jurisdiction assessment
-      console.log(`\n${'='.repeat(80)}`);
-      console.log(`✅ [UK-ASSESSMENT] UK assessment submitted successfully`);
-      console.log(`   System ID: ${systemId}`);
-      console.log(`   Assessment ID: ${assessmentId}`);
-      console.log(`   Checking for multi-jurisdiction flow...`);
-      console.log(`${'='.repeat(80)}\n`);
+    // Check if this is part of a multi-jurisdiction assessment
+    console.log(`\n${'='.repeat(80)}`);
+    console.log(`✅ [UK-ASSESSMENT] UK assessment submitted successfully`);
+    console.log(`   System ID: ${systemId}`);
+    console.log(`   Assessment ID: ${assessmentId}`);
+    console.log(`   Checking for multi-jurisdiction flow...`);
+    console.log(`${'='.repeat(80)}\n`);
 
-      try {
-        const { data: systemData } = await supabase
-          .from("ai_systems")
-          .select("data_processing_locations")
-          .eq("id", systemId)
-          .single();
+    try {
+      const { data: systemData } = await supabase
+        .from("ai_systems")
+        .select("data_processing_locations")
+        .eq("id", systemId)
+        .single();
 
-        const dataProcessingLocations = systemData?.data_processing_locations || [];
-        console.log(`📋 [UK-ASSESSMENT] Data processing locations:`, dataProcessingLocations);
+      const dataProcessingLocations = systemData?.data_processing_locations || [];
+      console.log(`📋 [UK-ASSESSMENT] Data processing locations:`, dataProcessingLocations);
 
-        const hasMultipleJurisdictions = 
-          (dataProcessingLocations.includes("United Kingdom") || dataProcessingLocations.includes("UK")) &&
-          (dataProcessingLocations.includes("European Union") || dataProcessingLocations.includes("EU") ||
-           dataProcessingLocations.some((loc: string) => 
-             ["Austria", "Belgium", "Bulgaria", "Croatia", "Cyprus", "Czechia",
+      const hasMultipleJurisdictions =
+        (dataProcessingLocations.includes("United Kingdom") || dataProcessingLocations.includes("UK")) &&
+        (dataProcessingLocations.includes("European Union") || dataProcessingLocations.includes("EU") ||
+          dataProcessingLocations.some((loc: string) =>
+            ["Austria", "Belgium", "Bulgaria", "Croatia", "Cyprus", "Czechia",
               "Denmark", "Estonia", "Finland", "France", "Germany", "Greece",
               "Hungary", "Ireland", "Italy", "Latvia", "Lithuania", "Luxembourg",
               "Malta", "Netherlands", "Poland", "Portugal", "Romania", "Slovakia",
               "Slovenia", "Spain", "Sweden"].some(c => c.toLowerCase() === loc.toLowerCase())
-           )) ||
-          dataProcessingLocations.includes("Singapore");
+          )) ||
+        dataProcessingLocations.includes("Singapore");
 
-        console.log(`🔍 [UK-ASSESSMENT] Multiple jurisdictions detected: ${hasMultipleJurisdictions}`);
+      console.log(`🔍 [UK-ASSESSMENT] Multiple jurisdictions detected: ${hasMultipleJurisdictions}`);
 
-        if (hasMultipleJurisdictions) {
-          console.log(`➡️  [UK-ASSESSMENT] Redirecting to multi-jurisdiction page`);
-          router.push(`/assessment/multi/${systemId}?completed=UK&assessmentId=${assessmentId}`);
-        } else {
-          console.log(`➡️  [UK-ASSESSMENT] Single jurisdiction - redirecting to UK results`);
-          router.push(`/uk/${assessmentId}`);
-        }
-      } catch (err: any) {
-        console.error(`❌ [UK-ASSESSMENT] Error checking multi-jurisdiction:`, err);
-        console.log(`➡️  [UK-ASSESSMENT] Fallback: redirecting to UK results`);
-        // Fallback to normal redirect if check fails
+      if (hasMultipleJurisdictions) {
+        console.log(`➡️  [UK-ASSESSMENT] Redirecting to multi-jurisdiction page`);
+        router.push(`/assessment/multi/${systemId}?completed=UK&assessmentId=${assessmentId}`);
+      } else {
+        console.log(`➡️  [UK-ASSESSMENT] Single jurisdiction - redirecting to UK results`);
         router.push(`/uk/${assessmentId}`);
       }
+    } catch (err: any) {
+      console.error(`❌ [UK-ASSESSMENT] Error checking multi-jurisdiction:`, err);
+      console.log(`➡️  [UK-ASSESSMENT] Fallback: redirecting to UK results`);
+      // Fallback to normal redirect if check fails
+      router.push(`/uk/${assessmentId}`);
+    }
   };
 
 
@@ -1264,7 +1265,7 @@ export default function UkAssessmentPage() {
             console.log(`📋 [AUTO-POPULATE] Evidence key: ${key}`);
             console.log(`📄 [AUTO-POPULATE] Extracted text length: ${extractedText.length} characters`);
             console.log(`${'='.repeat(80)}\n`);
-            
+
             // Call universal analysis endpoint
             const analysisRes = await backendFetch("/api/analyze-document", {
               method: "POST",
@@ -1314,11 +1315,11 @@ export default function UkAssessmentPage() {
                 if (value && typeof value === 'string' && value.trim().length > 0) {
                   // Map backend field name to actual form field name
                   const actualFieldName = fieldNameMapping[fieldName] || fieldName;
-                  
+
                   setFieldValue(actualFieldName, value);
                   populatedCount++;
                   console.log(`✓ [AUTO-POPULATE] Populated: ${fieldName} -> ${actualFieldName} (${value.length} chars)`);
-                  
+
                   // Track toggle fields that should be set to true (use actualFieldName for checks)
                   // UK Accountability
                   if (actualFieldName === 'accountability_framework_structure' || actualFieldName === 'accountability_roles') {
@@ -1458,15 +1459,54 @@ export default function UkAssessmentPage() {
   type FormValues = UkValues;
 
   if (!systemId) {
-    return <div className="p-8">Invalid system</div>;
+    return (
+      <div className="min-h-screen bg-white">
+        <Head>
+          <title>Invalid System | AI Governance</title>
+          <meta name="description" content="The requested system ID is invalid or missing." />
+        </Head>
+        <Sidebar />
+        <div className="lg:pl-72 pt-24 p-8">
+          <Card className="glass-panel shadow-elevated max-w-md mx-auto">
+            <CardHeader>
+              <CardTitle className="text-red-600">Invalid System</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground">System ID is missing from the URL. Please navigate from the dashboard.</p>
+              <Button onClick={() => router.push("/dashboard")} className="mt-4 w-full rounded-xl">
+                Go to Dashboard
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
   }
 
   if (!ukInitialFromDb) {
-    return <div className="p-8">Loading assessment…</div>;
+    return (
+      <div className="min-h-screen bg-white">
+        <Head>
+          <title>Loading Assessment | AI Governance</title>
+          <meta name="description" content="Loading the UK AI regulatory assessment..." />
+        </Head>
+        <Sidebar />
+        <div className="lg:pl-72 pt-24 p-8 flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
+            <p className="text-muted-foreground">Loading UK assessment…</p>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className="min-h-screen bg-white">
+      <Head>
+        <title>UK AI Act Assessment</title>
+        <meta name="description" content="Complete the UK AI regulatory framework compliance assessment." />
+      </Head>
       <Sidebar />
 
       <div className="lg:pl-72 pt-16 lg:pt-24 px-0 lg:px-4">
@@ -1492,8 +1532,8 @@ export default function UkAssessmentPage() {
                   <div
                     className="bg-purple-600 h-2 rounded-full transition-all"
                     style={{
-                      width: `${isMultiJurisdiction 
-                        ? ((ukCurrentPage) / (ukPages.length - 1)) * 100 
+                      width: `${isMultiJurisdiction
+                        ? ((ukCurrentPage) / (ukPages.length - 1)) * 100
                         : ((ukCurrentPage + 1) / ukPages.length) * 100}%`,
                     }}
                   />

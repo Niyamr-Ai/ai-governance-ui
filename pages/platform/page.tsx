@@ -1,10 +1,15 @@
 "use client";
 
 import Link from "next/link";
+import Head from 'next/head';
 
 export default function PlatformPage() {
   return (
     <main className="min-h-screen bg-gradient-to-b from-gray-50 to-white text-gray-900">
+      <Head>
+        <title>Platform</title>
+        <meta name="description" content="Overview of the AI governance platform features." />
+      </Head>
       <div className="mx-auto max-w-5xl px-6 py-12 space-y-8">
         <header className="space-y-2">
           <p className="text-sm font-semibold text-blue-600 uppercase tracking-wide">Platform</p>
