@@ -5,9 +5,51 @@ import Image from 'next/image';
 import Link from 'next/link';
 
 export default function Footer() {
+  // Link mapping function
+  const getLinkHref = (category: string, link: string): string => {
+    const linkMap: Record<string, Record<string, string>> = {
+      Platform: {
+        'Features': '#platform',
+        'Integrations': '#platform',
+        'Pricing': '#contact',
+        'Security': '#solutions',
+      },
+      Resources: {
+        'Help Center': '#contact',
+        'API Reference': '#contact',
+        'Blog': '#contact',
+        'Case Studies': '#contact',
+      },
+      Company: {
+        'About': '#company',
+        'Careers': '#contact',
+        'Contact': '#contact',
+        'Press': '#contact',
+      },
+      Legal: {
+        'Privacy': '#contact',
+        'Terms': '#contact',
+        'Compliance': '#solutions',
+        'Cookies': '#contact',
+      },
+    };
+    return linkMap[category]?.[link] || '#contact';
+  };
+
+  const handleLinkClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+    if (href.startsWith('#')) {
+      e.preventDefault();
+      const element = document.querySelector(href);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+    // If href doesn't start with '#', let Next.js Link handle navigation
+  };
+
   const footerLinks = {
     Platform: ['Features', 'Integrations', 'Pricing', 'Security'],
-    Resources: ['Documentation', 'API Reference', 'Blog', 'Case Studies'],
+    Resources: ['Help Center', 'API Reference', 'Blog', 'Case Studies'],
     Company: ['About', 'Careers', 'Contact', 'Press'],
     Legal: ['Privacy', 'Terms', 'Compliance', 'Cookies'],
   };
@@ -16,11 +58,11 @@ export default function Footer() {
     { icon: Twitter, href: '#', label: 'Twitter' },
     { icon: Linkedin, href: '#', label: 'LinkedIn' },
     { icon: Github, href: '#', label: 'GitHub' },
-    { icon: Mail, href: '#', label: 'Email' },
+    { icon: Mail, href: 'mailto:contact@niyamr.com', label: 'Email' },
   ];
 
   return (
-    <footer className="relative pt-20 pb-8 border-t border-border/30">
+    <footer id="contact" className="relative pt-20 pb-8 border-t border-border/30">
       <div className="container mx-auto px-6">
         <div className="grid grid-cols-2 md:grid-cols-6 gap-8 mb-16">
           <div className="col-span-2">
@@ -46,6 +88,9 @@ export default function Footer() {
                   href={social.href}
                   className="w-9 h-9 rounded-lg bg-secondary/30 flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all duration-200"
                   aria-label={social.label}
+                  {...(social.href.startsWith('http') || social.href.startsWith('mailto:') 
+                    ? { target: '_blank', rel: 'noopener noreferrer' } 
+                    : {})}
                 >
                   <social.icon className="w-4 h-4" />
                 </a>
@@ -57,13 +102,37 @@ export default function Footer() {
             <div key={category}>
               <h4 className="font-semibold text-foreground mb-4">{category}</h4>
               <ul className="space-y-3">
-                {links.map((link) => (
-                  <li key={link}>
-                    <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                      {link}
-                    </a>
-                  </li>
-                ))}
+                {links.map((link) => {
+                  const href = getLinkHref(category, link);
+                  const isExternalLink = href.startsWith('http') || href.startsWith('mailto:');
+                  const isInternalPage = href.startsWith('/') && !href.startsWith('/#');
+                  
+                  if (isInternalPage) {
+                    return (
+                      <li key={link}>
+                        <Link 
+                          href={href}
+                          className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          {link}
+                        </Link>
+                      </li>
+                    );
+                  }
+                  
+                  return (
+                    <li key={link}>
+                      <a 
+                        href={href}
+                        className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                        onClick={(e) => handleLinkClick(e, href)}
+                        {...(isExternalLink ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+                      >
+                        {link}
+                      </a>
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           ))}

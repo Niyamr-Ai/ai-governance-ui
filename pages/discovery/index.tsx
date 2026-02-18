@@ -42,7 +42,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { supabase } from "@/utils/supabase/client";
-import Sidebar from "@/components/sidebar";
+import AuthenticatedLayout from "@/components/layout/AuthenticatedLayout";
 import type {
   DiscoveredAIAssetWithTimestamps
 } from "@/types/discovery";
@@ -121,40 +121,6 @@ export default function DiscoveryDashboard() {
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [selectedAsset, setSelectedAsset] = useState<DiscoveredAIAssetWithTimestamps | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-
-  // Check authentication status
-  useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setIsLoggedIn(!!user);
-      console.log('🔍 Discovery: Auth check - user:', !!user, 'pathname:', window.location.pathname);
-    };
-    checkAuth();
-
-    // Listen for route changes to debug redirects
-    const handleRouteChange = (url: string) => {
-      console.log('🔍 Discovery: Route changed to:', url);
-      if (url !== '/discovery' && url !== window.location.pathname) {
-        console.warn('⚠️ Discovery: Unexpected route change detected!', {
-          from: window.location.pathname,
-          to: url,
-          stack: new Error().stack
-        });
-      }
-    };
-
-    router.events?.on('routeChangeStart', handleRouteChange);
-
-    return () => {
-      router.events?.off('routeChangeStart', handleRouteChange);
-    };
-  }, [router]);
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push("/");
-  };
 
   // Fetch discovered assets
   useEffect(() => {
@@ -344,12 +310,8 @@ export default function DiscoveryDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Left sidebar - Only visible when logged in */}
-      <Sidebar onLogout={handleLogout} />
-
-      <div className={`p-6 lg:p-8 ${isLoggedIn ? 'lg:pl-72 pt-24' : ''}`}>
-        <div className="space-y-8">
+    <AuthenticatedLayout showLoading={loading}>
+      <div className="space-y-8">
           {/* Header */}
           <div className="max-w-7xl mx-auto space-y-3">
             <div className="flex items-center justify-between">
@@ -611,7 +573,6 @@ export default function DiscoveryDashboard() {
               )}
             </CardContent>
           </Card>
-        </div>
 
         {/* Smart Assessment Dialog */}
         {selectedAsset && (
@@ -642,7 +603,7 @@ export default function DiscoveryDashboard() {
           </Dialog>
         )}
       </div>
-    </div>
+    </AuthenticatedLayout>
   );
 }
 
@@ -735,7 +696,7 @@ function AddDiscoveryDialog({
               <SelectTrigger className="bg-background border-border text-foreground">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="glass-panel border-border/50">
+              <SelectContent className="bg-background border-border shadow-lg">
                 <SelectItem value="api_scan" className="text-foreground">API Endpoint Detection</SelectItem>
                 <SelectItem value="repo_scan" className="text-foreground">Repository Signal</SelectItem>
                 <SelectItem value="vendor_detection" className="text-foreground">Vendor Usage Declaration</SelectItem>
@@ -772,7 +733,7 @@ function AddDiscoveryDialog({
               <SelectTrigger className="bg-background border-border text-foreground">
                 <SelectValue placeholder="Select vendor" />
               </SelectTrigger>
-              <SelectContent className="glass-panel border-border/50">
+              <SelectContent className="bg-background border-border shadow-lg">
                 <SelectItem value="OpenAI" className="text-foreground">OpenAI</SelectItem>
                 <SelectItem value="Anthropic" className="text-foreground">Anthropic</SelectItem>
                 <SelectItem value="AWS" className="text-foreground">AWS</SelectItem>
@@ -803,7 +764,7 @@ function AddDiscoveryDialog({
                 <SelectTrigger className="bg-background border-border text-foreground">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="glass-panel border-border/50">
+                <SelectContent className="bg-background border-border shadow-lg">
                   <SelectItem value="low" className="text-foreground">Low</SelectItem>
                   <SelectItem value="medium" className="text-foreground">Medium</SelectItem>
                   <SelectItem value="high" className="text-foreground">High</SelectItem>
@@ -817,7 +778,7 @@ function AddDiscoveryDialog({
                 <SelectTrigger className="bg-background border-border text-foreground">
                   <SelectValue placeholder="Select environment" />
                 </SelectTrigger>
-                <SelectContent className="glass-panel border-border/50">
+                <SelectContent className="bg-background border-border shadow-lg">
                   <SelectItem value="dev" className="text-foreground">Development</SelectItem>
                   <SelectItem value="test" className="text-foreground">Test</SelectItem>
                   <SelectItem value="prod" className="text-foreground">Production</SelectItem>

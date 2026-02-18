@@ -58,7 +58,7 @@ export default function MasPage6TechnicalPillars({
             <div className="ml-4 flex items-center gap-2">
               <span className={`text-xs font-bold px-2 py-1 rounded ${values.transparency_docs
                 ? "text-blue-500 bg-emerald-300"
-                : "text-red-500 bg-blue-400"
+                : "text-red-500"
                 }`}>
                 {values.transparency_docs ? "YES" : "NO"}
               </span>
@@ -176,7 +176,7 @@ export default function MasPage6TechnicalPillars({
             <div className="ml-4 flex items-center gap-2">
               <span className={`text-xs font-bold px-2 py-1 rounded ${values.transparency_model_cards
                 ? "text-blue-500 bg-emerald-300"
-                : "text-red-500 bg-blue-400"
+                : "text-red-500"
                 }`}>
                 {values.transparency_model_cards ? "YES" : "NO"}
               </span>
@@ -343,7 +343,7 @@ export default function MasPage6TechnicalPillars({
             <div className="ml-4 flex items-center gap-2">
               <span className={`text-xs font-bold px-2 py-1 rounded ${values.fairness_testing
                 ? "text-blue-500 bg-emerald-300"
-                : "text-red-500 bg-blue-400"
+                : "text-red-500"
                 }`}>
                 {values.fairness_testing ? "YES" : "NO"}
               </span>
@@ -598,7 +598,7 @@ export default function MasPage6TechnicalPillars({
             <div className="ml-4 flex items-center gap-2">
               <span className={`text-xs font-bold px-2 py-1 rounded ${values.fairness_external_validation
                 ? "text-blue-500 bg-emerald-300"
-                : "text-red-500 bg-blue-400"
+                : "text-red-500"
                 }`}>
                 {values.fairness_external_validation ? "YES" : "NO"}
               </span>
@@ -650,7 +650,7 @@ export default function MasPage6TechnicalPillars({
             <div className="ml-4 flex items-center gap-2">
               <span className={`text-xs font-bold px-2 py-1 rounded ${values.human_oversight
                 ? "text-blue-500 bg-emerald-300"
-                : "text-red-500 bg-blue-400"
+                : "text-red-500"
                 }`}>
                 {values.human_oversight ? "YES" : "NO"}
               </span>

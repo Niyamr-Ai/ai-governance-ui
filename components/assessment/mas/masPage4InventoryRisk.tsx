@@ -80,7 +80,7 @@ export default function MasPage4InventoryRisk({
               <span
                 className={`text-xs font-bold px-2 py-1 rounded ${isRecorded
                   ? "text-blue-500 bg-emerald-300"
-                  : "text-red-500 bg-blue-400"
+                  : "text-red-500"
                   }`}
               >
                 {isRecorded ? "YES" : "NO"}
@@ -95,7 +95,7 @@ export default function MasPage4InventoryRisk({
                 }
                 className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${isRecorded
                   ? "text-blue-500 bg-emerald-300"
-                  : "text-red-500 bg-blue-400"
+                  : "text-red-500"
                   }`}
               >
                 <span

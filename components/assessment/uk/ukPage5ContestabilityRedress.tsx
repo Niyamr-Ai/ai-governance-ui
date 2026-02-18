@@ -39,7 +39,7 @@ export default function UkPage5ContestabilityRedress({
             <div className="ml-4 flex items-center gap-2">
               <span className={`text-xs font-bold px-2 py-1 rounded ${values.user_rights
                 ? "text-blue-500 bg-emerald-300"
-                : "text-red-500 bg-blue-400"
+                : "text-red-500"
                 }`}>
                 {values.user_rights ? "YES" : "NO"}
               </span>
@@ -145,7 +145,7 @@ export default function UkPage5ContestabilityRedress({
             <div className="ml-4 flex items-center gap-2">
               <span className={`text-xs font-bold px-2 py-1 rounded ${values.appeal_mechanism
                 ? "text-blue-500 bg-emerald-300"
-                : "text-red-500 bg-blue-400"
+                : "text-red-500"
                 }`}>
                 {values.appeal_mechanism ? "YES" : "NO"}
               </span>
@@ -268,7 +268,7 @@ export default function UkPage5ContestabilityRedress({
             <div className="ml-4 flex items-center gap-2">
               <span className={`text-xs font-bold px-2 py-1 rounded ${values.redress_process
                 ? "text-blue-500 bg-emerald-300"
-                : "text-red-500 bg-blue-400"
+                : "text-red-500"
                 }`}>
                 {values.redress_process ? "YES" : "NO"}
               </span>
@@ -394,7 +394,7 @@ export default function UkPage5ContestabilityRedress({
             <div className="ml-4 flex items-center gap-2">
               <span className={`text-xs font-bold px-2 py-1 rounded ${values.complaint_handling
                 ? "text-blue-500 bg-emerald-300"
-                : "text-red-500 bg-blue-400"
+                : "text-red-500"
                 }`}>
                 {values.complaint_handling ? "YES" : "NO"}
               </span>

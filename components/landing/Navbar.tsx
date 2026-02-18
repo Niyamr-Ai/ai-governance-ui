@@ -24,6 +24,18 @@ export default function Navbar() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Prevent body scroll when mobile menu is open
+  useEffect(() => {
+    if (isMobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isMobileMenuOpen]);
+
   useEffect(() => {
     const checkAuth = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -131,30 +143,41 @@ export default function Navbar() {
           </button>
         </div>
 
-        {/* Mobile Menu */}
+        {/* Mobile Menu Overlay */}
         {isMobileMenuOpen && (
-          <div className="md:hidden mt-4 py-4 border-t border-border/30">
-            <div className="flex flex-col gap-4">
-              {navLinks.map((link) => (
-                <a
-                  key={link.href}
-                  href={link.href}
-                  className="text-muted-foreground hover:text-foreground transition-colors text-sm font-medium"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  {link.label}
-                </a>
-              ))}
-              <div className="flex flex-col gap-2 pt-4 border-t border-border/30">
-                <Button variant="ghost" size="sm" className="w-full" asChild>
-                  <Link href="/sign-in" onClick={() => setIsMobileMenuOpen(false)}>Sign In</Link>
-                </Button>
-                <Button variant="hero" size="sm" className="w-full rounded-xl" asChild>
-                  <Link href="/sign-up" onClick={() => setIsMobileMenuOpen(false)}>Get Started</Link>
-                </Button>
+          <>
+            {/* Dark Overlay */}
+            <div
+              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 md:hidden"
+              onClick={() => setIsMobileMenuOpen(false)}
+            />
+            
+            {/* Mobile Menu */}
+            <div className="md:hidden fixed top-16 left-0 right-0 bottom-0 z-50 bg-background border-t border-border/30 overflow-y-auto">
+              <div className="container mx-auto px-6 py-6">
+                <div className="flex flex-col gap-4">
+                  {navLinks.map((link) => (
+                    <a
+                      key={link.href}
+                      href={link.href}
+                      className="text-muted-foreground hover:text-foreground transition-colors text-sm font-medium py-2"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      {link.label}
+                    </a>
+                  ))}
+                  <div className="flex flex-col gap-2 pt-4 border-t border-border/30">
+                    <Button variant="ghost" size="sm" className="w-full" asChild>
+                      <Link href="/sign-in" onClick={() => setIsMobileMenuOpen(false)}>Sign In</Link>
+                    </Button>
+                    <Button variant="hero" size="sm" className="w-full rounded-xl" asChild>
+                      <Link href="/sign-up" onClick={() => setIsMobileMenuOpen(false)}>Get Started</Link>
+                    </Button>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
+          </>
         )}
       </div>
     </nav>

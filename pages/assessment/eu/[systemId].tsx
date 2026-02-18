@@ -500,14 +500,16 @@ export default function EUAssessmentPage() {
     return (
       <div className="min-h-screen bg-white">
         <Sidebar onLogout={handleLogout} />
-        <div className="container mx-auto max-w-4xl py-12 px-4 lg:pl-72 pt-24">
-          <div className="flex items-center justify-center min-h-[400px]">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-              <p className="text-muted-foreground">Loading assessment…</p>
-              {error && (
-                <p className="text-red-600 mt-4 text-sm">Error: {error}</p>
-              )}
+        <div className="lg:pl-72 pt-16 lg:pt-24 px-0 lg:px-4">
+          <div className="container mx-auto max-w-4xl py-4 px-2 lg:py-12 lg:px-4">
+            <div className="flex items-center justify-center min-h-[400px]">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+                <p className="text-muted-foreground">Loading assessment…</p>
+                {error && (
+                  <p className="text-red-600 mt-4 text-sm">Error: {error}</p>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -519,17 +521,19 @@ export default function EUAssessmentPage() {
     return (
       <div className="min-h-screen bg-white">
         <Sidebar onLogout={handleLogout} />
-        <div className="container mx-auto max-w-4xl py-12 px-4 lg:pl-72 pt-24">
-          <Card className="glass-panel shadow-elevated">
-            <CardContent className="p-8">
-              <Alert className="border-red-200 bg-red-50">
-                <AlertTriangle className="h-4 w-4 text-red-600" />
-                <AlertDescription className="text-red-800">
-                  {error}
-                </AlertDescription>
-              </Alert>
-            </CardContent>
-          </Card>
+        <div className="lg:pl-72 pt-16 lg:pt-24 px-0 lg:px-4">
+          <div className="container mx-auto max-w-4xl py-4 px-2 lg:py-12 lg:px-4">
+            <Card className="glass-panel shadow-elevated">
+              <CardContent className="p-8">
+                <Alert className="border-red-200 bg-red-50">
+                  <AlertTriangle className="h-4 w-4 text-red-600" />
+                  <AlertDescription className="text-red-800">
+                    {error}
+                  </AlertDescription>
+                </Alert>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
     );
@@ -539,8 +543,9 @@ export default function EUAssessmentPage() {
   return (
     <div className="min-h-screen bg-white">
       <Sidebar onLogout={handleLogout} />
-      <div className="container mx-auto max-w-4xl py-12 px-4 lg:pl-72 pt-24">
-        <Card className="glass-panel shadow-elevated">
+      <div className="lg:pl-72 pt-16 lg:pt-24 px-0 lg:px-4">
+        <div className="container mx-auto max-w-4xl py-4 px-2 lg:py-12 lg:px-4">
+          <Card className="glass-panel shadow-elevated">
           <CardHeader>
             <CardTitle className="text-2xl flex items-center gap-2 text-foreground">
               <Shield className="h-6 w-6 text-primary" />
@@ -715,6 +720,7 @@ export default function EUAssessmentPage() {
             </Formik>
           </CardContent>
         </Card>
+        </div>
       </div>
     </div>
   );

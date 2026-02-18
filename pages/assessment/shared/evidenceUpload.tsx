@@ -51,9 +51,11 @@ export default function EvidenceUpload({
 
   return (
     <div className="space-y-2">
-      <label className="text-sm font-medium text-foreground">
-        {label}
-      </label>
+      {label && (
+        <label className="text-sm font-medium text-foreground">
+          {label}
+        </label>
+      )}
 
       {!fileName ? (
         <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed bg-muted/40 px-4 py-3 hover:bg-muted">

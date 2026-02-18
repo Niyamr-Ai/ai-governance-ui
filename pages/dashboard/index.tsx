@@ -36,12 +36,15 @@ import {
   Layers,
   Lock,
   ArrowRight,
+  MoreVertical,
+  Trash2,
+  Eye,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/utils/supabase/client";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import Sidebar from "@/components/sidebar";
+import AuthenticatedLayout from "@/components/layout/AuthenticatedLayout";
 import {
   Dialog,
   DialogContent,
@@ -49,7 +52,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Loader2, X } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 async function backendFetch(
   path: string,
@@ -154,40 +164,14 @@ export default function ComplianceDashboard() {
   const [loadingRiskAssessments, setLoadingRiskAssessments] = useState(false);
   const [documentation, setDocumentation] = useState<any[]>([]);
   const [loadingDocumentation, setLoadingDocumentation] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-
-  // Check authentication status and wait for session
-  useEffect(() => {
-    const checkAuth = async () => {
-      // Wait a bit for session to be established (e.g., after email confirmation)
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      const { data: { session }, error } = await supabase.auth.getSession();
-      
-      if (!session || error) {
-        console.log('❌ No session found, redirecting to sign-in');
-        router.push("/sign-in");
-        return;
-      }
-      
-      setIsLoggedIn(!!session.user);
-    };
-    checkAuth();
-  }, [router]);
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push("/");
-  };
   const [automatedRiskAssessments, setAutomatedRiskAssessments] = useState<Map<string, { overall_risk_level: string; composite_score: number; assessed_at: string; approval_status?: string }>>(new Map());
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [assessmentToDelete, setAssessmentToDelete] = useState<UnifiedAssessment | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     const fetchData = async () => {
-      // Wait for authentication check to complete
-      if (!isLoggedIn) {
-        return;
-      }
-
       // Double-check session before making API calls
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
@@ -301,7 +285,7 @@ export default function ComplianceDashboard() {
       }
     };
     fetchData();
-  }, [router, isLoggedIn]);
+  }, [router]);
 
   // Helper function to extract accountable person/role
   const getAccountablePerson = (assessment: any, category: string): string => {
@@ -375,6 +359,85 @@ export default function ComplianceDashboard() {
     unifiedAssessments.filter((a) => 
       (a.compliance_status || "").toLowerCase().includes("non")
     ).length || 0;
+
+  // Debug: Log stats when they change
+  useEffect(() => {
+    console.log("📊 Stats updated:", {
+      totalAssessments,
+      prohibitedTests,
+      highRiskTests,
+      failedTests,
+      prohibitedOrHighRisk: prohibitedTests + highRiskTests,
+    });
+  }, [totalAssessments, prohibitedTests, highRiskTests, failedTests]);
+
+  // Delete handler
+  const handleDeleteClick = (assessment: UnifiedAssessment) => {
+    setAssessmentToDelete(assessment);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!assessmentToDelete) return;
+
+    setDeleting(true);
+    try {
+      let endpoint = "";
+      if (assessmentToDelete.category === "EU AI Act") {
+        endpoint = `/api/compliance/${assessmentToDelete.id}`;
+      } else if (assessmentToDelete.category === "MAS") {
+        endpoint = `/api/mas-compliance/${assessmentToDelete.id}`;
+      } else {
+        endpoint = `/api/uk-compliance/${assessmentToDelete.id}`;
+      }
+
+      console.log("🗑️ Deleting assessment:", {
+        category: assessmentToDelete.category,
+        id: assessmentToDelete.id,
+        endpoint,
+      });
+
+      const response = await backendFetch(endpoint, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error("❌ Delete failed:", {
+          status: response.status,
+          errorData,
+          endpoint,
+        });
+        throw new Error(errorData.message || "Failed to delete assessment");
+      }
+
+      // Remove from local state using functional updates to ensure we have latest state
+      if (assessmentToDelete.category === "EU AI Act") {
+        setTests((prevTests) => prevTests.filter((t) => t.id !== assessmentToDelete.id));
+      } else if (assessmentToDelete.category === "MAS") {
+        setMas((prevMas) => prevMas.filter((m) => m.id !== assessmentToDelete.id));
+      } else {
+        setUk((prevUk) => prevUk.filter((u) => u.id !== assessmentToDelete.id));
+      }
+
+      toast({
+        title: "Assessment deleted",
+        description: "The assessment has been successfully deleted.",
+      });
+
+      setDeleteDialogOpen(false);
+      setAssessmentToDelete(null);
+    } catch (error: any) {
+      console.error("Error deleting assessment:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete assessment. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   // Badges
   const getStatusBadge = (status: string, category?: string) => {
@@ -711,12 +774,8 @@ export default function ComplianceDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Left sidebar - Only visible when logged in */}
-      <Sidebar onLogout={handleLogout} />
-
-      <div className={`p-6 lg:p-8 ${isLoggedIn ? 'lg:pl-72 pt-24' : ''}`}>
-        <div className="space-y-8">
+    <AuthenticatedLayout showLoading={loading}>
+      <div className="space-y-8">
           {/* Header */}
           <div className="max-w-7xl mx-auto space-y-3">
             <div className="flex items-center justify-between">
@@ -1068,14 +1127,36 @@ export default function ComplianceDashboard() {
                               </Button>
                             </TableCell>
                             <TableCell className="py-4">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="border-border/50 bg-secondary/30 text-foreground hover:bg-secondary/50 hover:border-primary/40 hover:shadow-md transition-all font-medium rounded-xl px-3 py-1.5"
-                                onClick={handleViewDetails}
-                              >
-                                View details
-                              </Button>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="border-border/50 bg-secondary/30 text-foreground hover:bg-secondary/50 hover:border-primary/40 hover:shadow-md transition-all font-medium rounded-xl px-3 py-1.5"
+                                  >
+                                    <MoreVertical className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent 
+                                  align="end" 
+                                  className="w-48 bg-white dark:bg-slate-900 border-border shadow-lg backdrop-blur-none"
+                                >
+                                  <DropdownMenuItem
+                                    onClick={handleViewDetails}
+                                    className="cursor-pointer"
+                                  >
+                                    <Eye className="h-4 w-4 mr-2" />
+                                    View details
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => handleDeleteClick(assessment)}
+                                    className="cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50"
+                                  >
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    Delete
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
                             </TableCell>
                           </TableRow>
                         );
@@ -1536,8 +1617,77 @@ export default function ComplianceDashboard() {
               )}
             </DialogContent>
           </Dialog>
+
+          {/* Delete Confirmation Dialog */}
+          <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+            <DialogContent className="sm:max-w-md border-red-200 dark:border-red-900">
+              <DialogHeader className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-full bg-red-100 dark:bg-red-900/30 border border-red-200 dark:border-red-800">
+                    <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" />
+                  </div>
+                  <DialogTitle className="text-xl font-bold text-foreground">
+                    Delete Assessment
+                  </DialogTitle>
+                </div>
+                <DialogDescription className="text-base text-muted-foreground pt-2">
+                  Are you sure you want to delete this assessment? This action cannot be undone.
+                </DialogDescription>
+              </DialogHeader>
+              
+              {assessmentToDelete && (
+                <div className="mt-4 p-4 bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-950/20 dark:to-orange-950/20 border border-red-200 dark:border-red-800 rounded-lg">
+                  <div className="flex items-start gap-3">
+                    <div className="p-1.5 rounded-md bg-white dark:bg-slate-800 border border-red-200 dark:border-red-800">
+                      <FileText className="h-4 w-4 text-red-600 dark:text-red-400" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-foreground mb-1">
+                        {assessmentToDelete.name || "Unnamed Assessment"}
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <Badge className="bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border-red-300 dark:border-red-800 text-xs px-2 py-0.5">
+                          {assessmentToDelete.category}
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-border">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setDeleteDialogOpen(false);
+                    setAssessmentToDelete(null);
+                  }}
+                  disabled={deleting}
+                  className="hover:bg-secondary/50 transition-colors"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleDeleteConfirm}
+                  disabled={deleting}
+                  className="bg-red-600 hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700 text-white border-red-700 hover:border-red-800 shadow-md hover:shadow-lg transition-all duration-200 font-medium"
+                >
+                  {deleting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Deleting...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete
+                    </>
+                  )}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
-      </div>
-    </div>
+    </AuthenticatedLayout>
   );
 }

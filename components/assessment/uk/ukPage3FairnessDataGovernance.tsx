@@ -40,7 +40,7 @@ export default function UkPage3FairnessDataGovernance({
             <div className="ml-4 flex items-center gap-2">
               <span className={`text-xs font-bold px-2 py-1 rounded ${values.bias_testing
                 ? "text-blue-500 bg-emerald-300"
-                : "text-red-500 bg-blue-400"
+                : "text-red-500"
                 }`}>
                 {values.bias_testing ? "YES" : "NO"}
               </span>
@@ -155,7 +155,7 @@ export default function UkPage3FairnessDataGovernance({
             <div className="ml-4 flex items-center gap-2">
               <span className={`text-xs font-bold px-2 py-1 rounded ${values.discrimination_mitigation
                 ? "text-blue-500 bg-emerald-300"
-                : "text-red-500 bg-blue-400"
+                : "text-red-500"
                 }`}>
                 {values.discrimination_mitigation ? "YES" : "NO"}
               </span>
@@ -210,7 +210,7 @@ export default function UkPage3FairnessDataGovernance({
             <div className="ml-4 flex items-center gap-2">
               <span className={`text-xs font-bold px-2 py-1 rounded ${values.data_quality
                 ? "text-blue-500 bg-emerald-300"
-                : "text-red-500 bg-blue-400"
+                : "text-red-500"
                 }`}>
                 {values.data_quality ? "YES" : "NO"}
               </span>
@@ -285,7 +285,7 @@ export default function UkPage3FairnessDataGovernance({
             <div className="ml-4 flex items-center gap-2">
               <span className={`text-xs font-bold px-2 py-1 rounded ${values.fairness_monitoring
                 ? "text-blue-500 bg-emerald-300"
-                : "text-red-500 bg-blue-400"
+                : "text-red-500"
                 }`}>
                 {values.fairness_monitoring ? "YES" : "NO"}
               </span>
@@ -360,7 +360,7 @@ export default function UkPage3FairnessDataGovernance({
             <div className="ml-4 flex items-center gap-2">
               <span className={`text-xs font-bold px-2 py-1 rounded ${values.personal_data_handling
                 ? "text-blue-500 bg-emerald-300"
-                : "text-red-500 bg-blue-400"
+                : "text-red-500"
                 }`}>
                 {values.personal_data_handling ? "YES" : "NO"}
               </span>

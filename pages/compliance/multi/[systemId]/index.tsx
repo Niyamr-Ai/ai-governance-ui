@@ -36,7 +36,10 @@ export default function MultiJurisdictionResultsPage() {
 
   // Load system data and determine which jurisdictions to fetch
   useEffect(() => {
-    if (!systemId) {
+    // Normalize systemId - handle array case from Next.js router
+    const normalizedSystemId = Array.isArray(systemId) ? systemId[0] : systemId;
+    
+    if (!normalizedSystemId) {
       console.warn(`⚠️  [MULTI-RESULTS] No systemId provided`);
       return;
     }
@@ -45,7 +48,9 @@ export default function MultiJurisdictionResultsPage() {
       try {
         console.log(`\n${'='.repeat(80)}`);
         console.log(`🔄 [MULTI-RESULTS] Starting to load results`);
-        console.log(`   System ID: ${systemId}`);
+        console.log(`   System ID (raw): ${systemId}`);
+        console.log(`   System ID (normalized): ${normalizedSystemId}`);
+        console.log(`   System ID type: ${typeof normalizedSystemId}`);
         console.log(`${'='.repeat(80)}\n`);
 
         setLoading(true);
@@ -55,7 +60,7 @@ export default function MultiJurisdictionResultsPage() {
         const { data: systemDataResult, error: systemError } = await supabase
           .from("ai_systems")
           .select("*")
-          .eq("id", systemId)
+          .eq("id", normalizedSystemId)
           .single();
 
         if (systemError) {
@@ -105,7 +110,7 @@ export default function MultiJurisdictionResultsPage() {
           try {
             console.log(`\n${'='.repeat(80)}`);
             console.log(`🔄 [MULTI-RESULTS] Fetching ${jurisdiction.id} results`);
-            console.log(`   System ID: ${systemId}`);
+            console.log(`   System ID: ${normalizedSystemId}`);
             console.log(`${'='.repeat(80)}\n`);
 
             let result;
@@ -117,7 +122,12 @@ export default function MultiJurisdictionResultsPage() {
               }
               const data = await res.json();
               // Find the assessment for this systemId
-              result = Array.isArray(data) ? data.find((item: any) => item.system_id === systemId || item.id === systemId) : null;
+              result = Array.isArray(data) ? data.find((item: any) => {
+                const itemSystemId = item.system_id ? String(item.system_id).trim() : null;
+                const itemId = item.id ? String(item.id).trim() : null;
+                const targetSystemId = normalizedSystemId ? String(normalizedSystemId).trim() : null;
+                return itemSystemId === targetSystemId || itemId === targetSystemId;
+              }) : null;
               console.log(`✅ [MULTI-RESULTS] UK results fetched:`, result ? "Found" : "Not found");
             } else if (jurisdiction.id === "MAS") {
               const res = await backendFetch(`/api/mas-compliance`);
@@ -126,9 +136,43 @@ export default function MultiJurisdictionResultsPage() {
                 throw new Error(errorData.error || `Failed to fetch MAS results: ${res.status}`);
               }
               const data = await res.json();
-              // Find the assessment for this systemId
-              result = Array.isArray(data) ? data.find((item: any) => item.system_id === systemId || item.id === systemId) : null;
-              console.log(`✅ [MULTI-RESULTS] MAS results fetched:`, result ? "Found" : "Not found");
+              console.log(`🔍 [MULTI-RESULTS] MAS API returned ${Array.isArray(data) ? data.length : 0} assessments`);
+              console.log(`🔍 [MULTI-RESULTS] Looking for systemId: ${normalizedSystemId} (type: ${typeof normalizedSystemId})`);
+              if (Array.isArray(data) && data.length > 0) {
+                console.log(`🔍 [MULTI-RESULTS] All MAS assessments:`, data.map((item: any) => ({
+                  id: item.id,
+                  system_id: item.system_id,
+                  system_id_type: typeof item.system_id,
+                  system_name: item.system_name,
+                  created_at: item.created_at
+                })));
+              }
+              // Find the assessment for this systemId - try multiple matching strategies
+              result = Array.isArray(data) ? data.find((item: any) => {
+                // Normalize both values to strings for comparison
+                const itemSystemId = item.system_id ? String(item.system_id).trim() : null;
+                const itemId = item.id ? String(item.id).trim() : null;
+                const targetSystemId = normalizedSystemId ? String(normalizedSystemId).trim() : null;
+                
+                // Try exact match first
+                if (itemSystemId === targetSystemId || itemId === targetSystemId) {
+                  console.log(`✅ [MULTI-RESULTS] MAS match found:`, { itemSystemId, itemId, targetSystemId });
+                  return true;
+                }
+                // Try case-insensitive comparison
+                if (itemSystemId && targetSystemId && itemSystemId.toLowerCase() === targetSystemId.toLowerCase()) {
+                  console.log(`✅ [MULTI-RESULTS] MAS match found (case-insensitive):`, { itemSystemId, targetSystemId });
+                  return true;
+                }
+                return false;
+              }) : null;
+              console.log(`✅ [MULTI-RESULTS] MAS results fetched:`, result ? `Found (ID: ${result.id}, system_id: ${result.system_id})` : "Not found");
+              if (!result && Array.isArray(data) && data.length > 0) {
+                const allSystemIds = data.map((item: any) => item.system_id).filter(Boolean);
+                console.log(`⚠️ [MULTI-RESULTS] MAS assessment not found. Looking for: ${normalizedSystemId}`);
+                console.log(`⚠️ [MULTI-RESULTS] Available system_ids in database:`, allSystemIds);
+                console.log(`⚠️ [MULTI-RESULTS] Available assessment IDs:`, data.map((item: any) => item.id));
+              }
             } else if (jurisdiction.id === "EU") {
               // For EU, we need to fetch by system_id
               const res = await backendFetch(`/api/compliance`);
@@ -138,7 +182,12 @@ export default function MultiJurisdictionResultsPage() {
               }
               const data = await res.json();
               // Find the assessment for this systemId
-              result = Array.isArray(data) ? data.find((item: any) => item.system_id === systemId || item.id === systemId) : null;
+              result = Array.isArray(data) ? data.find((item: any) => {
+                const itemSystemId = item.system_id ? String(item.system_id).trim() : null;
+                const itemId = item.id ? String(item.id).trim() : null;
+                const targetSystemId = normalizedSystemId ? String(normalizedSystemId).trim() : null;
+                return itemSystemId === targetSystemId || itemId === targetSystemId;
+              }) : null;
               console.log(`✅ [MULTI-RESULTS] EU results fetched:`, result ? "Found" : "Not found");
             }
 
@@ -305,15 +354,15 @@ export default function MultiJurisdictionResultsPage() {
                       {jurisdiction.id === "MAS" && (
                         <>
                           <div>
-                            <p className="text-sm text-muted-foreground">Risk Classification</p>
+                            <p className="text-sm text-muted-foreground">Risk Level</p>
                             <p className="text-lg font-semibold text-foreground">
-                              {jurisdiction.data.risk_classification || "N/A"}
+                              {jurisdiction.data.overall_risk_level || jurisdiction.data.risk_classification || "N/A"}
                             </p>
                           </div>
                           <div>
                             <p className="text-sm text-muted-foreground">Compliance Status</p>
                             <p className="text-lg font-semibold text-foreground">
-                              {jurisdiction.data.compliance_status || "N/A"}
+                              {jurisdiction.data.overall_compliance_status || jurisdiction.data.compliance_status || "N/A"}
                             </p>
                           </div>
                         </>

@@ -50,7 +50,7 @@ export default function MasPage3GovernanceOversight({
                 <span
                   className={`text-xs font-bold px-2 py-1 rounded ${values.governance_policy
                     ? "text-blue-500 bg-emerald-300"
-                    : "text-red-500 bg-blue-400"
+                    : "text-red-500"
                     }`}
                 >
                   {values.governance_policy ? "YES" : "NO"}

@@ -65,7 +65,7 @@ export default function MasPage7OperationalPillars({
                 <span
                   className={`text-xs font-bold px-2 py-1 rounded ${values.third_party_controls
                     ? "text-blue-500 bg-emerald-300"
-                    : "text-red-500 bg-blue-400"
+                    : "text-red-500"
                     }`}
                 >
                   {values.third_party_controls ? "YES" : "NO"}
@@ -82,7 +82,7 @@ export default function MasPage7OperationalPillars({
                   }
                   className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${values.third_party_controls
                     ? "text-blue-500 bg-emerald-300"
-                    : "text-red-500 bg-blue-400"
+                    : "text-red-500"
                     }`}
                   style={{
                     backgroundColor: values.third_party_controls
@@ -458,7 +458,7 @@ export default function MasPage7OperationalPillars({
                 <span
                   className={`text-xs font-bold px-2 py-1 rounded ${values.algo_documented
                     ? "text-blue-500 bg-emerald-300"
-                    : "text-red-500 bg-blue-400"
+                    : "text-red-500"
                     }`}
                 >
                   {values.algo_documented ? "YES" : "NO"}
@@ -475,7 +475,7 @@ export default function MasPage7OperationalPillars({
                   }
                   className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${values.algo_documented
                     ? "text-blue-500 bg-emerald-300"
-                    : "text-red-500 bg-blue-400"
+                    : "text-red-500"
                     }`}
                   style={{
                     backgroundColor: values.algo_documented
@@ -755,7 +755,7 @@ export default function MasPage7OperationalPillars({
                 <span
                   className={`text-xs font-bold px-2 py-1 rounded ${values.algo_ab_testing
                     ? "text-blue-500 bg-emerald-300"
-                    : "text-red-500 bg-blue-400"
+                    : "text-red-500"
                     }`}
                 >
                   {values.algo_ab_testing ? "YES" : "NO"}
@@ -772,7 +772,7 @@ export default function MasPage7OperationalPillars({
                   }
                   className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${values.algo_ab_testing
                     ? "text-blue-500 bg-emerald-300"
-                    : "text-red-500 bg-blue-400"
+                    : "text-red-500"
                     }`}
                   style={{
                     backgroundColor: values.algo_ab_testing
@@ -862,7 +862,7 @@ export default function MasPage7OperationalPillars({
                 <span
                   className={`text-xs font-bold px-2 py-1 rounded ${values.evaluation_testing
                     ? "text-blue-500 bg-emerald-300"
-                    : "text-red-500 bg-blue-400"
+                    : "text-red-500"
                     }`}
                 >
                   {values.evaluation_testing ? "YES" : "NO"}
@@ -879,7 +879,7 @@ export default function MasPage7OperationalPillars({
                   }
                   className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${values.evaluation_testing
                     ? "text-blue-500 bg-emerald-300"
-                    : "text-red-500 bg-blue-400"
+                    : "text-red-500"
                     }`}
                   style={{
                     backgroundColor: values.evaluation_testing
@@ -1076,7 +1076,7 @@ export default function MasPage7OperationalPillars({
                 <span
                   className={`text-xs font-bold px-2 py-1 rounded ${values.evaluation_regression_testing
                     ? "text-blue-500 bg-emerald-300"
-                    : "text-red-500 bg-blue-400"
+                    : "text-red-500"
                     }`}
                 >
                   {values.evaluation_regression_testing ? "YES" : "NO"}
@@ -1093,7 +1093,7 @@ export default function MasPage7OperationalPillars({
                   }
                   className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${values.evaluation_regression_testing
                     ? "text-blue-500 bg-emerald-300"
-                    : "text-red-500 bg-blue-400"
+                    : "text-red-500"
                     }`}
                   style={{
                     backgroundColor: values.evaluation_regression_testing
@@ -1156,7 +1156,7 @@ export default function MasPage7OperationalPillars({
                 <span
                   className={`text-xs font-bold px-2 py-1 rounded ${values.evaluation_stress_testing
                     ? "text-blue-500 bg-emerald-300"
-                    : "text-red-500 bg-blue-400"
+                    : "text-red-500"
                     }`}
                 >
                   {values.evaluation_stress_testing ? "YES" : "NO"}
@@ -1173,7 +1173,7 @@ export default function MasPage7OperationalPillars({
                   }
                   className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${values.evaluation_stress_testing
                     ? "text-blue-500 bg-emerald-300"
-                    : "text-red-500 bg-blue-400"
+                    : "text-red-500"
                     }`}
                   style={{
                     backgroundColor: values.evaluation_stress_testing

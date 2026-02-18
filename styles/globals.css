@@ -137,6 +137,7 @@ h1, h2, h3, h4, h5, h6 {
 
 /* ===== PREMIUM CARDS (Light Theme) ===== */
 .premium-card {
+  position: relative;
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -155,6 +156,7 @@ h1, h2, h3, h4, h5, h6 {
 
 /* ===== MODULE CARDS ===== */
 .module-card {
+  position: relative;
   background: rgba(255, 255, 255, 0.92);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
@@ -643,6 +645,7 @@ body::before {
   mask-composite: exclude;
   opacity: 0;
   transition: opacity 0.3s ease;
+  pointer-events: none;
 }
 
 .premium-card:hover::before,
