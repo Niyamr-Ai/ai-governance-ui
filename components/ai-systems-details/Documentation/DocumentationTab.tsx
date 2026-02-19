@@ -65,8 +65,8 @@ export default function DocumentationTab({ systemId, systemType }: Documentation
   // Determine available regulations based on system type
   const availableRegulations = systemType ? [systemType] : ['EU AI Act', 'UK AI Act', 'MAS'];
   
-  // Available document types
-  const documentTypes = [
+  // Available document types (EU AI Act does not include Algorithm Impact Assessment)
+  const allDocumentTypes = [
     'Compliance Summary',
     'AI System Card',
     'Technical Documentation',
@@ -75,10 +75,20 @@ export default function DocumentationTab({ systemId, systemType }: Documentation
     'Algorithm Impact Assessment',
     'Audit Trail'
   ];
+  const documentTypes = systemType === 'EU AI Act'
+    ? allDocumentTypes.filter((t) => t !== 'Algorithm Impact Assessment')
+    : allDocumentTypes;
 
   useEffect(() => {
     fetchDocumentation();
   }, [systemId]);
+
+  // When EU AI Act: if user had Algorithm Impact Assessment selected, reset to Compliance Summary
+  useEffect(() => {
+    if (systemType === 'EU AI Act' && selectedDocumentType === 'Algorithm Impact Assessment') {
+      setSelectedDocumentType('Compliance Summary');
+    }
+  }, [systemType, selectedDocumentType]);
 
   const fetchDocumentation = async () => {
     try {
@@ -124,6 +134,11 @@ export default function DocumentationTab({ systemId, systemType }: Documentation
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
+        if (res.status === 403 && err.prohibited_system) {
+          setError(err.error || "Cannot generate documentation for prohibited systems.");
+          setGenerating(false);
+          return;
+        }
         throw new Error(err.error || "Failed to generate documentation");
       }
 
@@ -356,9 +371,68 @@ export default function DocumentationTab({ systemId, systemType }: Documentation
         </CardHeader>
         <CardContent className="space-y-6 pt-6">
           {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
-              <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0" />
-              <p className="text-red-700">{error}</p>
+            <div className={`rounded-xl p-5 border-2 ${
+              error.toLowerCase().includes('prohibited')
+                ? 'bg-gradient-to-br from-amber-50 to-orange-50 border-amber-200'
+                : 'bg-red-50 border-red-200'
+            }`}>
+              <div className="flex items-start gap-4">
+                <div className={`flex-shrink-0 p-2 rounded-lg ${
+                  error.toLowerCase().includes('prohibited') ? 'bg-amber-100' : 'bg-red-100'
+                }`}>
+                  <AlertCircle className={`h-6 w-6 ${
+                    error.toLowerCase().includes('prohibited') ? 'text-amber-600' : 'text-red-600'
+                  }`} />
+                </div>
+                <div className="flex-1 min-w-0 space-y-3">
+                  <div>
+                    <h4 className={`text-base font-semibold mb-1 ${
+                      error.toLowerCase().includes('prohibited') ? 'text-amber-900' : 'text-red-900'
+                    }`}>
+                      {error.toLowerCase().includes('prohibited') ? 'Prohibited System' : 'Error'}
+                    </h4>
+                    <p className={`text-sm leading-relaxed ${
+                      error.toLowerCase().includes('prohibited') ? 'text-amber-800' : 'text-red-700'
+                    }`}>
+                      {error.toLowerCase().includes('prohibited')
+                        ? "This system has been classified as 'Prohibited' under the EU AI Act. Documentation cannot be generated for prohibited systems."
+                        : error
+                      }
+                    </p>
+                  </div>
+                  {error.toLowerCase().includes('prohibited') && (
+                    <div className="pt-2 border-t border-amber-300">
+                      <p className="text-xs font-semibold text-amber-900 mb-2">Next Steps:</p>
+                      <div className="space-y-2">
+                        <div className="flex items-start gap-2.5">
+                          <div className="flex-shrink-0 w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center mt-0.5">
+                            <span className="text-xs font-bold text-primary">1</span>
+                          </div>
+                          <p className="text-xs text-foreground leading-relaxed pt-0.5">
+                            Review your EU AI Act compliance assessment
+                          </p>
+                        </div>
+                        <div className="flex items-start gap-2.5">
+                          <div className="flex-shrink-0 w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center mt-0.5">
+                            <span className="text-xs font-bold text-primary">2</span>
+                          </div>
+                          <p className="text-xs text-foreground leading-relaxed pt-0.5">
+                            Remove prohibited practices from your system
+                          </p>
+                        </div>
+                        <div className="flex items-start gap-2.5">
+                          <div className="flex-shrink-0 w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center mt-0.5">
+                            <span className="text-xs font-bold text-primary">3</span>
+                          </div>
+                          <p className="text-xs text-foreground leading-relaxed pt-0.5">
+                            Re-submit the compliance assessment with corrected information
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           )}
 

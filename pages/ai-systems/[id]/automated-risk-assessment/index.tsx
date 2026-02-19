@@ -314,7 +314,7 @@ export default function AutomatedRiskAssessmentPage() {
                         <span className="text-xs font-bold text-primary">2</span>
                       </div>
                       <p className="text-sm text-foreground leading-relaxed pt-0.5">
-                        Remove or modify prohibited practices from your system
+                        Remove prohibited practices from your system
                       </p>
                     </div>
                     <div className="flex items-start gap-3 p-3 rounded-lg bg-slate-50 border border-slate-200">
@@ -332,7 +332,8 @@ export default function AutomatedRiskAssessmentPage() {
               <div className="pt-2">
                 <Button 
                   onClick={() => router.push('/dashboard')} 
-                  className="w-full rounded-xl bg-primary hover:bg-primary/90 text-white"
+                  variant="default"
+                  className="w-full rounded-xl !bg-blue-600 !text-white hover:!bg-blue-700 hover:!text-white"
                 >
                   Back to Dashboard
                 </Button>
