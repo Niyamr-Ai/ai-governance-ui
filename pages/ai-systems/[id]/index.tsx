@@ -442,7 +442,7 @@ export default function AISystemDetailPage() {
                 </div>
               </div>
             </div>
-            {overallRisk && (
+            {overallRisk && activeTab !== 'documentation' && (
               <div className="flex flex-col items-end gap-2">
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Overall Risk</p>
                 <Badge
@@ -705,7 +705,7 @@ export default function AISystemDetailPage() {
                   </Card>
                 )}
 
-                {overallRisk && (
+                {overallRisk && activeTab !== 'documentation' && (
                   <Card className="glass-panel shadow-elevated border-border/50 rounded-2xl overflow-hidden hover:shadow-blue transition-all duration-300">
                     <CardHeader className="pb-4 border-b border-border/30">
                       <CardTitle className="text-foreground text-xl font-bold">Risk Summary</CardTitle>

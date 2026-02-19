@@ -101,8 +101,9 @@ const getComplianceStatusClasses = (status) => {
 
 const highRiskObligationLabels = {
   riskManagement: "Risk Management",
-  dataQuality: "Data Quality",
-  documentation: "Documentation",
+  dataGovernance: "Data Governance", // Changed from "Data Quality" to match backend
+  technicalDocumentation: "Technical Documentation", // Changed from "Documentation" to match backend
+  recordKeeping: "Record-Keeping", // Added - was missing!
   humanOversight: "Human Oversight",
   accuracy: "Accuracy",
   conformityAssessment: "Conformity Assessment",
@@ -250,7 +251,9 @@ export default function ComplianceResultPage() {
         notApplicable: true,
       };
     }
-    const isFulfilled = !high_risk_missing.includes(key);
+    // FIX: Check if the LABEL (not the key) is in high_risk_missing array
+    // high_risk_missing contains full labels like "Risk Management", "Data Governance", etc.
+    const isFulfilled = !high_risk_missing.includes(label);
     const colorSet = obligationColors[idx % obligationColors.length];
     return {
       name: label.split(" ")[0],
@@ -579,7 +582,8 @@ export default function ComplianceResultPage() {
             <CardContent>
               <div className="space-y-3">
                 {Object.entries(highRiskObligationLabels).map(([key, label]) => {
-                  const isFulfilled = isNotApplicable ? false : !high_risk_missing.includes(key);
+                  // FIX: Check if the LABEL (not the key) is in high_risk_missing array
+                  const isFulfilled = isNotApplicable ? false : !high_risk_missing.includes(label);
                   return (
                     <div
                       key={key}
