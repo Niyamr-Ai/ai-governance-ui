@@ -10,8 +10,11 @@ import { useRouter } from "next/router";
 import { Formik } from "formik";
 import * as Yup from "yup";
 
+// Assessment Modes
+type AssessmentMode = 'rapid' | 'comprehensive';
+
 // EU AI Act Validation Schema
-const euValidationSchema = Yup.object({
+const comprehensiveSchema = Yup.object({
   q1: Yup.string()
     .oneOf(["yes", "no"], "Please indicate whether your AI system affects users in the European Union")
     .required("Please indicate whether your AI system affects users in the European Union"),
@@ -55,6 +58,29 @@ const euValidationSchema = Yup.object({
 
   q10: Yup.string()
     .required("Please specify who is accountable for this AI system. Enter null if nothing to show"),
+});
+
+const rapidSchema = Yup.object({
+  q1: Yup.string()
+    .oneOf(["yes", "no"], "Required")
+    .required("Required"),
+  q2: Yup.string()
+    .required("Required"),
+  q4: Yup.array()
+    .min(1, "Required")
+    .required("Required"),
+  q5: Yup.array()
+    .min(1, "Required")
+    .required("Required"),
+  q7: Yup.string()
+    .oneOf(["yes", "no"], "Required")
+    .required("Required"),
+  q7a: Yup.string().when("q7", {
+    is: "yes",
+    then: (s) => s.required("Required"),
+  }),
+  q10: Yup.string()
+    .required("Required"),
 });
 
 import {
@@ -204,6 +230,23 @@ export default function EUAssessmentPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [systemName, setSystemName] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [assessmentMode, setAssessmentMode] = useState<AssessmentMode | null>(null);
+
+  const rapidQuestionIds = ["q1", "q2", "q4", "q5", "q7", "q7a", "q10"];
+  const currentQuestions = assessmentMode === 'rapid'
+    ? euQuestions.filter(q => rapidQuestionIds.includes(q.id))
+    : euQuestions;
+
+  const currentSchema = assessmentMode === 'rapid' ? rapidSchema : comprehensiveSchema;
+
+  useEffect(() => {
+    const modeParam = router.query.mode;
+    const modeValue = Array.isArray(modeParam) ? modeParam[0] : modeParam;
+    if ((modeValue === "rapid" || modeValue === "comprehensive") && assessmentMode === null) {
+      setAssessmentMode(modeValue);
+    }
+  }, [router.query.mode, assessmentMode]);
+
 
   // Log component mount immediately
   console.log(`\n${'='.repeat(80)}`);
@@ -307,12 +350,12 @@ export default function EUAssessmentPage() {
 
         console.log(`📡 [EU-ASSESSMENT] Fetching system data from database...`);
 
-        // Fetch system data
+        // Fetch system data — include description and company_name for pre-filling
         const { data: systemData, error: systemError } = await supabase
           .from("ai_systems")
-          .select("id, system_name")
+          .select("id, system_name, description, company_name")
           .eq("id", systemIdValue)
-          .single();
+          .maybeSingle();
 
         if (systemError) {
           console.error(`❌ [EU-ASSESSMENT] Error loading system:`, systemError);
@@ -321,6 +364,10 @@ export default function EUAssessmentPage() {
           setError(`Invalid or missing system: ${systemError.message}`);
           setIsLoading(false);
           return;
+        }
+
+        if (!systemData) {
+          console.warn(`⚠️  [EU-ASSESSMENT] No ai_systems row found for systemId=${systemIdValue}. Continuing with default values.`);
         }
 
         console.log(`✅ [EU-ASSESSMENT] System data loaded:`, systemData);
@@ -359,8 +406,18 @@ export default function EUAssessmentPage() {
           return acc;
         }, {} as Record<string, any>);
 
-        // Use existing answers if available, otherwise use defaults
-        const finalValues = assessment?.answers ?? defaults;
+        // Use existing answers if available, otherwise use defaults pre-filled from system data
+        let finalValues: Record<string, any>;
+        if (assessment?.answers) {
+          finalValues = assessment.answers;
+        } else {
+          // Pre-fill q2 (description) and q10 (accountable person) from the ai_systems record
+          finalValues = {
+            ...defaults,
+            ...(systemData?.description ? { q2: systemData.description } : {}),
+            ...(systemData?.company_name ? { q10: systemData.company_name } : {}),
+          };
+        }
         console.log(`✅ [EU-ASSESSMENT] Setting initial values (${assessment ? 'from existing assessment' : 'using defaults'})`);
         setInitialValues(finalValues);
 
@@ -421,6 +478,7 @@ export default function EUAssessmentPage() {
         body: JSON.stringify({
           system_id: systemId,
           system_name: systemName || "Unnamed System",
+          assessment_mode: assessmentMode,
           ...values,
         }),
       });
@@ -467,7 +525,7 @@ export default function EUAssessmentPage() {
 
         if (hasMultipleJurisdictions) {
           console.log(`➡️  [EU-ASSESSMENT] Redirecting to multi-jurisdiction page`);
-          router.push(`/assessment/multi/${systemId}?completed=EU&assessmentId=${assessmentId}`);
+          router.push(`/assessment/multi/${systemId}?completed=EU&assessmentId=${assessmentId}&mode=${assessmentMode}`);
         } else {
           console.log(`➡️  [EU-ASSESSMENT] Single jurisdiction - redirecting to EU results`);
           router.push(`/compliance/${assessmentId}`);
@@ -548,6 +606,60 @@ export default function EUAssessmentPage() {
     );
   }
 
+  if (!assessmentMode) {
+    return (
+      <div className="min-h-screen bg-white">
+        <Head>
+          <title>Select Assessment Mode | EU AI Act</title>
+        </Head>
+        <Sidebar onLogout={handleLogout} />
+        <div className="container mx-auto max-w-4xl py-12 px-4 lg:pl-72 pt-24">
+          <h1 className="text-3xl font-bold mb-8 text-foreground">EU AI Act Assessment</h1>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card
+              className="glass-panel hover:border-primary cursor-pointer transition-all hover:shadow-lg p-6 flex flex-col items-center justify-center text-center space-y-4"
+              onClick={() => setAssessmentMode('rapid')}
+            >
+              <div className="h-16 w-16 rounded-full bg-blue-100 flex items-center justify-center">
+                <Loader2 className="h-8 w-8 text-blue-600" />
+              </div>
+              <div>
+                <CardTitle className="text-xl mb-2">Quick Scan</CardTitle>
+                <CardDescription>
+                  Fast high-level risk classification using core indicators.
+                </CardDescription>
+              </div>
+              <Button variant="outline" className="w-full rounded-xl">Start Quick Scan</Button>
+            </Card>
+
+            <Card
+              className="glass-panel hover:border-primary cursor-pointer transition-all hover:shadow-lg p-6 flex flex-col items-center justify-center text-center space-y-4"
+              onClick={() => setAssessmentMode('comprehensive')}
+            >
+              <div className="h-16 w-16 rounded-full bg-green-100 flex items-center justify-center">
+                <Shield className="h-8 w-8 text-green-600" />
+              </div>
+              <div>
+                <CardTitle className="text-xl mb-2">Deep Review</CardTitle>
+                <CardDescription>
+                  Full EU AI Act review with detailed controls, governance, and evidence checks.
+                </CardDescription>
+              </div>
+              <Button variant="hero" className="w-full rounded-xl bg-green-600 text-white">Start Deep Review</Button>
+            </Card>
+          </div>
+          <Button
+            variant="ghost"
+            className="mt-8 rounded-xl"
+            onClick={() => router.push("/dashboard")}
+          >
+            Cancel and Return
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
 
   return (
     <div className="min-h-screen bg-white">
@@ -562,17 +674,19 @@ export default function EUAssessmentPage() {
           <CardHeader>
             <CardTitle className="text-2xl flex items-center gap-2 text-foreground">
               <Shield className="h-6 w-6 text-primary" />
-              {frameworkName} Assessment
+              {frameworkName} {assessmentMode === 'rapid' ? 'Rapid' : 'Comprehensive'} Assessment
             </CardTitle>
             <CardDescription className="text-muted-foreground">
-              Complete the EU AI Act compliance assessment
+              {assessmentMode === 'rapid'
+                ? "Core risk classification based on critical high-signal indicators"
+                : "Full compliance assessment according to EU AI Act standards"}
             </CardDescription>
 
           </CardHeader>
           <CardContent>
             <Formik
               initialValues={initialValues}
-              validationSchema={euValidationSchema}
+              validationSchema={currentSchema}
               enableReinitialize
               onSubmit={handleFormSubmit}
             >
@@ -581,15 +695,23 @@ export default function EUAssessmentPage() {
                   <form onSubmit={(e) => {
                     e.preventDefault();
                     // Mark all fields as touched to show validation errors
-                    const allFields = euQuestions.reduce((acc, q) => {
+                    const allFields = currentQuestions.reduce((acc, q) => {
                       acc[q.id] = true;
                       return acc;
                     }, {} as Record<string, boolean>);
                     setTouched(allFields);
                     handleSubmit(e);
                   }} className="space-y-6">
-                    {/* TODO: render euQuestions here */}
-                    {euQuestions.map((q) => {
+                    {assessmentMode === 'rapid' && (
+                      <Alert className="bg-blue-50 border-blue-200 mb-6">
+                        <AlertTriangle className="h-4 w-4 text-blue-600" />
+                        <AlertDescription className="text-blue-800">
+                          <strong>Quick Scan:</strong> This result is based on core indicators only.
+                          Run Deep Review for full legal control coverage.
+                        </AlertDescription>
+                      </Alert>
+                    )}
+                    {currentQuestions.map((q) => {
                       // conditional logic (e.g. q7 → q7a)
                       if (q.conditional) {
                         const parentValue = values[q.conditional.dependsOn];
@@ -704,10 +826,10 @@ export default function EUAssessmentPage() {
                       <Button
                         type="button"
                         variant="outline"
-                        onClick={() => router.push("/dashboard")}
+                        onClick={() => setAssessmentMode(null)}
                         className="rounded-xl"
                       >
-                        Back
+                        Change Mode
                       </Button>
 
                       <Button

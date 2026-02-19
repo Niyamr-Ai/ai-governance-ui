@@ -35,10 +35,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2, Shield } from "lucide-react";
@@ -593,6 +590,7 @@ const masInitialState = {
 export default function AssessmentChooserPage() {
   const router = useRouter();
   const [step, setStep] = useState<"intro" | "form">("intro");
+  const [assessmentMode, setAssessmentMode] = useState<'rapid' | 'comprehensive'>('comprehensive');
   const [name, setName] = useState("");
   const [systemName, setSystemName] = useState("");
   const [country, setCountry] = useState("");
@@ -601,6 +599,7 @@ export default function AssessmentChooserPage() {
   const [dataProcessingLocations, setDataProcessingLocations] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [introSubmitAttempted, setIntroSubmitAttempted] = useState(false);
   const [evidenceFiles, setEvidenceFiles] = useState<Record<string, File>>({});
   const [evidenceContent, setEvidenceContent] = useState<Record<string, string>>({});
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -783,6 +782,7 @@ export default function AssessmentChooserPage() {
 
   // State for MAS multi-page navigation
   const [masCurrentPage, setMasCurrentPage] = useState(0);
+  const [masAssessmentMode, setMasAssessmentMode] = useState<'rapid' | 'comprehensive'>('comprehensive');
 
   // MAS Page structure (7-8 pages)
   const masPages = [
@@ -798,6 +798,7 @@ export default function AssessmentChooserPage() {
 
   // State for UK multi-page navigation
   const [ukCurrentPage, setUkCurrentPage] = useState(0);
+  const [ukAssessmentMode, setUkAssessmentMode] = useState<'rapid' | 'comprehensive'>('comprehensive');
 
   // UK Page structure (7 pages)
   const ukPages = [
@@ -875,22 +876,7 @@ export default function AssessmentChooserPage() {
 
   const handleIntroSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !country) {
-      setError("Please provide your name and country.");
-      return;
-    }
-    if (!systemName.trim()) {
-      setError("Please provide a system name.");
-      return;
-    }
-    if (!companyName.trim()) {
-      setError("Please provide your company name.");
-      return;
-    }
-    if (!companyUseCase.trim()) {
-      setError("Please describe what your company is using this AI system for.");
-      return;
-    }
+    setIntroSubmitAttempted(true);
     if (dataProcessingLocations.length === 0) {
       setError("Please select at least one data processing location.");
       return;
@@ -935,11 +921,12 @@ export default function AssessmentChooserPage() {
       const { data, error } = await supabase
         .from("ai_systems")
         .insert({
-          system_name: systemName,
-          company_name: companyName,
-          country,
+          system_name: systemName.trim() || "Untitled AI System",
+          company_name: companyName.trim() || "Unknown Company",
+          country: country || dataProcessingLocations[0] || "Unknown",
           data_processing_locations: dataProcessingLocations,
           assessment_type: assessmentType,
+          assessment_mode: assessmentMode,
           status: "draft",
         })
         .select()
@@ -957,16 +944,16 @@ export default function AssessmentChooserPage() {
 
       if (selectedJurisdictions.length > 1) {
         console.log(`➡️  [INTRO] Multiple jurisdictions detected - routing to multi-jurisdiction flow`);
-        router.push(`/assessment/multi/${data.id}`);
+        router.push(`/assessment/multi/${data.id}?mode=${assessmentMode}`);
       } else if (assessmentType === "UK") {
         console.log(`➡️  [INTRO] Single jurisdiction (UK) - routing to UK assessment`);
-        router.push(`/assessment/uk/${data.id}`);
+        router.push(`/assessment/uk/${data.id}?mode=${assessmentMode}`);
       } else if (assessmentType === "MAS") {
         console.log(`➡️  [INTRO] Single jurisdiction (MAS) - routing to MAS assessment`);
-        router.push(`/assessment/mas/${data.id}`);
+        router.push(`/assessment/mas/${data.id}?mode=${assessmentMode}`);
       } else {
         console.log(`➡️  [INTRO] Single jurisdiction (EU) - routing to EU assessment`);
-        router.push(`/assessment/eu/${data.id}`);
+        router.push(`/assessment/eu/${data.id}?mode=${assessmentMode}`);
       }
     } catch (err: any) {
       console.error(err);
@@ -1204,6 +1191,7 @@ export default function AssessmentChooserPage() {
         endpoint = "/api/compliance";
         payload = {
           ...euAnswers,
+          assessment_mode: assessmentMode,
           system_name: systemName,
           company_name: companyName,
           company_use_case: companyUseCase,
@@ -1239,6 +1227,7 @@ export default function AssessmentChooserPage() {
             ...values,
             ...ukEvidencePayload,
           },
+          assessment_mode: ukAssessmentMode,
           system_name: values.system_name,
           company_name: companyName,
           company_use_case: companyUseCase,
@@ -1255,6 +1244,7 @@ export default function AssessmentChooserPage() {
 
         payload = {
           ...values,
+          assessment_mode: masAssessmentMode,
           company_name: companyName,
           company_use_case: companyUseCase,
           ...evidencePayload,
@@ -1337,82 +1327,32 @@ export default function AssessmentChooserPage() {
                 Start an AI compliance check
               </CardTitle>
               <CardDescription className="text-muted-foreground">
-                Tell us who you are and where you operate. We'll show you the appropriate compliance form based on your jurisdiction.
+                Choose assessment mode and jurisdictions first. We will then open only the relevant framework form.
               </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleIntroSubmit} className="space-y-6">
                 <div className="space-y-2">
-                  <Label className="text-foreground">Your name</Label>
-                  <Input
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Alex Smith"
-                    required
-                    className="rounded-xl"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-foreground">Company name *</Label>
-                  <Input
-                    value={companyName}
-                    onChange={(e) => setCompanyName(e.target.value)}
-                    placeholder="e.g., Acme Corporation, Tech Solutions Inc."
-                    required
-                    className="rounded-xl"
-                  />
-                  <p className="text-xs text-muted-foreground">What is your company name?</p>
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-foreground">What is your company using this AI system for? *</Label>
-                  <Textarea
-                    value={companyUseCase}
-                    onChange={(e) => setCompanyUseCase(e.target.value)}
-                    placeholder="e.g., We are a financial services company using AI for fraud detection in credit card transactions. We process customer payment data to identify suspicious patterns and prevent fraudulent activities."
-                    required
-                    className="rounded-xl min-h-[100px]"
-                  />
-                  <p className="text-xs text-muted-foreground">Describe your company's business and how you plan to use this AI system</p>
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-foreground">System name *</Label>
-                  <Input
-                    value={systemName}
-                    onChange={(e) => setSystemName(e.target.value)}
-                    placeholder="My AI System"
-                    required
-                    className="rounded-xl"
-                  />
-                  <p className="text-xs text-muted-foreground">Give your AI system a clear, descriptive name</p>
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-foreground">Country</Label>
-                  <Select value={country} onValueChange={(v) => setCountry(v)}>
-                    <SelectTrigger className="rounded-xl">
-                      <SelectValue placeholder="Select your country" />
-                    </SelectTrigger>
-                    <SelectContent className="rounded-xl max-h-[300px]">
-                      <SelectItem value="United Kingdom" className="!bg-purple-50 hover:!bg-purple-100 focus:!bg-purple-100 data-[highlighted]:!bg-purple-100 border border-purple-200 rounded-lg my-1 mx-1">
-                        United Kingdom
-                      </SelectItem>
-                      <SelectItem value="Singapore" className="!bg-emerald-50 hover:!bg-emerald-100 focus:!bg-emerald-100 data-[highlighted]:!bg-emerald-100 border border-emerald-200 rounded-lg my-1 mx-1">
-                        Singapore
-                      </SelectItem>
-                      <SelectItem value="India" className="!bg-orange-50 hover:!bg-orange-100 focus:!bg-orange-100 data-[highlighted]:!bg-orange-100 border border-orange-200 rounded-lg my-1 mx-1">
-                        India
-                      </SelectItem>
-                      {EU_COUNTRIES.map((c) => (
-                        <SelectItem
-                          key={c}
-                          value={c}
-                          className="!bg-blue-50 hover:!bg-blue-100 focus:!bg-blue-100 data-[highlighted]:!bg-blue-100 border border-blue-200 rounded-lg my-1 mx-1"
-                        >
-                          {c}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground">Where is your company/tool located?</p>
+                  <Label className="text-foreground">Assessment mode *</Label>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant={assessmentMode === 'rapid' ? 'default' : 'outline'}
+                      className={assessmentMode === 'rapid' ? 'bg-blue-600' : ''}
+                      onClick={() => setAssessmentMode('rapid')}
+                    >
+                      Quick Scan
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={assessmentMode === 'comprehensive' ? 'default' : 'outline'}
+                      className={assessmentMode === 'comprehensive' ? 'bg-blue-600' : ''}
+                      onClick={() => setAssessmentMode('comprehensive')}
+                    >
+                      Deep Review
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Quick Scan is a fast high-level check. Deep Review runs full control coverage and evidence checks.</p>
                 </div>
 
                 <div className="space-y-3">
@@ -1479,7 +1419,7 @@ export default function AssessmentChooserPage() {
                       </Label>
                     </div>
                   </div>
-                  {dataProcessingLocations.length === 0 && (
+                  {introSubmitAttempted && dataProcessingLocations.length === 0 && (
                     <p className="text-xs text-red-500">Please select at least one data processing location</p>
                   )}
                 </div>
@@ -1641,6 +1581,8 @@ export default function AssessmentChooserPage() {
                       <div className="space-y-6">
                         <UkPage0SystemProfile
                           ukCurrentPage={ukCurrentPage}
+                          assessmentMode={ukAssessmentMode}
+                          setAssessmentMode={setUkAssessmentMode}
                         />
 
 
@@ -1688,7 +1630,10 @@ export default function AssessmentChooserPage() {
                       <>
                         <div className="space-y-6">
                           <MasPage1SystemProfile
-                            masCurrentPage={masCurrentPage} />
+                            masCurrentPage={masCurrentPage}
+                            assessmentMode={masAssessmentMode}
+                            setAssessmentMode={setMasAssessmentMode}
+                          />
 
                           <MasPage2DataDependencies
                             masCurrentPage={masCurrentPage} />
@@ -1731,6 +1676,7 @@ export default function AssessmentChooserPage() {
                           <SecurityMonitoring
                             masCurrentPage={masCurrentPage}
                             handleEvidenceFileChange={handleEvidenceFileChangeWithForm}
+                            evidenceContent={evidenceContent}
                           />
                         </div>
 

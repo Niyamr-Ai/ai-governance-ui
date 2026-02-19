@@ -189,6 +189,9 @@ export default function ComplianceResultPage() {
     summary,
     reference = {},
     created_at,
+    assessment_mode,
+    assessment_confidence,
+    is_provisional,
   } = result;
 
   // Extract prohibited practices list from reference
@@ -310,6 +313,14 @@ export default function ComplianceResultPage() {
             )}
           </div>
           <div className="flex gap-2">
+            {assessment_mode === 'rapid' && (
+              <Button
+                className="bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl"
+                onClick={() => router.push(`/assessment/eu/${id}`)}
+              >
+                Complete Comprehensive Assessment
+              </Button>
+            )}
             <Button
               variant="outline"
               className="border-gray-300 bg-white text-gray-900 hover:bg-gray-100 hover:text-gray-900"
@@ -319,6 +330,17 @@ export default function ComplianceResultPage() {
             </Button>
           </div>
         </div>
+
+        {assessment_mode === 'rapid' && (
+          <Alert className="bg-amber-50 border-amber-200 shadow-sm">
+            <AlertTriangle className="h-5 w-5 text-amber-600" />
+            <AlertTitle className="text-amber-800 font-bold">Quick Scan Result</AlertTitle>
+            <AlertDescription className="text-amber-700">
+              This assessment was performed in <strong>Quick Scan</strong> mode and covers core risk indicators.
+              For full obligation coverage and detailed compliance analysis, run <strong>Deep Review</strong>.
+            </AlertDescription>
+          </Alert>
+        )}
 
 
         {/* Key Metrics Cards */}
@@ -771,6 +793,6 @@ export default function ComplianceResultPage() {
           </Card>
         )}
       </div>
-    </main>
+    </main >
   );
 }

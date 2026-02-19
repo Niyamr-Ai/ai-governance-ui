@@ -3,6 +3,8 @@ export interface UKAssessmentResult {
   user_id: string | null;
   created_at: string;
   system_id?: string | null;
+  assessment_mode?: "rapid" | "comprehensive";
+  warning?: string | null;
   risk_level: UKRiskLevel;
   overall_assessment: UKComplianceStatus;
   safety_and_security: UKPrincipleStatus;

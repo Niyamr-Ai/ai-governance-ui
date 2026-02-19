@@ -52,6 +52,11 @@ type JurisdictionStatus = {
 export default function MultiJurisdictionAssessmentPage() {
   const router = useRouter();
   const { systemId } = router.query;
+  const modeParam = router.query.mode;
+  const requestedMode = Array.isArray(modeParam) ? modeParam[0] : modeParam;
+  const assessmentMode = requestedMode === "rapid" || requestedMode === "comprehensive"
+    ? requestedMode
+    : "comprehensive";
 
   const [currentStep, setCurrentStep] = useState<"common" | "jurisdiction">("common");
   const [selectedJurisdictions, setSelectedJurisdictions] = useState<("UK" | "EU" | "MAS")[]>([]);
@@ -146,7 +151,7 @@ export default function MultiJurisdictionAssessmentPage() {
       });
 
       // Clear query params
-      router.replace(`/assessment/multi/${systemId}`, undefined, { shallow: true });
+      router.replace(`/assessment/multi/${systemId}?mode=${assessmentMode}`, undefined, { shallow: true });
     }
   }, [router.isReady, router.query, systemId, jurisdictionStatuses.length]);
 
@@ -761,15 +766,15 @@ export default function MultiJurisdictionAssessmentPage() {
                           console.log(`${'='.repeat(80)}\n`);
 
                           if (currentJurisdiction === "UK") {
-                            const url = `/assessment/uk/${systemId}`;
+                            const url = `/assessment/uk/${systemId}?mode=${assessmentMode}`;
                             console.log(`➡️  [MULTI-ASSESSMENT] Navigating to: ${url}`);
                             router.push(url);
                           } else if (currentJurisdiction === "MAS") {
-                            const url = `/assessment/mas/${systemId}`;
+                            const url = `/assessment/mas/${systemId}?mode=${assessmentMode}`;
                             console.log(`➡️  [MULTI-ASSESSMENT] Navigating to: ${url}`);
                             router.push(url);
                           } else {
-                            const url = `/assessment/eu/${systemId}`;
+                            const url = `/assessment/eu/${systemId}?mode=${assessmentMode}`;
                             console.log(`➡️  [MULTI-ASSESSMENT] Navigating to EU form: ${url}`);
                             console.log(`   System ID being passed: ${systemId}`);
                             router.push(url);
@@ -827,4 +832,5 @@ export default function MultiJurisdictionAssessmentPage() {
     </div>
   );
 }
+
 

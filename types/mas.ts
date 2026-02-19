@@ -21,6 +21,9 @@ export interface MasAssessmentResult {
   user_id: string | null;
   created_at: string;
   system_id?: string | null;
+  assessment_mode?: "rapid" | "comprehensive";
+  warning?: string | null;
+  raw_answers?: Record<string, any>;
   system_name: string;
   description: string;
   owner: string;

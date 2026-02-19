@@ -15,6 +15,7 @@ import type {
   CreateInternalPolicyInput,
 } from "@/types/policy";
 
+import { backendFetch } from "@/utils/backend-fetch";
 import { supabase } from "@/utils/supabase/client";
 import Head from 'next/head';
 
@@ -40,9 +41,8 @@ export default function CreateInternalPolicyPage() {
     setSubmitting(true);
 
     try {
-      const res = await fetch("/api/policies", {
+      const res = await backendFetch("/api/policies", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
       });
 

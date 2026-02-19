@@ -12,7 +12,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Loader2, ArrowLeft } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Loader2, ArrowLeft, AlertTriangle } from "lucide-react";
 import type { MasAssessmentResult, MasComplianceStatus, MasRiskLevel } from "@/types/mas";
 import { supabase } from "@/utils/supabase/client";
 import Sidebar from "@/components/sidebar";
@@ -79,6 +80,11 @@ const pillarLabels: Record<string, string> = {
   monitoringChange: "Monitoring & Change Management",
   capabilityCapacity: "Capability & Capacity",
 };
+
+function isRapidUnassessedPillar(pillar: any): boolean {
+  const gaps = Array.isArray(pillar?.gaps) ? pillar.gaps : [];
+  return gaps.some((g: string) => typeof g === "string" && g.toLowerCase().includes("not fully assessed in quick scan"));
+}
 
 export default function MasAssessmentDetailPage() {
   const router = useRouter();
@@ -216,6 +222,44 @@ export default function MasAssessmentDetailPage() {
       </Head>
       <Sidebar onLogout={handleLogout} />
       <div className={`container mx-auto max-w-6xl py-10 px-4 space-y-8 ${isLoggedIn ? 'lg:pl-72 pt-24' : ''}`}>
+        {data.assessment_mode === "rapid" && (
+          <Alert className="bg-amber-50 border-amber-200">
+            <AlertTriangle className="h-5 w-5 text-amber-700" />
+            <AlertTitle className="text-amber-800 font-bold">Quick Scan Result</AlertTitle>
+            <AlertDescription className="text-amber-700">
+              {data.warning || "Rapid mode covers core indicators only. Run comprehensive mode for full control coverage."}
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {data.assessment_mode === "rapid" && (
+          <Card className="bg-white border-gray-200 shadow-sm">
+            <CardHeader className="bg-white">
+              <CardTitle className="text-xl text-gray-900 font-bold">Quick Scan Explainability</CardTitle>
+              <CardDescription className="text-gray-600">How this rapid result was determined</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {[
+                { label: "Governance policy documented", passed: data.raw_answers?.governance_policy === true },
+                { label: "System recorded in inventory", passed: data.raw_answers?.inventory_recorded === true },
+                { label: "Human oversight defined", passed: data.raw_answers?.human_oversight === true },
+                {
+                  label: "Risk framework statement provided",
+                  passed: typeof data.raw_answers?.governance_framework === "string" && data.raw_answers.governance_framework.trim().length >= 25
+                },
+              ].map((check) => (
+                <div key={check.label} className="flex items-center justify-between rounded-lg border border-gray-200 px-3 py-2">
+                  <span className="text-sm font-medium text-gray-900">{check.label}</span>
+                  <Badge className={check.passed ? "bg-emerald-100 text-emerald-700 border-emerald-200" : "bg-amber-100 text-amber-700 border-amber-200"}>
+                    {check.passed ? "Met" : "Not met"}
+                  </Badge>
+                </div>
+              ))}
+              <p className="text-xs text-gray-600 pt-1">Use Deep Review for full pillar-by-pillar validation and evidence depth.</p>
+            </CardContent>
+          </Card>
+        )}
+
         <div className="flex items-center justify-end">
           <div className="flex gap-3">
             {data?.system_id && isMultiJurisdiction && (
@@ -240,17 +284,22 @@ export default function MasAssessmentDetailPage() {
         {/* MAS Compliance Progress */}
         {(() => {
           const pillars = pillarOrder.map(key => data[key] as any);
-          const compliantCount = pillars.filter(p => p?.status === 'Compliant').length;
-          const totalPillars = pillars.length;
+          const assessedPillars = data.assessment_mode === "rapid"
+            ? pillars.filter((p) => !isRapidUnassessedPillar(p))
+            : pillars;
+          const compliantCount = assessedPillars.filter(p => p?.status === 'Compliant').length;
+          const totalPillars = assessedPillars.length || 1;
           const compliancePercentage = (compliantCount / totalPillars) * 100;
-          const averageScore = pillars.reduce((sum, p) => sum + (p?.score ?? 0), 0) / totalPillars;
+          const averageScore = assessedPillars.reduce((sum, p) => sum + (p?.score ?? 0), 0) / totalPillars;
 
           return (
             <Card className="bg-white border-gray-200 shadow-sm">
               <CardHeader className="bg-white">
                 <CardTitle className="text-2xl text-gray-900 font-bold">MAS Compliance Overview</CardTitle>
                 <CardDescription className="text-gray-600 font-medium">
-                  {compliantCount} of {totalPillars} pillars fully compliant • Average Score: {Math.round(averageScore)}/100
+                  {data.assessment_mode === "rapid"
+                    ? `${compliantCount} of ${totalPillars} assessed core pillars compliant • Core Average Score: ${Math.round(averageScore)}/100`
+                    : `${compliantCount} of ${totalPillars} pillars fully compliant • Average Score: ${Math.round(averageScore)}/100`}
                 </CardDescription>
               </CardHeader>
               <CardContent className="bg-white space-y-4">
@@ -324,6 +373,7 @@ export default function MasAssessmentDetailPage() {
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white">
             {pillarOrder.map((key) => {
               const pillar = data[key] as any;
+              const isUnassessedInRapid = data.assessment_mode === "rapid" && isRapidUnassessedPillar(pillar);
               return (
                 <div
                   key={key}
@@ -332,11 +382,13 @@ export default function MasAssessmentDetailPage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-base font-semibold text-gray-900">{pillarLabels[key]}</p>
-                      <div className="text-sm text-gray-600 font-medium mt-1">Score: {pillar?.score ?? 0}/100</div>
+                      <div className="text-sm text-gray-600 font-medium mt-1">
+                        {isUnassessedInRapid ? "Score: N/A (Quick Scan)" : `Score: ${pillar?.score ?? 0}/100`}
+                      </div>
                     </div>
                     <ComplianceBadge status={pillar?.status || "Partially compliant"} />
                   </div>
-                  <Progress value={pillar?.score ?? 0} className="h-2" />
+                  <Progress value={isUnassessedInRapid ? 0 : (pillar?.score ?? 0)} className="h-2" />
                 </div>
               );
             })}
@@ -346,13 +398,16 @@ export default function MasAssessmentDetailPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {pillarOrder.map((key) => {
             const pillar = data[key] as any;
+            const isUnassessedInRapid = data.assessment_mode === "rapid" && isRapidUnassessedPillar(pillar);
             return (
               <Card key={key} className="bg-white border-gray-200 shadow-sm">
                 <CardHeader className="bg-white">
                   <CardTitle className="text-xl text-gray-900 font-bold">{pillarLabels[key]}</CardTitle>
                   <CardDescription className="flex items-center gap-3">
                     <ComplianceBadge status={pillar?.status || "Partially compliant"} />
-                    <span className="text-gray-700 font-semibold">Score: {pillar?.score ?? 0}/100</span>
+                    <span className="text-gray-700 font-semibold">
+                      {isUnassessedInRapid ? "Score: N/A (Quick Scan)" : `Score: ${pillar?.score ?? 0}/100`}
+                    </span>
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4 bg-white">
@@ -388,7 +443,20 @@ export default function MasAssessmentDetailPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="bg-white">
-            <p className="text-gray-800 whitespace-pre-line leading-relaxed text-base">{data.summary}</p>
+            <p className="text-gray-800 whitespace-pre-line leading-relaxed text-base">
+              {data.assessment_mode === "rapid"
+                ? (() => {
+                    const checks = [
+                      data.raw_answers?.governance_policy === true,
+                      data.raw_answers?.inventory_recorded === true,
+                      data.raw_answers?.human_oversight === true,
+                      typeof data.raw_answers?.governance_framework === "string" && data.raw_answers.governance_framework.trim().length >= 25,
+                    ];
+                    const passed = checks.filter(Boolean).length;
+                    return `Quick Scan result: ${data.overall_compliance_status}. Core checks passed: ${passed}/4. This rapid result is based on governance policy, inventory recording, human oversight, and risk framework statement. Remaining pillars were not fully assessed and require Deep Review for full validation.`;
+                  })()
+                : data.summary}
+            </p>
           </CardContent>
         </Card>
       </div>

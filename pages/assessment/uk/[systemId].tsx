@@ -15,6 +15,7 @@ import UkPage3FairnessDataGovernance from "@/components/assessment/uk/ukPage3Fai
 import UkPage4AccountabilityGovernance from "@/components/assessment/uk/ukPage4AccountabilityGovernance";
 import UkPage5ContestabilityRedress from "@/components/assessment/uk/ukPage5ContestabilityRedress";
 import UkPage6FoundationModels from "@/components/assessment/uk/ukPage6FoundationModels";
+import UkPageRapid from "@/components/assessment/uk/ukPageRapid";
 
 
 import {
@@ -231,96 +232,32 @@ export default function UkAssessmentPage() {
 
   const [ukCurrentPage, setUkCurrentPage] = useState(0);
   const [ukInitialFromDb, setUkInitialFromDb] = useState<typeof ukInitialState | null>(null);
+  const [assessmentMode, setAssessmentMode] = useState<'rapid' | 'comprehensive'>('comprehensive');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isMultiJurisdiction, setIsMultiJurisdiction] = useState(false);
   const initialValues = ukInitialFromDb ?? ukInitialState;
   const [evidenceContent, setEvidenceContent] = useState<Record<string, string>>({});
 
-  const ukPageFields: Record<number, string[]> = {
-    0: ["system_name", "sector", "description"],
-
-    1: [
-      "robustness_testing",               // 👈 ADD THIS
-      "robustness_testing_methods",
-      "robustness_testing_frequency_text",
-      "robustness_testing_frequency",
-
-      "red_teaming",                      // 👈 ADD THIS
-      "red_teaming_who",
-      "red_teaming_methodology",
-
-      "misuse_prevention",                // 👈 ADD THIS
-      "misuse_prevention_measures",
-
-      "cybersecurity",                    // 👈 ADD THIS
-      "cybersecurity_controls",
-
-      "safety_testing",                   // 👈 ADD THIS
-      "safety_testing_protocols",
-    ],
-
-    2: [
-      // 👇 ADD THESE (CRITICAL)
-      "user_disclosure",
-      "explainability",
-      "documentation",
-      "transparency_reports",
-
-      // user disclosure
-      "user_disclosure_how",
-      "user_disclosure_when",
-      "user_disclosure_format",
-      "user_disclosure_evidence",
-
-      // explainability
-      "explainability_methods",
-      "explainability_technical_details",
-      "explainability_user_types",
-      "explainability_evidence",
-
-      // documentation
-      "documentation_types",
-      "documentation_storage",
-      "documentation_update_frequency",
-
-      // transparency reports
-      "transparency_reports_content",
-      "transparency_reports_frequency",
-      "transparency_reports_publication",
-    ],
-
-
-    3: [
-      "bias_testing",
-      "bias_testing_methodology",
-      "bias_testing_tools",
-      "bias_testing_frequency",
-      "bias_testing_results",
-
-      "discrimination_mitigation",
-      "discrimination_mitigation_measures",
-
-      "data_quality",
-      "data_quality_checks",
-      "data_quality_metrics",
-
-      "fairness_monitoring",
-      "fairness_monitoring_processes",
-      "fairness_monitoring_alerts",
-
-      "personal_data_handling",
-      "personal_data_types",
-      "personal_data_sources",
-      "personal_data_retention",
-
-      "data_representativeness",
-      "protected_characteristics",
-      "fairness_metrics_used",
-      "fairness_evidence",
-    ],
-  };
-
+  // UK Page structure (Dynamic)
+  const ukPages = useMemo(() => {
+    if (assessmentMode === 'rapid') {
+      return [
+        { id: "profile", title: "System Profile & Mode" },
+        { id: "rapid", title: "Rapid Risk Screening" },
+        { id: "foundation", title: "Foundation Models & High-Impact" },
+      ];
+    }
+    return [
+      { id: "profile", title: "System Profile & Company Info" },
+      { id: "safety", title: "Safety, Security & Robustness" },
+      { id: "transparency", title: "Transparency & Explainability" },
+      { id: "fairness", title: "Fairness & Data Governance" },
+      { id: "accountability", title: "Accountability & Governance" },
+      { id: "contestability", title: "Contestability & Redress" },
+      { id: "foundation", title: "Foundation Models & High-Impact Systems" },
+    ];
+  }, [assessmentMode]);
 
   const validationSchema = Yup.object({
     system_name: Yup.string().required("System name is required"),
@@ -329,708 +266,708 @@ export default function UkAssessmentPage() {
   });
 
 
-  const ukPageSchemas = [
-    // Page 0
-    Yup.object({
-      system_name: Yup.string().required("System name is required"),
-      sector: Yup.string().required("Sector is required"),
-      description: Yup.string().required("Description is required"),
-    }),
+  const ukPageSchemas = useMemo(() => {
+    if (assessmentMode === 'rapid') {
+      return [
+        // Page 0 – System Profile
+        Yup.object({
+          system_name: Yup.string().required("System name is required"),
+          sector: Yup.string().required("Sector is required"),
+          description: Yup.string().required("Description is required"),
+        }),
+        // Page 1 – Rapid Screening
+        Yup.object({
+          robustness_testing: Yup.boolean(),
+          personal_data_handling: Yup.boolean(),
+          human_oversight: Yup.boolean(),
+          accountability_roles: Yup.string(),
+        }),
+        // Page 2 – Foundation / High-Impact
+        Yup.object({
+          foundation_model: Yup.string().oneOf(["yes", "no", "unsure"]),
+          regulatory_sandbox: Yup.boolean(),
+          regulatory_sandbox_details: Yup.string().when("regulatory_sandbox", {
+            is: true,
+            then: (s) => s.required("Please describe regulatory sandbox participation"),
+          }),
+          sector_specific_requirements: Yup.string(),
+        }),
+      ];
+    }
 
-    // Page 1 – Safety, Security & Robustness
-    Yup.object({
-      robustness_testing: Yup.boolean(),
+    return [
+      // Page 0
+      Yup.object({
+        system_name: Yup.string().required("System name is required"),
+        sector: Yup.string().required("Sector is required"),
+        description: Yup.string().required("Description is required"),
+      }),
+
+      // Page 1 – Safety, Security & Robustness
+      Yup.object({
+        robustness_testing: Yup.boolean(),
 
 
-      robustness_testing_methods: Yup.string().when("robustness_testing", {
-        is: (v) => v === true,
-        then: (s) => s.required("Testing methods are required. Enter null if nothing to show"),
+        robustness_testing_methods: Yup.string().when("robustness_testing", {
+          is: (v) => v === true,
+          then: (s) => s.required("Testing methods are required. Enter null if nothing to show"),
+        }),
+
+
+        // robustness_testing_frequency: Yup.string().when("robustness_testing", {
+        //   is: (v) => v === true,
+        //   then: (s) => s.required("Testing frequency evidence is required. Enter null if nothing to show"),
+        // }),
+
+        robustness_test_results: Yup.string().when("robustness_testing", {
+          is: (v) => v === true,
+          then: (s) => s.required("Test results summary is required. Enter null if nothing to show"),
+        }),
+
+        // robustness_test_evidence: Yup.string().when("robustness_testing", {
+        //   is: (v) => v === true,
+        //   then: (s) => s.required("Robustness testing evidence is required. Enter null if nothing to show"),
+        // }),
+
+        red_teaming: Yup.boolean(),
+
+        red_teaming_who: Yup.string().when("red_teaming", {
+          is: (v) => v === true,
+          then: (s) => s.required("Red-teaming owner is required. Enter null if nothing to show"),
+        }),
+
+        red_teaming_methodology: Yup.string().when("red_teaming", {
+          is: (v) => v === true,
+          then: (s) => s.required("Red-teaming methodology is required. Enter null if nothing to show"),
+        }),
+
+        red_teaming_findings: Yup.string().when("red_teaming", {
+          is: (v) => v === true,
+          then: (s) => s.required("Red-teaming findings are required. Enter null if nothing to show"),
+        }),
+
+        // red_teaming_evidence: Yup.string().when("red_teaming", {
+        //   is: (v) => v === true,
+        //   then: (s) => s.required("Red-teaming evidence is required. Enter null if nothing to show"),
+        // }),
+
+        misuse_prevention: Yup.boolean(),
+
+        misuse_prevention_measures: Yup.string().when("misuse_prevention", {
+          is: (v) => v === true,
+          then: (s) => s.required("Misuse prevention measures are required. Enter null if nothing to show"),
+        }),
+
+        misuse_monitoring: Yup.string().when("misuse_prevention", {
+          is: (v) => v === true,
+          then: (s) => s.required("Misuse monitoring approach is required. Enter null if nothing to show"),
+        }),
+
+        cybersecurity: Yup.boolean(),
+
+        cybersecurity_controls: Yup.string().when("cybersecurity", {
+          is: (v) => v === true,
+          then: (s) => s.required("Cybersecurity controls are required. Enter null if nothing to show"),
+        }),
+
+        cybersecurity_incident_response: Yup.string().when("cybersecurity", {
+          is: (v) => v === true,
+          then: (s) => s.required("Incident response plan is required. Enter null if nothing to show"),
+        }),
+
+        cybersecurity_monitoring: Yup.string().when("cybersecurity", {
+          is: (v) => v === true,
+          then: (s) => s.required("Cybersecurity monitoring is required. Enter null if nothing to show"),
+        }),
+
+        // cybersecurity_evidence: Yup.string().when("cybersecurity", {
+        //   is: (v) => v === true,
+        //   then: (s) => s.required("Cybersecurity evidence is required. Enter null if nothing to show"),
+        // }),
+
+        safety_testing: Yup.boolean(),
+
+        safety_testing_protocols: Yup.string().when("safety_testing", {
+          is: (v) => v === true,
+          then: (s) => s.required("Safety testing protocols are required. Enter null if nothing to show"),
+        }),
+
+        safety_validation_methods: Yup.string().when("safety_testing", {
+          is: (v) => v === true,
+          then: (s) => s.required("Safety validation methods are required. Enter null if nothing to show"),
+        }),
+
+        // safety_testing_evidence: Yup.string().when("safety_testing", {
+        //   is: (v) => v === true,
+        //   then: (s) => s.required("Safety testing evidence is required. Enter null if nothing to show"),
+        // }),
       }),
 
 
-      // robustness_testing_frequency: Yup.string().when("robustness_testing", {
-      //   is: (v) => v === true,
-      //   then: (s) => s.required("Testing frequency evidence is required. Enter null if nothing to show"),
-      // }),
+      // Page 2
+      Yup.object({
+        user_disclosure: Yup.boolean()
+          .oneOf([true, false], "Please answer this question"),
 
-      robustness_test_results: Yup.string().when("robustness_testing", {
-        is: (v) => v === true,
-        then: (s) => s.required("Test results summary is required. Enter null if nothing to show"),
-      }),
+        user_disclosure_how: Yup.string().when("user_disclosure", {
+          is: (v) => v === true,
+          then: (s) => s.required("AI disclosure to users are required. Enter null if nothing to show"),
+        }),
 
-      // robustness_test_evidence: Yup.string().when("robustness_testing", {
-      //   is: (v) => v === true,
-      //   then: (s) => s.required("Robustness testing evidence is required. Enter null if nothing to show"),
-      // }),
+        user_disclosure_when: Yup.string().when("user_disclosure", {
+          is: (v) => v === true,
+          then: (s) => s.required("when is AI disclosed is required. Enter null if nothing to show"),
+        }),
 
-      red_teaming: Yup.boolean(),
+        user_disclosure_format: Yup.string().when("user_disclosure", {
+          is: (v) => v === true,
+          then: (s) => s.required("Format of user disclosure is required. Enter null if nothing to show"),
+        }),
 
-      red_teaming_who: Yup.string().when("red_teaming", {
-        is: (v) => v === true,
-        then: (s) => s.required("Red-teaming owner is required. Enter null if nothing to show"),
-      }),
+        // user_disclosure_evidence: Yup.string().when("user_disclosure", {
+        //   is: (v) => v === true,
+        //   then: (s) => s.required("AI disclosure of evidence is required. Enter null if nothing to show"),
+        // }),
 
-      red_teaming_methodology: Yup.string().when("red_teaming", {
-        is: (v) => v === true,
-        then: (s) => s.required("Red-teaming methodology is required. Enter null if nothing to show"),
-      }),
+        explainability: Yup.boolean()
+          .oneOf([true, false], "Please answer this question"),
 
-      red_teaming_findings: Yup.string().when("red_teaming", {
-        is: (v) => v === true,
-        then: (s) => s.required("Red-teaming findings are required. Enter null if nothing to show"),
-      }),
+        explainability_methods: Yup.string().when("explainability", {
+          is: (v) => v === true,
+          then: (s) => s.required("Methods of explainability is required. Enter null if nothing to show"),
+        }),
 
-      // red_teaming_evidence: Yup.string().when("red_teaming", {
-      //   is: (v) => v === true,
-      //   then: (s) => s.required("Red-teaming evidence is required. Enter null if nothing to show"),
-      // }),
+        explainability_technical_details: Yup.string().when("explainability", {
+          is: (v) => v === true,
+          then: (s) => s.required("Details of explainability is required. Enter null if nothing to show"),
+        }),
 
-      misuse_prevention: Yup.boolean(),
+        explainability_user_types: Yup.string().when("explainability", {
+          is: (v) => v === true,
+          then: (s) => s.required("Explainability of AI to different users is required. Enter null if nothing to show"),
+        }),
 
-      misuse_prevention_measures: Yup.string().when("misuse_prevention", {
-        is: (v) => v === true,
-        then: (s) => s.required("Misuse prevention measures are required. Enter null if nothing to show"),
-      }),
+        explainability_evidence: Yup.string().when(["explainability", "explainability_methods", "explainability_technical_details", "explainability_user_types"], {
+          is: (explainability, methods, technicalDetails, userTypes) => {
+            return explainability === true;
+          },
+          then: (s) => s.test(
+            "evidence-or-text-content",
+            "Evidence of AI disclosure is required. Enter null if nothing to show",
+            function (value) {
+              const { explainability_methods, explainability_technical_details, explainability_user_types } = this.parent;
+              // If any text field has content (and it's not just "null"), evidence is optional
+              const hasTextContent =
+                (explainability_methods && explainability_methods.trim() && explainability_methods.trim().toLowerCase() !== "null") ||
+                (explainability_technical_details && explainability_technical_details.trim() && explainability_technical_details.trim().toLowerCase() !== "null") ||
+                (explainability_user_types && explainability_user_types.trim() && explainability_user_types.trim().toLowerCase() !== "null");
 
-      misuse_monitoring: Yup.string().when("misuse_prevention", {
-        is: (v) => v === true,
-        then: (s) => s.required("Misuse monitoring approach is required. Enter null if nothing to show"),
-      }),
+              // If text content exists, evidence is optional (can be empty, null, or file)
+              if (hasTextContent) {
+                return true;
+              }
 
-      cybersecurity: Yup.boolean(),
-
-      cybersecurity_controls: Yup.string().when("cybersecurity", {
-        is: (v) => v === true,
-        then: (s) => s.required("Cybersecurity controls are required. Enter null if nothing to show"),
-      }),
-
-      cybersecurity_incident_response: Yup.string().when("cybersecurity", {
-        is: (v) => v === true,
-        then: (s) => s.required("Incident response plan is required. Enter null if nothing to show"),
-      }),
-
-      cybersecurity_monitoring: Yup.string().when("cybersecurity", {
-        is: (v) => v === true,
-        then: (s) => s.required("Cybersecurity monitoring is required. Enter null if nothing to show"),
-      }),
-
-      // cybersecurity_evidence: Yup.string().when("cybersecurity", {
-      //   is: (v) => v === true,
-      //   then: (s) => s.required("Cybersecurity evidence is required. Enter null if nothing to show"),
-      // }),
-
-      safety_testing: Yup.boolean(),
-
-      safety_testing_protocols: Yup.string().when("safety_testing", {
-        is: (v) => v === true,
-        then: (s) => s.required("Safety testing protocols are required. Enter null if nothing to show"),
-      }),
-
-      safety_validation_methods: Yup.string().when("safety_testing", {
-        is: (v) => v === true,
-        then: (s) => s.required("Safety validation methods are required. Enter null if nothing to show"),
-      }),
-
-      // safety_testing_evidence: Yup.string().when("safety_testing", {
-      //   is: (v) => v === true,
-      //   then: (s) => s.required("Safety testing evidence is required. Enter null if nothing to show"),
-      // }),
-    }),
-
-
-    // Page 2
-    Yup.object({
-      user_disclosure: Yup.boolean()
-        .oneOf([true, false], "Please answer this question"),
-
-      user_disclosure_how: Yup.string().when("user_disclosure", {
-        is: (v) => v === true,
-        then: (s) => s.required("AI disclosure to users are required. Enter null if nothing to show"),
-      }),
-
-      user_disclosure_when: Yup.string().when("user_disclosure", {
-        is: (v) => v === true,
-        then: (s) => s.required("when is AI disclosed is required. Enter null if nothing to show"),
-      }),
-
-      user_disclosure_format: Yup.string().when("user_disclosure", {
-        is: (v) => v === true,
-        then: (s) => s.required("Format of user disclosure is required. Enter null if nothing to show"),
-      }),
-
-      // user_disclosure_evidence: Yup.string().when("user_disclosure", {
-      //   is: (v) => v === true,
-      //   then: (s) => s.required("AI disclosure of evidence is required. Enter null if nothing to show"),
-      // }),
-
-      explainability: Yup.boolean()
-        .oneOf([true, false], "Please answer this question"),
-
-      explainability_methods: Yup.string().when("explainability", {
-        is: (v) => v === true,
-        then: (s) => s.required("Methods of explainability is required. Enter null if nothing to show"),
-      }),
-
-      explainability_technical_details: Yup.string().when("explainability", {
-        is: (v) => v === true,
-        then: (s) => s.required("Details of explainability is required. Enter null if nothing to show"),
-      }),
-
-      explainability_user_types: Yup.string().when("explainability", {
-        is: (v) => v === true,
-        then: (s) => s.required("Explainability of AI to different users is required. Enter null if nothing to show"),
-      }),
-
-      explainability_evidence: Yup.string().when(["explainability", "explainability_methods", "explainability_technical_details", "explainability_user_types"], {
-        is: (explainability, methods, technicalDetails, userTypes) => {
-          return explainability === true;
-        },
-        then: (s) => s.test(
-          "evidence-or-text-content",
-          "Evidence of AI disclosure is required. Enter null if nothing to show",
-          function(value) {
-            const { explainability_methods, explainability_technical_details, explainability_user_types } = this.parent;
-            // If any text field has content (and it's not just "null"), evidence is optional
-            const hasTextContent = 
-              (explainability_methods && explainability_methods.trim() && explainability_methods.trim().toLowerCase() !== "null") ||
-              (explainability_technical_details && explainability_technical_details.trim() && explainability_technical_details.trim().toLowerCase() !== "null") ||
-              (explainability_user_types && explainability_user_types.trim() && explainability_user_types.trim().toLowerCase() !== "null");
-            
-            // If text content exists, evidence is optional (can be empty, null, or file)
-            if (hasTextContent) {
-              return true;
+              // If no text content, evidence is required (must be file or explicitly set to "null")
+              // Accept empty string, "null", or any non-empty value (file name)
+              if (!value) {
+                return false;
+              }
+              const trimmedValue = value.trim().toLowerCase();
+              return trimmedValue === "null" || trimmedValue !== "";
             }
-            
-            // If no text content, evidence is required (must be file or explicitly set to "null")
-            // Accept empty string, "null", or any non-empty value (file name)
-            if (!value) {
-              return false;
+          ),
+        }),
+
+        documentation: Yup.boolean()
+          .oneOf([true, false], "Please answer this question"),
+
+        documentation_types: Yup.string().when("documentation", {
+          is: (v) => v === true,
+          then: (s) => s.required("Documentation is required. Enter null if nothing to show"),
+        }),
+
+        documentation_storage: Yup.string().when("documentation", {
+          is: (v) => v === true,
+          then: (s) => s.required("Place of documentation storage is required. Enter null if nothing to show"),
+        }),
+
+        documentation_update_frequency: Yup.string().when("documentation", {
+          is: (v) => v === true,
+          then: (s) => s.required("Documentation update frequency is required. Enter null if nothing to show")
+        }),
+
+        transparency_reports: Yup.boolean()
+          .oneOf([true, false], "Please answer this question"),
+
+        transparency_reports_content: Yup.string().when("transparency_reports", {
+          is: (v) => v === true,
+          then: (s) => s.required("Transparency report is required. Enter null if nothing to show"),
+        }),
+
+        transparency_reports_frequency: Yup.string().when("transparency_reports", {
+          is: (v) => v === true,
+          then: (s) => s.required("How often is reports recorded required. Enter null if nothing to show"),
+        }),
+
+        transparency_reports_publication: Yup.string().when("transparency_reports", {
+          is: (v) => v === true,
+          then: (s) => s.required("report published address is required. Enter null if nothing to show"),
+        }),
+      }),
+
+      Yup.object({
+        // Bias testing
+        bias_testing: Yup.boolean()
+          .oneOf([true, false], "Please indicate whether bias testing is conducted"),
+
+        bias_testing_methodology: Yup.string().when("bias_testing", {
+          is: true,
+          then: (s) =>
+            s.required("Please describe the methodology used for bias testing. Enter null if nothing to show"),
+        }),
+
+        bias_testing_tools: Yup.string().when("bias_testing", {
+          is: true,
+          then: (s) =>
+            s.required("Please specify the tools or techniques used for bias testing. Enter null if nothing to show"),
+        }),
+
+        bias_testing_frequency: Yup.string().when("bias_testing", {
+          is: true,
+          then: (s) =>
+            s.required("Please indicate how frequently bias testing is performed. Enter null if nothing to show"),
+        }),
+
+        bias_testing_results: Yup.string().when("bias_testing", {
+          is: true,
+          then: (s) =>
+            s.required("Please summarise the results of bias testing. Enter null if nothing to show"),
+        }),
+
+        // Discrimination mitigation
+        discrimination_mitigation: Yup.boolean()
+          .oneOf([true, false], "Please indicate whether discrimination mitigation measures exist"),
+
+        discrimination_mitigation_measures: Yup.string().when("discrimination_mitigation", {
+          is: true,
+          then: (s) =>
+            s.required("Please describe the measures taken to mitigate discrimination"),
+        }),
+
+        // Data quality
+        data_quality: Yup.boolean()
+          .oneOf([true, false], "Please indicate whether data quality controls are implemented"),
+
+        data_quality_checks: Yup.string().when("data_quality", {
+          is: true,
+          then: (s) =>
+            s.required("Please describe the data quality checks that are performed. Enter null if nothing to show"),
+        }),
+
+        data_quality_metrics: Yup.string().when("data_quality", {
+          is: true,
+          then: (s) =>
+            s.required("Please specify the metrics used to assess data quality. Enter null if nothing to show"),
+        }),
+
+        // Fairness monitoring
+        fairness_monitoring: Yup.boolean()
+          .oneOf([true, false], "Please indicate whether ongoing fairness monitoring is conducted"),
+
+        fairness_monitoring_processes: Yup.string().when("fairness_monitoring", {
+          is: true,
+          then: (s) =>
+            s.required("Please describe the processes used for fairness monitoring. Enter null if nothing to show"),
+        }),
+
+        fairness_monitoring_alerts: Yup.string().when("fairness_monitoring", {
+          is: true,
+          then: (s) =>
+            s.required("Please describe how fairness issues or alerts are identified. Enter null if nothing to show"),
+        }),
+
+        // Personal data handling
+        personal_data_handling: Yup.boolean()
+          .oneOf([true, false], "Please indicate whether personal data is processed"),
+
+        personal_data_types: Yup.string().when("personal_data_handling", {
+          is: true,
+          then: (s) =>
+            s.required("Please specify the types of personal data processed. Enter null if nothing to show"),
+        }),
+
+        personal_data_sources: Yup.string().when("personal_data_handling", {
+          is: true,
+          then: (s) =>
+            s.required("Please specify the sources of personal data. Enter null if nothing to show"),
+        }),
+
+        personal_data_retention: Yup.string().when("personal_data_handling", {
+          is: true,
+          then: (s) =>
+            s.required("Please describe the personal data retention period. Enter null if nothing to show"),
+        }),
+
+        // Representativeness & fairness metrics
+        data_representativeness: Yup.string()
+          .required("Please describe how data representativeness is ensured. Enter null if nothing to show"),
+
+        protected_characteristics: Yup.string()
+          .required("Please specify which protected characteristics are considered. Enter null if nothing to show"),
+
+        fairness_metrics_used: Yup.string()
+          .required("Please describe the fairness metrics used. Enter null if nothing to show"),
+
+        fairness_evidence: Yup.string().when("data_representativeness", {
+          is: true,
+          then: (s) =>
+            s.required("Please provide evidence supporting fairness and representativeness assessments. Enter null if nothing to show"),
+        }),
+      }),
+
+
+
+      // Page 4
+      Yup.object({
+        // Clear accountability framework
+        accountability_framework: Yup.boolean()
+          .oneOf([true, false], "Please indicate whether a clear accountability framework exists"),
+
+        accountability_framework_structure: Yup.string().when("accountability_framework", {
+          is: true,
+          then: (s) =>
+            s.required("Please describe the structure of your accountability framework. Enter null if nothing to show"),
+        }),
+
+        accountability_roles: Yup.string().when("accountability_framework", {
+          is: true,
+          then: (s) =>
+            s.required("Please describe the accountability roles and responsibilities. Enter null if nothing to show"),
+        }),
+
+        // accountability_framework_evidence: Yup.string().when("accountability_framework", {
+        //   is: true,
+        //   then: (s) =>
+        //     s.required("Please provide evidence supporting your accountability framework. Enter null if nothing to show"),
+        // }),
+
+        // Human oversight mechanisms
+        human_oversight: Yup.boolean()
+          .oneOf([true, false], "Please indicate whether human oversight mechanisms are in place"),
+
+        human_oversight_who: Yup.string().when("human_oversight", {
+          is: true,
+          then: (s) =>
+            s.required("Please specify who provides human oversight. Enter null if nothing to show"),
+        }),
+
+        human_oversight_when: Yup.string().when("human_oversight", {
+          is: true,
+          then: (s) =>
+            s.required("Please specify when human oversight occurs. Enter null if nothing to show"),
+        }),
+
+        human_oversight_how: Yup.string().when("human_oversight", {
+          is: true,
+          then: (s) =>
+            s.required("Please describe how human oversight is implemented. Enter null if nothing to show"),
+        }),
+
+        // human_oversight_evidence: Yup.string().when("human_oversight", {
+        //   is: true,
+        //   then: (s) =>
+        //     s.required("Please provide evidence of human oversight mechanisms. Enter null if nothing to show"),
+        // }),
+
+        // Risk management processes
+        risk_management: Yup.boolean()
+          .oneOf([true, false], "Please indicate whether risk management processes are in place"),
+
+        risk_management_processes: Yup.string().when("risk_management", {
+          is: true,
+          then: (s) =>
+            s.required("Please describe your risk management processes. Enter null if nothing to show"),
+        }),
+
+        risk_management_documentation: Yup.string().when("risk_management", {
+          is: true,
+          then: (s) =>
+            s.required("Please describe how risks are documented. Enter null if nothing to show"),
+        }),
+
+        // risk_management_evidence: Yup.string().when("risk_management", {
+        //   is: true,
+        //   then: (s) =>
+        //     s.required("Please provide evidence of risk management processes. Enter null if nothing to show"),
+        // }),
+
+        // Governance structure and roles
+        governance_structure: Yup.boolean()
+          .oneOf([true, false], "Please indicate whether a governance structure exists"),
+
+        governance_board_involvement: Yup.string().when("governance_structure", {
+          is: true,
+          then: (s) =>
+            s.required("Please describe board involvement in AI governance. Enter null if nothing to show"),
+        }),
+
+        governance_committees: Yup.string().when("governance_structure", {
+          is: true,
+          then: (s) =>
+            s.required("Please describe AI governance committees. Enter null if nothing to show"),
+        }),
+
+        // Audit trail and record-keeping
+        audit_trail: Yup.boolean()
+          .oneOf([true, false], "Please indicate whether audit trails are maintained"),
+
+        audit_trail_what: Yup.string().when("audit_trail", {
+          is: true,
+          then: (s) =>
+            s.required("Please specify what is logged in audit trails. Enter null if nothing to show"),
+        }),
+
+        audit_trail_retention: Yup.string().when("audit_trail", {
+          is: true,
+          then: (s) =>
+            s.required("Please specify audit trail retention period. Enter null if nothing to show"),
+        }),
+
+        audit_trail_access: Yup.string().when("audit_trail", {
+          is: true,
+          then: (s) =>
+            s.required("Please specify who has access to audit trails. Enter null if nothing to show"),
+        }),
+
+        // audit_trail_evidence: Yup.string().when("audit_trail", {
+        //   is: true,
+        //   then: (s) =>
+        //     s.required("Please provide evidence of audit trail implementation. Enter null if nothing to show"),
+        // }),
+
+        // Senior management oversight
+        senior_management_oversight: Yup.string()
+          .required("Please describe senior management oversight of AI systems. Enter null if nothing to show"),
+
+        // Ethics committee
+        ethics_committee: Yup.boolean()
+          .oneOf([true, false], "Please indicate whether an ethics committee exists"),
+
+        ethics_committee_details: Yup.string().when("ethics_committee", {
+          is: true,
+          then: (s) =>
+            s.required("Please describe your ethics committee structure and role"),
+        }),
+
+        // Policy assignment and review frequency
+        policy_assignment: Yup.string()
+          .required("Please describe policy assignment and review frequency. Enter null if nothing to show"),
+
+        // Training requirements
+        training_requirements: Yup.string()
+          .required("Please describe training requirements for AI system staff"),
+
+        // Escalation procedures
+        escalation_procedures: Yup.string()
+          .required("Please describe escalation procedures for AI-related issues. Enter null if nothing to show"),
+
+        // Accountable person (required field)
+        accountable_person: Yup.string()
+          .required("Please specify who is accountable for this AI system. Enter null if nothing to show"),
+      }),
+
+      // Page 5
+      Yup.object({
+        // Clear user rights and information
+        user_rights: Yup.boolean()
+          .oneOf([true, false], "Please indicate whether clear user rights are established"),
+
+        user_rights_what: Yup.string().when("user_rights", {
+          is: true,
+          then: (s) =>
+            s.required("Please specify what rights users have. Enter null if nothing to show"),
+        }),
+
+        user_rights_communication: Yup.string().when("user_rights", {
+          is: true,
+          then: (s) =>
+            s.required("Please describe how rights are communicated to users. Enter null if nothing to show"),
+        }),
+
+        user_rights_evidence: Yup.string().when(["user_rights", "user_rights_what", "user_rights_communication"], {
+          is: (user_rights, what, communication) => {
+            return user_rights === true;
+          },
+          then: (s) => s.test(
+            "evidence-or-text-content",
+            "Please provide evidence of user rights documentation. Enter null if nothing to show",
+            function (value) {
+              const { user_rights_what, user_rights_communication } = this.parent;
+              // If any text field has content (and it's not just "null"), evidence is optional
+              const hasTextContent =
+                (user_rights_what && user_rights_what.trim() && user_rights_what.trim().toLowerCase() !== "null") ||
+                (user_rights_communication && user_rights_communication.trim() && user_rights_communication.trim().toLowerCase() !== "null");
+
+              // If text content exists, evidence is optional (can be empty, null, or file)
+              if (hasTextContent) {
+                return true;
+              }
+
+              // If no text content, evidence is required (must be file or explicitly set to "null")
+              if (!value) {
+                return false;
+              }
+              const trimmedValue = value.trim().toLowerCase();
+              return trimmedValue === "null" || trimmedValue !== "";
             }
-            const trimmedValue = value.trim().toLowerCase();
-            return trimmedValue === "null" || trimmedValue !== "";
-          }
-        ),
-      }),
+          ),
+        }),
 
-      documentation: Yup.boolean()
-        .oneOf([true, false], "Please answer this question"),
+        // Appeal or challenge mechanism
+        appeal_mechanism: Yup.boolean()
+          .oneOf([true, false], "Please indicate whether an appeal mechanism exists"),
 
-      documentation_types: Yup.string().when("documentation", {
-        is: (v) => v === true,
-        then: (s) => s.required("Documentation is required. Enter null if nothing to show"),
-      }),
+        appeal_mechanism_process: Yup.string().when("appeal_mechanism", {
+          is: true,
+          then: (s) =>
+            s.required("Please describe the appeal process. Enter null if nothing to show"),
+        }),
 
-      documentation_storage: Yup.string().when("documentation", {
-        is: (v) => v === true,
-        then: (s) => s.required("Place of documentation storage is required. Enter null if nothing to show"),
-      }),
+        appeal_mechanism_timeline: Yup.string().when("appeal_mechanism", {
+          is: true,
+          then: (s) =>
+            s.required("Please specify the timeline for appeals. Enter null if nothing to show"),
+        }),
 
-      documentation_update_frequency: Yup.string().when("documentation", {
-        is: (v) => v === true,
-        then: (s) => s.required("Documentation update frequency is required. Enter null if nothing to show")
-      }),
+        appeal_mechanism_accessibility: Yup.string().when("appeal_mechanism", {
+          is: true,
+          then: (s) =>
+            s.required("Please describe how accessible the appeal mechanism is. Enter null if nothing to show"),
+        }),
 
-      transparency_reports: Yup.boolean()
-        .oneOf([true, false], "Please answer this question"),
+        // appeal_mechanism_evidence: Yup.string().when("appeal_mechanism", {
+        //   is: true,
+        //   then: (s) =>
+        //     s.required("Please provide evidence of appeal mechanism documentation. Enter null if nothing to show"),
+        // }),
 
-      transparency_reports_content: Yup.string().when("transparency_reports", {
-        is: (v) => v === true,
-        then: (s) => s.required("Transparency report is required. Enter null if nothing to show"),
-      }),
+        // Redress process for adverse outcomes
+        redress_process: Yup.boolean()
+          .oneOf([true, false], "Please indicate whether a redress process exists"),
 
-      transparency_reports_frequency: Yup.string().when("transparency_reports", {
-        is: (v) => v === true,
-        then: (s) => s.required("How often is reports recorded required. Enter null if nothing to show"),
-      }),
+        redress_process_steps: Yup.string().when("redress_process", {
+          is: true,
+          then: (s) =>
+            s.required("Please describe the steps involved in the redress process. Enter null if nothing to show"),
+        }),
 
-      transparency_reports_publication: Yup.string().when("transparency_reports", {
-        is: (v) => v === true,
-        then: (s) => s.required("report published address is required. Enter null if nothing to show"),
-      }),
-    }),
+        redress_compensation: Yup.string().when("redress_process", {
+          is: true,
+          then: (s) =>
+            s.required("Please describe compensation mechanisms. Enter null if nothing to show"),
+        }),
 
-    Yup.object({
-      // Bias testing
-      bias_testing: Yup.boolean()
-        .oneOf([true, false], "Please indicate whether bias testing is conducted"),
+        redress_documentation: Yup.string().when("redress_process", {
+          is: true,
+          then: (s) =>
+            s.required("Please describe how redress cases are documented. Enter null if nothing to show"),
+        }),
 
-      bias_testing_methodology: Yup.string().when("bias_testing", {
-        is: true,
-        then: (s) =>
-          s.required("Please describe the methodology used for bias testing. Enter null if nothing to show"),
-      }),
+        redress_process_evidence: Yup.string().when(["redress_process", "redress_process_steps", "redress_compensation", "redress_documentation"], {
+          is: (redress_process, steps, compensation, documentation) => {
+            return redress_process === true;
+          },
+          then: (s) => s.test(
+            "evidence-or-text-content",
+            "Please provide evidence of redress process documentation. Enter null if nothing to show",
+            function (value) {
+              const { redress_process_steps, redress_compensation, redress_documentation } = this.parent;
+              // If any text field has content (and it's not just "null"), evidence is optional
+              const hasTextContent =
+                (redress_process_steps && redress_process_steps.trim() && redress_process_steps.trim().toLowerCase() !== "null") ||
+                (redress_compensation && redress_compensation.trim() && redress_compensation.trim().toLowerCase() !== "null") ||
+                (redress_documentation && redress_documentation.trim() && redress_documentation.trim().toLowerCase() !== "null");
 
-      bias_testing_tools: Yup.string().when("bias_testing", {
-        is: true,
-        then: (s) =>
-          s.required("Please specify the tools or techniques used for bias testing. Enter null if nothing to show"),
-      }),
+              // If text content exists, evidence is optional (can be empty, null, or file)
+              if (hasTextContent) {
+                return true;
+              }
 
-      bias_testing_frequency: Yup.string().when("bias_testing", {
-        is: true,
-        then: (s) =>
-          s.required("Please indicate how frequently bias testing is performed. Enter null if nothing to show"),
-      }),
-
-      bias_testing_results: Yup.string().when("bias_testing", {
-        is: true,
-        then: (s) =>
-          s.required("Please summarise the results of bias testing. Enter null if nothing to show"),
-      }),
-
-      // Discrimination mitigation
-      discrimination_mitigation: Yup.boolean()
-        .oneOf([true, false], "Please indicate whether discrimination mitigation measures exist"),
-
-      discrimination_mitigation_measures: Yup.string().when("discrimination_mitigation", {
-        is: true,
-        then: (s) =>
-          s.required("Please describe the measures taken to mitigate discrimination"),
-      }),
-
-      // Data quality
-      data_quality: Yup.boolean()
-        .oneOf([true, false], "Please indicate whether data quality controls are implemented"),
-
-      data_quality_checks: Yup.string().when("data_quality", {
-        is: true,
-        then: (s) =>
-          s.required("Please describe the data quality checks that are performed. Enter null if nothing to show"),
-      }),
-
-      data_quality_metrics: Yup.string().when("data_quality", {
-        is: true,
-        then: (s) =>
-          s.required("Please specify the metrics used to assess data quality. Enter null if nothing to show"),
-      }),
-
-      // Fairness monitoring
-      fairness_monitoring: Yup.boolean()
-        .oneOf([true, false], "Please indicate whether ongoing fairness monitoring is conducted"),
-
-      fairness_monitoring_processes: Yup.string().when("fairness_monitoring", {
-        is: true,
-        then: (s) =>
-          s.required("Please describe the processes used for fairness monitoring. Enter null if nothing to show"),
-      }),
-
-      fairness_monitoring_alerts: Yup.string().when("fairness_monitoring", {
-        is: true,
-        then: (s) =>
-          s.required("Please describe how fairness issues or alerts are identified. Enter null if nothing to show"),
-      }),
-
-      // Personal data handling
-      personal_data_handling: Yup.boolean()
-        .oneOf([true, false], "Please indicate whether personal data is processed"),
-
-      personal_data_types: Yup.string().when("personal_data_handling", {
-        is: true,
-        then: (s) =>
-          s.required("Please specify the types of personal data processed. Enter null if nothing to show"),
-      }),
-
-      personal_data_sources: Yup.string().when("personal_data_handling", {
-        is: true,
-        then: (s) =>
-          s.required("Please specify the sources of personal data. Enter null if nothing to show"),
-      }),
-
-      personal_data_retention: Yup.string().when("personal_data_handling", {
-        is: true,
-        then: (s) =>
-          s.required("Please describe the personal data retention period. Enter null if nothing to show"),
-      }),
-
-      // Representativeness & fairness metrics
-      data_representativeness: Yup.string()
-        .required("Please describe how data representativeness is ensured. Enter null if nothing to show"),
-
-      protected_characteristics: Yup.string()
-        .required("Please specify which protected characteristics are considered. Enter null if nothing to show"),
-
-      fairness_metrics_used: Yup.string()
-        .required("Please describe the fairness metrics used. Enter null if nothing to show"),
-
-      fairness_evidence: Yup.string().when("data_representativeness", {
-        is: true,
-        then: (s) =>
-          s.required("Please provide evidence supporting fairness and representativeness assessments. Enter null if nothing to show"),
-      }),
-    }),
-
-
-
-    // Page 4
-    Yup.object({
-      // Clear accountability framework
-      accountability_framework: Yup.boolean()
-        .oneOf([true, false], "Please indicate whether a clear accountability framework exists"),
-
-      accountability_framework_structure: Yup.string().when("accountability_framework", {
-        is: true,
-        then: (s) =>
-          s.required("Please describe the structure of your accountability framework. Enter null if nothing to show"),
-      }),
-
-      accountability_roles: Yup.string().when("accountability_framework", {
-        is: true,
-        then: (s) =>
-          s.required("Please describe the accountability roles and responsibilities. Enter null if nothing to show"),
-      }),
-
-      // accountability_framework_evidence: Yup.string().when("accountability_framework", {
-      //   is: true,
-      //   then: (s) =>
-      //     s.required("Please provide evidence supporting your accountability framework. Enter null if nothing to show"),
-      // }),
-
-      // Human oversight mechanisms
-      human_oversight: Yup.boolean()
-        .oneOf([true, false], "Please indicate whether human oversight mechanisms are in place"),
-
-      human_oversight_who: Yup.string().when("human_oversight", {
-        is: true,
-        then: (s) =>
-          s.required("Please specify who provides human oversight. Enter null if nothing to show"),
-      }),
-
-      human_oversight_when: Yup.string().when("human_oversight", {
-        is: true,
-        then: (s) =>
-          s.required("Please specify when human oversight occurs. Enter null if nothing to show"),
-      }),
-
-      human_oversight_how: Yup.string().when("human_oversight", {
-        is: true,
-        then: (s) =>
-          s.required("Please describe how human oversight is implemented. Enter null if nothing to show"),
-      }),
-
-      // human_oversight_evidence: Yup.string().when("human_oversight", {
-      //   is: true,
-      //   then: (s) =>
-      //     s.required("Please provide evidence of human oversight mechanisms. Enter null if nothing to show"),
-      // }),
-
-      // Risk management processes
-      risk_management: Yup.boolean()
-        .oneOf([true, false], "Please indicate whether risk management processes are in place"),
-
-      risk_management_processes: Yup.string().when("risk_management", {
-        is: true,
-        then: (s) =>
-          s.required("Please describe your risk management processes. Enter null if nothing to show"),
-      }),
-
-      risk_management_documentation: Yup.string().when("risk_management", {
-        is: true,
-        then: (s) =>
-          s.required("Please describe how risks are documented. Enter null if nothing to show"),
-      }),
-
-      // risk_management_evidence: Yup.string().when("risk_management", {
-      //   is: true,
-      //   then: (s) =>
-      //     s.required("Please provide evidence of risk management processes. Enter null if nothing to show"),
-      // }),
-
-      // Governance structure and roles
-      governance_structure: Yup.boolean()
-        .oneOf([true, false], "Please indicate whether a governance structure exists"),
-
-      governance_board_involvement: Yup.string().when("governance_structure", {
-        is: true,
-        then: (s) =>
-          s.required("Please describe board involvement in AI governance. Enter null if nothing to show"),
-      }),
-
-      governance_committees: Yup.string().when("governance_structure", {
-        is: true,
-        then: (s) =>
-          s.required("Please describe AI governance committees. Enter null if nothing to show"),
-      }),
-
-      // Audit trail and record-keeping
-      audit_trail: Yup.boolean()
-        .oneOf([true, false], "Please indicate whether audit trails are maintained"),
-
-      audit_trail_what: Yup.string().when("audit_trail", {
-        is: true,
-        then: (s) =>
-          s.required("Please specify what is logged in audit trails. Enter null if nothing to show"),
-      }),
-
-      audit_trail_retention: Yup.string().when("audit_trail", {
-        is: true,
-        then: (s) =>
-          s.required("Please specify audit trail retention period. Enter null if nothing to show"),
-      }),
-
-      audit_trail_access: Yup.string().when("audit_trail", {
-        is: true,
-        then: (s) =>
-          s.required("Please specify who has access to audit trails. Enter null if nothing to show"),
-      }),
-
-      // audit_trail_evidence: Yup.string().when("audit_trail", {
-      //   is: true,
-      //   then: (s) =>
-      //     s.required("Please provide evidence of audit trail implementation. Enter null if nothing to show"),
-      // }),
-
-      // Senior management oversight
-      senior_management_oversight: Yup.string()
-        .required("Please describe senior management oversight of AI systems. Enter null if nothing to show"),
-
-      // Ethics committee
-      ethics_committee: Yup.boolean()
-        .oneOf([true, false], "Please indicate whether an ethics committee exists"),
-
-      ethics_committee_details: Yup.string().when("ethics_committee", {
-        is: true,
-        then: (s) =>
-          s.required("Please describe your ethics committee structure and role"),
-      }),
-
-      // Policy assignment and review frequency
-      policy_assignment: Yup.string()
-        .required("Please describe policy assignment and review frequency. Enter null if nothing to show"),
-
-      // Training requirements
-      training_requirements: Yup.string()
-        .required("Please describe training requirements for AI system staff"),
-
-      // Escalation procedures
-      escalation_procedures: Yup.string()
-        .required("Please describe escalation procedures for AI-related issues. Enter null if nothing to show"),
-
-      // Accountable person (required field)
-      accountable_person: Yup.string()
-        .required("Please specify who is accountable for this AI system. Enter null if nothing to show"),
-    }),
-
-    // Page 5
-    Yup.object({
-      // Clear user rights and information
-      user_rights: Yup.boolean()
-        .oneOf([true, false], "Please indicate whether clear user rights are established"),
-
-      user_rights_what: Yup.string().when("user_rights", {
-        is: true,
-        then: (s) =>
-          s.required("Please specify what rights users have. Enter null if nothing to show"),
-      }),
-
-      user_rights_communication: Yup.string().when("user_rights", {
-        is: true,
-        then: (s) =>
-          s.required("Please describe how rights are communicated to users. Enter null if nothing to show"),
-      }),
-
-      user_rights_evidence: Yup.string().when(["user_rights", "user_rights_what", "user_rights_communication"], {
-        is: (user_rights, what, communication) => {
-          return user_rights === true;
-        },
-        then: (s) => s.test(
-          "evidence-or-text-content",
-          "Please provide evidence of user rights documentation. Enter null if nothing to show",
-          function(value) {
-            const { user_rights_what, user_rights_communication } = this.parent;
-            // If any text field has content (and it's not just "null"), evidence is optional
-            const hasTextContent = 
-              (user_rights_what && user_rights_what.trim() && user_rights_what.trim().toLowerCase() !== "null") ||
-              (user_rights_communication && user_rights_communication.trim() && user_rights_communication.trim().toLowerCase() !== "null");
-            
-            // If text content exists, evidence is optional (can be empty, null, or file)
-            if (hasTextContent) {
-              return true;
+              // If no text content, evidence is required (must be file or explicitly set to "null")
+              if (!value) {
+                return false;
+              }
+              const trimmedValue = value.trim().toLowerCase();
+              return trimmedValue === "null" || trimmedValue !== "";
             }
-            
-            // If no text content, evidence is required (must be file or explicitly set to "null")
-            if (!value) {
-              return false;
-            }
-            const trimmedValue = value.trim().toLowerCase();
-            return trimmedValue === "null" || trimmedValue !== "";
-          }
-        ),
+          ),
+        }),
+
+        // Complaint handling procedures
+        complaint_handling: Yup.boolean()
+          .oneOf([true, false], "Please indicate whether complaint handling procedures exist"),
+
+        complaint_handling_procedures: Yup.string().when("complaint_handling", {
+          is: true,
+          then: (s) =>
+            s.required("Please describe complaint handling procedures. Enter null if nothing to show"),
+        }),
+
+        complaint_response_time: Yup.string().when("complaint_handling", {
+          is: true,
+          then: (s) =>
+            s.required("Please specify complaint response time. Enter null if nothing to show"),
+        }),
+
+        complaint_tracking: Yup.string().when("complaint_handling", {
+          is: true,
+          then: (s) =>
+            s.required("Please describe how complaints are tracked. Enter null if nothing to show"),
+        }),
+
+        // complaint_handling_evidence: Yup.string().when("complaint_handling", {
+        //   is: true,
+        //   then: (s) =>
+        //     s.required("Please provide evidence of complaint handling procedures. Enter null if nothing to show"),
+        // }),
+
+        // Appeal success rates
+        appeal_success_rates: Yup.string()
+          .required("Please describe appeal success rates. Enter null if nothing to show"),
+
+        // Redress outcomes tracking
+        redress_outcomes_tracking: Yup.string()
+          .required("Please describe how redress outcomes are tracked. Enter null if nothing to show"),
       }),
 
-      // Appeal or challenge mechanism
-      appeal_mechanism: Yup.boolean()
-        .oneOf([true, false], "Please indicate whether an appeal mechanism exists"),
+      // Page 6
+      Yup.object({
+        // Foundation model or high-impact system
+        foundation_model: Yup.string()
+          .oneOf(["yes", "no", "unsure"], "Please indicate if this is a foundation model or high-impact system"),
 
-      appeal_mechanism_process: Yup.string().when("appeal_mechanism", {
-        is: true,
-        then: (s) =>
-          s.required("Please describe the appeal process. Enter null if nothing to show"),
+        // foundation_model_evidence: Yup.string().when("foundation_model", {
+        //   is: (val: string) => val === "yes" || val === "unsure",
+        //   then: (s) =>
+        //     s.required("Please provide evidence of foundation model documentation. Enter null if nothing to show"),
+        // }),
+
+        // Regulatory sandbox participation
+        regulatory_sandbox: Yup.boolean()
+          .oneOf([true, false], "Please indicate regulatory sandbox participation"),
+
+        regulatory_sandbox_details: Yup.string().when("regulatory_sandbox", {
+          is: true,
+          then: (s) =>
+            s.required("Please describe your regulatory sandbox participation. Enter null if nothing to show"),
+        }),
+
+        // Sector-specific requirements
+        sector_specific_requirements: Yup.string()
+          .required("Please describe any sector-specific requirements. Enter null if nothing to show"),
       }),
-
-      appeal_mechanism_timeline: Yup.string().when("appeal_mechanism", {
-        is: true,
-        then: (s) =>
-          s.required("Please specify the timeline for appeals. Enter null if nothing to show"),
-      }),
-
-      appeal_mechanism_accessibility: Yup.string().when("appeal_mechanism", {
-        is: true,
-        then: (s) =>
-          s.required("Please describe how accessible the appeal mechanism is. Enter null if nothing to show"),
-      }),
-
-      // appeal_mechanism_evidence: Yup.string().when("appeal_mechanism", {
-      //   is: true,
-      //   then: (s) =>
-      //     s.required("Please provide evidence of appeal mechanism documentation. Enter null if nothing to show"),
-      // }),
-
-      // Redress process for adverse outcomes
-      redress_process: Yup.boolean()
-        .oneOf([true, false], "Please indicate whether a redress process exists"),
-
-      redress_process_steps: Yup.string().when("redress_process", {
-        is: true,
-        then: (s) =>
-          s.required("Please describe the steps involved in the redress process. Enter null if nothing to show"),
-      }),
-
-      redress_compensation: Yup.string().when("redress_process", {
-        is: true,
-        then: (s) =>
-          s.required("Please describe compensation mechanisms. Enter null if nothing to show"),
-      }),
-
-      redress_documentation: Yup.string().when("redress_process", {
-        is: true,
-        then: (s) =>
-          s.required("Please describe how redress cases are documented. Enter null if nothing to show"),
-      }),
-
-      redress_process_evidence: Yup.string().when(["redress_process", "redress_process_steps", "redress_compensation", "redress_documentation"], {
-        is: (redress_process, steps, compensation, documentation) => {
-          return redress_process === true;
-        },
-        then: (s) => s.test(
-          "evidence-or-text-content",
-          "Please provide evidence of redress process documentation. Enter null if nothing to show",
-          function(value) {
-            const { redress_process_steps, redress_compensation, redress_documentation } = this.parent;
-            // If any text field has content (and it's not just "null"), evidence is optional
-            const hasTextContent = 
-              (redress_process_steps && redress_process_steps.trim() && redress_process_steps.trim().toLowerCase() !== "null") ||
-              (redress_compensation && redress_compensation.trim() && redress_compensation.trim().toLowerCase() !== "null") ||
-              (redress_documentation && redress_documentation.trim() && redress_documentation.trim().toLowerCase() !== "null");
-            
-            // If text content exists, evidence is optional (can be empty, null, or file)
-            if (hasTextContent) {
-              return true;
-            }
-            
-            // If no text content, evidence is required (must be file or explicitly set to "null")
-            if (!value) {
-              return false;
-            }
-            const trimmedValue = value.trim().toLowerCase();
-            return trimmedValue === "null" || trimmedValue !== "";
-          }
-        ),
-      }),
-
-      // Complaint handling procedures
-      complaint_handling: Yup.boolean()
-        .oneOf([true, false], "Please indicate whether complaint handling procedures exist"),
-
-      complaint_handling_procedures: Yup.string().when("complaint_handling", {
-        is: true,
-        then: (s) =>
-          s.required("Please describe complaint handling procedures. Enter null if nothing to show"),
-      }),
-
-      complaint_response_time: Yup.string().when("complaint_handling", {
-        is: true,
-        then: (s) =>
-          s.required("Please specify complaint response time. Enter null if nothing to show"),
-      }),
-
-      complaint_tracking: Yup.string().when("complaint_handling", {
-        is: true,
-        then: (s) =>
-          s.required("Please describe how complaints are tracked. Enter null if nothing to show"),
-      }),
-
-      // complaint_handling_evidence: Yup.string().when("complaint_handling", {
-      //   is: true,
-      //   then: (s) =>
-      //     s.required("Please provide evidence of complaint handling procedures. Enter null if nothing to show"),
-      // }),
-
-      // Appeal success rates
-      appeal_success_rates: Yup.string()
-        .required("Please describe appeal success rates. Enter null if nothing to show"),
-
-      // Redress outcomes tracking
-      redress_outcomes_tracking: Yup.string()
-        .required("Please describe how redress outcomes are tracked. Enter null if nothing to show"),
-    }),
-
-    // Page 6
-    Yup.object({
-      // Foundation model or high-impact system
-      foundation_model: Yup.string()
-        .oneOf(["yes", "no", "unsure"], "Please indicate if this is a foundation model or high-impact system"),
-
-      foundation_model_documentation: Yup.string().when("foundation_model", {
-        is: (val: string) => val === "yes" || val === "unsure",
-        then: (s) =>
-          s.required("Please describe your model card documentation. Enter null if nothing to show"),
-      }),
-
-      foundation_model_capability_testing: Yup.string().when("foundation_model", {
-        is: (val: string) => val === "yes" || val === "unsure",
-        then: (s) =>
-          s.required("Please describe capability testing conducted. Enter null if nothing to show"),
-      }),
-
-      foundation_model_risk_assessment: Yup.string().when("foundation_model", {
-        is: (val: string) => val === "yes" || val === "unsure",
-        then: (s) =>
-          s.required("Please describe risk assessment for foundation/high-impact systems. Enter null if nothing to show"),
-      }),
-
-      foundation_model_deployment_restrictions: Yup.string().when("foundation_model", {
-        is: (val: string) => val === "yes" || val === "unsure",
-        then: (s) =>
-          s.required("Please describe any deployment restrictions. Enter null if nothing to show"),
-      }),
-
-      foundation_model_monitoring: Yup.string().when("foundation_model", {
-        is: (val: string) => val === "yes" || val === "unsure",
-        then: (s) =>
-          s.required("Please describe monitoring requirements. Enter null if nothing to show"),
-      }),
-
-      // foundation_model_evidence: Yup.string().when("foundation_model", {
-      //   is: (val: string) => val === "yes" || val === "unsure",
-      //   then: (s) =>
-      //     s.required("Please provide evidence of foundation model documentation. Enter null if nothing to show"),
-      // }),
-
-      // Regulatory sandbox participation
-      regulatory_sandbox: Yup.boolean()
-        .oneOf([true, false], "Please indicate regulatory sandbox participation"),
-
-      regulatory_sandbox_details: Yup.string().when("regulatory_sandbox", {
-        is: true,
-        then: (s) =>
-          s.required("Please describe your regulatory sandbox participation. Enter null if nothing to show"),
-      }),
-
-      // Sector-specific requirements
-      sector_specific_requirements: Yup.string()
-        .required("Please describe any sector-specific requirements. Enter null if nothing to show"),
-    }),
-  ];
+    ];
+  }, [assessmentMode]);
 
 
 
@@ -1045,24 +982,15 @@ export default function UkAssessmentPage() {
 
 
 
+  const ukPageFields: Record<number, string[]> = {
+    0: ["system_name", "sector", "description"],
+    // ... remaining logic
+  };
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     router.push("/");
   };
-
-
-  // UK Page structure (7 pages)
-  const ukPages = [
-    { id: "profile", title: "System Profile & Company Info" },
-    { id: "safety", title: "Safety, Security & Robustness" },
-    { id: "transparency", title: "Transparency & Explainability" },
-    { id: "fairness", title: "Fairness & Data Governance" },
-    { id: "accountability", title: "Accountability & Governance" },
-    { id: "contestability", title: "Contestability & Redress" },
-    { id: "foundation", title: "Foundation Models & High-Impact Systems" },
-  ];
-
-
 
   useEffect(() => {
     if (!systemId) return;
@@ -1104,10 +1032,19 @@ export default function UkAssessmentPage() {
 
       // If multi-jurisdiction flow, skip page 0 (common questions already answered)
       if (hasMultipleJurisdictions) {
-        console.log(`➡️  [UK-ASSESSMENT] Multi-jurisdiction detected - skipping page 0, starting at page 1`);
+        console.log(`➡️  [UK-ASSESSMENT] Multi-jurisdiction detected - skipping page 0`);
         setUkCurrentPage(1); // Start at page 1 instead of page 0
       } else if (data.current_step && data.current_step > 1) {
         setUkCurrentPage(data.current_step - 1);
+      }
+
+      // Respect mode passed from intro/multi flow.
+      const modeParam = router.query.mode;
+      const modeValue = Array.isArray(modeParam) ? modeParam[0] : modeParam;
+      if (modeValue === "rapid" || modeValue === "comprehensive") {
+        setAssessmentMode(modeValue);
+      } else if (data.assessment_mode) {
+        setAssessmentMode(data.assessment_mode as 'rapid' | 'comprehensive');
       }
 
       // Determine jurisdiction from data_processing_locations (preferred) or fallback to country
@@ -1137,7 +1074,7 @@ export default function UkAssessmentPage() {
     };
 
     loadSystem();
-  }, [systemId]);
+  }, [systemId, router.query.mode]);
 
   const handleSubmit = async (values: typeof ukInitialState) => {
     if (ukCurrentPage < ukPages.length - 1) return;
@@ -1150,6 +1087,7 @@ export default function UkAssessmentPage() {
       system_name: values.system_name || "",
       company_name: values.owner || "",
       company_use_case: values.business_use_case || "",
+      assessment_mode: assessmentMode,
       answers: {
         ...values,
         ...Object.fromEntries(
@@ -1207,7 +1145,7 @@ export default function UkAssessmentPage() {
 
       if (hasMultipleJurisdictions) {
         console.log(`➡️  [UK-ASSESSMENT] Redirecting to multi-jurisdiction page`);
-        router.push(`/assessment/multi/${systemId}?completed=UK&assessmentId=${assessmentId}`);
+        router.push(`/assessment/multi/${systemId}?completed=UK&assessmentId=${assessmentId}&mode=${assessmentMode}`);
       } else {
         console.log(`➡️  [UK-ASSESSMENT] Single jurisdiction - redirecting to UK results`);
         router.push(`/uk/${assessmentId}`);
@@ -1599,55 +1537,74 @@ export default function UkAssessmentPage() {
                   return (
                     <form onSubmit={handleSubmit} className="space-y-6">
                       {ukCurrentPage === 0 && !isMultiJurisdiction && (
-                        <UkPage0SystemProfile ukCurrentPage={ukCurrentPage} />
-                      )}
-
-                      {ukCurrentPage === 1 && (
-                        <UkPage1SafetySecurityRobustness
+                        <UkPage0SystemProfile
                           ukCurrentPage={ukCurrentPage}
-                          handleEvidenceFileChange={handleEvidenceFileChangeWithForm}
-                          evidenceContent={evidenceContent}
+                          assessmentMode={assessmentMode}
+                          setAssessmentMode={setAssessmentMode}
                         />
                       )}
 
-                      {ukCurrentPage === 2 && (
-                        <UkPage2TransparencyExplainability
-                          ukCurrentPage={ukCurrentPage}
-                          handleEvidenceFileChange={handleEvidenceFileChangeWithForm}
-                          evidenceContent={evidenceContent}
-                        />
-                      )}
+                      {assessmentMode === 'rapid' ? (
+                        <>
+                          {ukCurrentPage === 1 && <UkPageRapid currentPage={ukCurrentPage} />}
+                          {ukCurrentPage === 2 && (
+                            <UkPage6FoundationModels
+                              ukCurrentPage={ukCurrentPage}
+                              handleEvidenceFileChange={handleEvidenceFileChangeWithForm}
+                              evidenceContent={evidenceContent}
+                            />
+                          )}
+                        </>
+                      ) : (
+                        <>
+                          {ukCurrentPage === 1 && (
+                            <UkPage1SafetySecurityRobustness
+                              ukCurrentPage={ukCurrentPage}
+                              handleEvidenceFileChange={handleEvidenceFileChangeWithForm}
+                              evidenceContent={evidenceContent}
+                            />
+                          )}
 
-                      {ukCurrentPage === 3 && (
-                        <UkPage3FairnessDataGovernance
-                          ukCurrentPage={ukCurrentPage}
-                          handleEvidenceFileChange={handleEvidenceFileChangeWithForm}
-                          evidenceContent={evidenceContent}
-                        />
-                      )}
+                          {ukCurrentPage === 2 && (
+                            <UkPage2TransparencyExplainability
+                              ukCurrentPage={ukCurrentPage}
+                              handleEvidenceFileChange={handleEvidenceFileChangeWithForm}
+                              evidenceContent={evidenceContent}
+                            />
+                          )}
 
-                      {ukCurrentPage === 4 && (
-                        <UkPage4AccountabilityGovernance
-                          ukCurrentPage={ukCurrentPage}
-                          handleEvidenceFileChange={handleEvidenceFileChangeWithForm}
-                          evidenceContent={evidenceContent}
-                        />
-                      )}
+                          {ukCurrentPage === 3 && (
+                            <UkPage3FairnessDataGovernance
+                              ukCurrentPage={ukCurrentPage}
+                              handleEvidenceFileChange={handleEvidenceFileChangeWithForm}
+                              evidenceContent={evidenceContent}
+                            />
+                          )}
 
-                      {ukCurrentPage === 5 && (
-                        <UkPage5ContestabilityRedress
-                          ukCurrentPage={ukCurrentPage}
-                          handleEvidenceFileChange={handleEvidenceFileChangeWithForm}
-                          evidenceContent={evidenceContent}
-                        />
-                      )}
+                          {ukCurrentPage === 4 && (
+                            <UkPage4AccountabilityGovernance
+                              ukCurrentPage={ukCurrentPage}
+                              handleEvidenceFileChange={handleEvidenceFileChangeWithForm}
+                              evidenceContent={evidenceContent}
+                            />
+                          )}
 
-                      {ukCurrentPage === 6 && (
-                        <UkPage6FoundationModels
-                          ukCurrentPage={ukCurrentPage}
-                          handleEvidenceFileChange={handleEvidenceFileChangeWithForm}
-                          evidenceContent={evidenceContent}
-                        />
+                          {ukCurrentPage === 5 && (
+                            <UkPage5ContestabilityRedress
+                              ukCurrentPage={ukCurrentPage}
+                              handleEvidenceFileChange={handleEvidenceFileChangeWithForm}
+                              evidenceContent={evidenceContent}
+                            />
+                          )}
+
+                          {ukCurrentPage === 6 && (
+                            <UkPage6FoundationModels
+                              ukCurrentPage={ukCurrentPage}
+                              handleEvidenceFileChange={handleEvidenceFileChangeWithForm}
+                              evidenceContent={evidenceContent}
+                            />
+                          )}
+                        </>
                       )}
 
                       <div className="flex justify-between pt-4">
@@ -1663,8 +1620,8 @@ export default function UkAssessmentPage() {
                         </Button>
 
                         {ukCurrentPage < ukPages.length - 1 ? (
-                          <Button 
-                            type="button" 
+                          <Button
+                            type="button"
                             onClick={handleNext}
                             className="hover:bg-blue-700"
                           >

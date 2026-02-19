@@ -29,7 +29,7 @@ export default function UkPage6FoundationModels({
   evidenceContent,
 }: Props) {
   const { values, setFieldValue, errors, touched } = useFormikContext<any>();
-  if (ukCurrentPage !== 6) return null;
+  if (ukCurrentPage !== 6 && ukCurrentPage !== 2) return null;
 
   return (
     <Card className="glass-panel">
@@ -66,8 +66,8 @@ export default function UkPage6FoundationModels({
                 <Label>Model cards and documentation</Label>
                 <div className="ml-4 flex items-center gap-2">
                   <span className={`text-xs font-bold px-2 py-1 rounded ${values.foundation_model_cards
-                      ? "text-blue-500 bg-emerald-300"
-                      : "text-red-500"
+                    ? "text-blue-500 bg-emerald-300"
+                    : "text-red-500"
                     }`}>
                     {values.foundation_model_cards ? "YES" : "NO"}
                   </span>
@@ -232,8 +232,8 @@ export default function UkPage6FoundationModels({
             <Label>Regulatory sandbox participation</Label>
             <div className="ml-4 flex items-center gap-2">
               <span className={`text-xs font-bold px-2 py-1 rounded ${values.regulatory_sandbox
-                  ? "text-blue-500 bg-emerald-300"
-                  : "text-red-500"
+                ? "text-blue-500 bg-emerald-300"
+                : "text-red-500"
                 }`}>
                 {values.regulatory_sandbox ? "YES" : "NO"}
               </span>

@@ -198,7 +198,7 @@ export default function PoliciesTab({ systemId }: PoliciesTabProps) {
       "Non-compliant": "bg-red-50 text-red-700 border-red-200",
       "Not assessed": "bg-secondary text-muted-foreground border-border",
     };
-    
+
     return (
       <Badge className={`${statusConfig[status]} rounded-xl`}>
         {status}
@@ -214,7 +214,7 @@ export default function PoliciesTab({ systemId }: PoliciesTabProps) {
   const getPolicyBgColor = (policy: Policy) => {
     const name = policy.name.toLowerCase();
     const jurisdiction = policy.jurisdiction?.toLowerCase() || "";
-    
+
     // EU AI Act
     if (name.includes("eu ai act") || name.includes("european") || jurisdiction === "eu" || jurisdiction === "europe") {
       return "!bg-blue-50 hover:!bg-blue-100 focus:!bg-blue-100 data-[highlighted]:!bg-blue-100 border border-blue-200";

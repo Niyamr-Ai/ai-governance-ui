@@ -16,6 +16,7 @@ import { Loader2, RefreshCcw } from "lucide-react";
 import type { MasAssessmentResult, MasComplianceStatus, MasRiskLevel } from "@/types/mas";
 import Head from 'next/head';
 import { DashboardInsightsPanel } from "@/components/ui/dashboard-insights";
+import { backendFetch } from "@/utils/backend-fetch";
 
 export default function MasDashboardPage() {
   const router = useRouter();
@@ -27,7 +28,7 @@ export default function MasDashboardPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/mas-compliance");
+      const res = await backendFetch("/api/mas-compliance");
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.error || "Failed to load assessments");
@@ -86,7 +87,7 @@ export default function MasDashboardPage() {
               <RefreshCcw className="h-4 w-4 mr-2" /> Refresh
             </Button>
             <Button
-              onClick={() => router.push("/mas")}
+              onClick={() => router.push("/assessment")}
               className="bg-blue-600 hover:bg-blue-700 text-white"
             >
               New Assessment

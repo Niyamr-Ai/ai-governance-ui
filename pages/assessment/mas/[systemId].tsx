@@ -16,7 +16,8 @@ import MasPage4InventoryRisk from "@/components/assessment/mas/masPage4Inventory
 import MasPage5DataManagementQuality from "@/components/assessment/mas/masPage5DataManagementQuality"
 import MasPage6TechnicalPillars from "@/components/assessment/mas/masPage6TechnicalPillars"
 import MasPage7OperationalPillars from "@/components/assessment/mas/masPage7OperationalPillars"
-import SecurityMonitoring from "@/components/assessment/mas/securityMonitoring"
+import MasPage8SecurityMonitoring from "@/components/assessment/mas/securityMonitoring";
+import MasPageRapid from "@/components/assessment/mas/masPageRapid";
 
 
 import {
@@ -280,13 +281,32 @@ export default function MasAssessmentPage() {
     // State for MAS multi-page navigation
     const [masCurrentPage, setMasCurrentPage] = useState(0);
     const [masInitialFromDb, setMasInitialFromDb] = useState<typeof masInitialState | null>(null);
+    const [assessmentMode, setAssessmentMode] = useState<'rapid' | 'comprehensive'>('comprehensive');
     const [error, setError] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isMultiJurisdiction, setIsMultiJurisdiction] = useState(false);
     const initialValues = masInitialFromDb ?? masInitialState;
     const [evidenceContent, setEvidenceContent] = useState<Record<string, string>>({});
 
-
+    // MAS Page structure (Dynamic)
+    const masPages = useMemo(() => {
+        if (assessmentMode === 'rapid') {
+            return [
+                { id: "profile", title: "System Profile & Mode" },
+                { id: "rapid", title: "Rapid Risk Screening" },
+            ];
+        }
+        return [
+            { id: "profile", title: "System Profile & Company Info" },
+            { id: "data", title: "Data & Dependencies" },
+            { id: "governance", title: "Governance & Oversight" },
+            { id: "inventory", title: "Inventory & Risk Classification" },
+            { id: "dataManagement", title: "Data Management & Quality" },
+            { id: "technical", title: "Technical Pillars" },
+            { id: "operational", title: "Operational Pillars" },
+            { id: "security", title: "Security, Monitoring & Capability" },
+        ];
+    }, [assessmentMode]);
 
 
     const validationSchema = Yup.object({
@@ -296,647 +316,676 @@ export default function MasAssessmentPage() {
     });
 
 
-    const masPageSchemas = [
-        // Page 0 – System Profile
-        Yup.object({
-            system_name: Yup.string().required("System name is required"),
-            description: Yup.string().required("Description is required"),
-        }),
-
-
-        // Page 1 – Data & Dependencies
-        Yup.object({
-
-            // data_types: Yup.string().when("data_types", {
-            //     is: true,
-            //     then: (s) =>
-            //         s.required("Data Types are required."),
-            //     otherwise: (s) => s.notRequired(),
-            // }),
-
-            data_types: Yup.string()
-                .required("Data Types are required."),
-
-            uses_personal_data: Yup.boolean(),
-
-            personal_data_types: Yup.string().when("uses_personal_data", {
-                is: true,
-                then: (s) =>
-                    s.required("What kind of personal data are you using is required"),
-                otherwise: (s) => s.notRequired(),
-            }),
-
-            personal_data_logged_where: Yup.string().when("uses_personal_data", {
-                is: true,
-                then: (s) =>
-                    s.required("Where the personal data is stored is required"),
-                otherwise: (s) => s.notRequired(),
-            }),
-
-            personal_data_use_cases: Yup.string().when("uses_personal_data", {
-                is: true,
-                then: (s) =>
-                    s.required("Personal data use cases are required"),
-                otherwise: (s) => s.notRequired(),
-            }),
-
-            sensitive_data_types: Yup.string().when("uses_special_category_data", {
-                is: true,
-                then: (s) =>
-                    s.required("sensitive data types are required"),
-                otherwise: (s) => s.notRequired(),
-            }),
-
-            sensitive_data_logged_where: Yup.string().when("uses_special_category_data", {
-                is: true,
-                then: (s) =>
-                    s.required("Where the sensitive data is stored is required"),
-                otherwise: (s) => s.notRequired(),
-            }),
-
-            third_party_services_list: Yup.string().when("uses_third_party_ai", {
-                is: true,
-                then: (s) =>
-                    s.required("sensitive data types are required"),
-                otherwise: (s) => s.notRequired(),
-            }),
-
-            third_party_services_safety: Yup.string().when("uses_third_party_ai", {
-                is: true,
-                then: (s) =>
-                    s.required("List of Third Party services are required"),
-                otherwise: (s) => s.notRequired(),
-            }),
-        }),
-
-
-        // Page 2 – Governance
-        Yup.object({
-            // Main governance policy toggle
-            governance_policy: Yup.boolean(),
-
-            // Shown when governance_policy is true
-            governance_policy_type: Yup.string().when("governance_policy", {
-                is: true,
-                then: (s) =>
-                    s.required("Governance policy type is required"),
-                otherwise: (s) => s.notRequired(),
-            }),
-
-            governance_framework: Yup.string().when("governance_policy", {
-                is: true,
-                then: (s) =>
-                    s.required("Governance framework or standard is required"),
-                otherwise: (s) => s.notRequired(),
-            }),
-
-            governance_board_role: Yup.string().when("governance_policy", {
-                is: true,
-                then: (s) =>
-                    s.required("Board role in AI governance is required"),
-                otherwise: (s) => s.notRequired(),
-            }),
-
-            governance_senior_management: Yup.string().when("governance_policy", {
-                is: true,
-                then: (s) =>
-                    s.required("Senior management responsibilities are required"),
-                otherwise: (s) => s.notRequired(),
-            }),
-
-            governance_policy_assigned: Yup.string().when("governance_policy", {
-                is: true,
-                then: (s) =>
-                    s.required("Assigned governance responsibilities are required"),
-                otherwise: (s) => s.notRequired(),
-            }),
-
-            // governance_evidence: Yup.string().when("governance_policy", {
-            //     is: true,
-            //     then: (s) =>
-            //         s.required("Evidence for are required"),
-            //     otherwise: (s) => s.notRequired(),
-            // }),
-
-            // Ethics committee section
-            governance_ethics_committee_details: Yup.string()
-                .required("Ethics committee details are required"),
-
-            // Risk appetite statement
-            governance_risk_appetite: Yup.string()
-                .required("Risk appetite statement is required"),
-
-            // Policy review frequency
-            governance_policy_review_frequency: Yup.string()
-                .required("Policy review frequency is required"),
-        }),
-
-        // Page 3 – Inventory
-        Yup.object({
-            // Main toggle: is the system recorded in inventory
-            inventory_recorded: Yup.boolean(),
-
-            // Shown when inventory_recorded is true
-            inventory_location: Yup.string().when("inventory_recorded", {
-                is: true,
-                then: (s) =>
-                    s.required("Inventory location is required"),
-                otherwise: (s) => s.notRequired(),
-            }),
-
-            inventory_risk_classification: Yup.string().when("inventory_recorded", {
-                is: true,
-                then: (s) =>
-                    s.required("Risk classification is required"),
-                otherwise: (s) => s.notRequired(),
-            }),
-
-            // Evidence is optional at schema level (file upload)
-
-            // Always asked (not gated by toggle)
-            inventory_update_frequency: Yup.string()
-                .required("Inventory update frequency is required"),
-
-            inventory_risk_methodology: Yup.string()
-                .required("Risk classification methodology is required"),
-
-            inventory_risk_review_process: Yup.string()
-                .required("Risk review process is required"),
-
-            inventory_critical_systems: Yup.string()
-                .required("Critical system identification is required"),
-
-            inventory_dependency_mapping: Yup.string()
-                .required("Dependency mapping details are required"),
-
-            inventory_legacy_systems: Yup.string()
-                .required("Legacy system handling is required"),
-        }),
-
-        // Page 4 – Data Quality
-        Yup.object({
-            // Main toggle: data quality checks & bias analysis documented
-            data_quality_checks: Yup.boolean(),
-
-            // Shown when data_quality_checks is true
-            data_quality_methods: Yup.string().when("data_quality_checks", {
-                is: true,
-                then: (s) =>
-                    s.required("Data quality checks are required"),
-                otherwise: (s) => s.notRequired(),
-            }),
-
-            data_bias_analysis: Yup.string().when("data_quality_checks", {
-                is: true,
-                then: (s) =>
-                    s.required("Bias analysis details are required"),
-                otherwise: (s) => s.notRequired(),
-            }),
-
-            // Evidence optional (file upload)
-
-            // Data lineage section (toggle + details)
-            data_lineage_tracking: Yup.boolean(),
-
-            data_lineage_details: Yup.string().when("data_lineage_tracking", {
-                is: true,
-                then: (s) =>
-                    s.required("Data lineage tracking details are required"),
-                otherwise: (s) => s.notRequired(),
-            }),
-
-            // Always-asked data management questions
-            data_retention_policies: Yup.string()
-                .required("Data retention policies are required"),
-
-            data_minimization: Yup.string()
-                .required("Data minimization approach is required"),
-
-            data_accuracy_metrics: Yup.string()
-                .required("Data accuracy metrics are required"),
-
-            data_freshness: Yup.string()
-                .required("Data freshness approach is required"),
-
-            // Synthetic data usage (toggle + details)
-            data_synthetic_usage: Yup.boolean(),
-
-            data_synthetic_details: Yup.string().when("data_synthetic_usage", {
-                is: true,
-                then: (s) =>
-                    s.required("Synthetic data usage details are required"),
-                otherwise: (s) => s.notRequired(),
-            }),
-
-            data_dpia_conducted: Yup.boolean(),
-
-            data_dpia_details: Yup.string().when("data_dpia_conducted", {
-                is: true,
-                then: (s) =>
-                    s.required("Synthetic data usage details are required"),
-                otherwise: (s) => s.notRequired(),
-            }),
-
-            data_cross_border: Yup.boolean(),
-
-            data_cross_border_safeguards: Yup.string().when("data_cross_border", {
-                is: true,
-                then: (s) =>
-                    s.required("Synthetic data usage details are required"),
-                otherwise: (s) => s.notRequired(),
-            }),
-        }),
-
-        // Page 5 – Technical Pillars
-        Yup.object({
-            // Transparency & Explainability
-            transparency_docs: Yup.boolean()
-                .oneOf([true, false], "Please indicate whether transparency documentation exists"),
-
-            transparency_doc_types: Yup.string().when("transparency_docs", {
-                is: true,
-                then: (s) =>
-                    s.required("Please specify transparency documentation types. Enter null if nothing to show"),
-            }),
-
-            transparency_user_explanations: Yup.string().when("transparency_docs", {
-                is: true,
-                then: (s) =>
-                    s.required("Please describe user explanation methods. Enter null if nothing to show"),
-            }),
-
-            transparency_model_cards: Yup.boolean()
-                .oneOf([true, false], "Please indicate whether model cards are maintained"),
-
-            transparency_model_cards_details: Yup.string().when("transparency_model_cards", {
-                is: true,
-                then: (s) =>
-                    s.required("Please describe what information is included in model cards. Enter null if nothing to show"),
-            }),
-
-            transparency_explainability_methods: Yup.string()
-                .required("Please describe explainability methods used. Enter null if nothing to show"),
-
-            transparency_user_communication: Yup.string()
-                .required("Please describe how AI limitations are communicated to users. Enter null if nothing to show"),
-
-            transparency_decision_documentation: Yup.string()
-                .required("Please describe how AI decisions are documented. Enter null if nothing to show"),
-
-            transparency_interpretability_requirements: Yup.string()
-                .required("Please describe interpretability requirements. Enter null if nothing to show"),
-
-            transparency_stakeholder_communication: Yup.string()
-                .required("Please describe stakeholder communication about AI behavior. Enter null if nothing to show"),
-
-            fairness_protected_attributes: Yup.string()
-                .required("Please specify protected attributes tested for. Enter null if nothing to show"),
-
-            // Fairness & Bias Testing
-            fairness_testing: Yup.boolean()
-                .oneOf([true, false], "Please indicate whether bias or discrimination testing has been performed"),
-
-            fairness_testing_methods: Yup.string().when("fairness_testing", {
-                is: true,
-                then: (s) =>
-                    s.required("Please describe bias testing methods used. Enter null if nothing to show"),
-            }),
-
-            fairness_test_results: Yup.string().when("fairness_testing", {
-                is: true,
-                then: (s) =>
-                    s.required("Please describe fairness testing results. Enter null if nothing to show"),
-            }),
-
-            fairness_metrics_used: Yup.string()
-                .required("Please describe fairness metrics used. Enter null if nothing to show"),
-
-            fairness_bias_mitigation: Yup.string()
-                .required("Please describe bias mitigation strategies. Enter null if nothing to show"),
-
-            fairness_continuous_monitoring: Yup.string()
-                .required("Please describe continuous bias monitoring. Enter null if nothing to show"),
-
-            fairness_adverse_impact: Yup.string()
-                .required("Please describe adverse impact analysis. Enter null if nothing to show"),
-
-            fairness_testing_frequency: Yup.string()
-                .required("Please describe bias testing frequency. Enter null if nothing to show"),
-
-            fairness_external_validation: Yup.boolean(),
-
-            fairness_external_validation_details: Yup.string().when("fairness_external_validation", {
-                is: true,
-                then: (s) =>
-                    s.required("Please describe external validation process. Enter null if nothing to show"),
-            }),
-
-            human_oversight_processes: Yup.string().when("fairness_external_validation", {
-                is: true,
-                then: (s) =>
-                    s.required("Please describe external validation process. Enter null if nothing to show"),
-            }),
-
-            // Human Oversight
-            human_oversight: Yup.boolean()
-                .oneOf([true, false], "Please indicate whether human-in-the-loop or human-on-the-loop processes exist"),
-
-            human_oversight_type: Yup.string().when("human_oversight", {
-                is: true,
-                then: (s) =>
-                    s.required("Please describe human oversight type (HITL, HOTL, or both). Enter null if nothing to show"),
+    const masPageSchemas = useMemo(() => {
+        if (assessmentMode === 'rapid') {
+            return [
+                // Page 0 – System Profile (Rapid)
+                Yup.object({
+                    system_name: Yup.string().required("System name is required"),
+                    description: Yup.string().required("Description is required"),
+                    owner: Yup.string().required("Owner/Team is required"),
+                    jurisdiction: Yup.string().required("Jurisdiction is required"),
+                    sector: Yup.string().required("Sector is required"),
+                    system_status: Yup.string().required("System status is required"),
+                    business_use_case: Yup.string().required("Business use case is required"),
+                }),
+                // Page 1 – Rapid Screening
+                Yup.object({
+                    governance_policy: Yup.boolean(),
+                    inventory_recorded: Yup.boolean(),
+                    human_oversight: Yup.boolean(),
+                    governance_framework: Yup.string().required("Risk mitigation strategy is required"),
+                })
+            ];
+        }
+
+        return [
+            // Page 0 – System Profile
+            Yup.object({
+                system_name: Yup.string().required("System name is required"),
+                description: Yup.string().required("Description is required"),
+                owner: Yup.string().required("Owner/Team is required"),
+                jurisdiction: Yup.string().required("Jurisdiction is required"),
+                sector: Yup.string().required("Sector is required"),
+                system_status: Yup.string().required("System status is required"),
+                business_use_case: Yup.string().required("Business use case is required"),
             }),
 
 
-            human_oversight_roles: Yup.string()
-                .required("Please describe human oversight roles and qualifications. Enter null if nothing to show"),
+            // Page 1 – Data & Dependencies
+            Yup.object({
 
-            human_oversight_qualifications: Yup.string()
-                .required("Please describe qualifications required for human overseers. Enter null if nothing to show"),
+                // data_types: Yup.string().when("data_types", {
+                //     is: true,
+                //     then: (s) =>
+                //         s.required("Data Types are required."),
+                //     otherwise: (s) => s.notRequired(),
+                // }),
 
-            human_oversight_intervention_triggers: Yup.string()
-                .required("Please describe what triggers human intervention. Enter null if nothing to show"),
+                data_types: Yup.string()
+                    .required("Data Types are required."),
 
-            human_oversight_decision_authority: Yup.string()
-                .required("Please describe human overseers' decision authority. Enter null if nothing to show"),
+                uses_personal_data: Yup.boolean(),
 
-            human_oversight_training: Yup.string()
-                .required("Please describe training for human overseers. Enter null if nothing to show"),
+                personal_data_types: Yup.string().when("uses_personal_data", {
+                    is: true,
+                    then: (s) =>
+                        s.required("What kind of personal data are you using is required"),
+                    otherwise: (s) => s.notRequired(),
+                }),
 
-            human_oversight_escalation: Yup.string()
-                .required("Please describe escalation procedures. Enter null if nothing to show"),
+                personal_data_logged_where: Yup.string().when("uses_personal_data", {
+                    is: true,
+                    then: (s) =>
+                        s.required("Where the personal data is stored is required"),
+                    otherwise: (s) => s.notRequired(),
+                }),
 
-            human_oversight_documentation: Yup.string()
-                .required("Please describe how oversight activities are documented. Enter null if nothing to show"),
+                personal_data_use_cases: Yup.string().when("uses_personal_data", {
+                    is: true,
+                    then: (s) =>
+                        s.required("Personal data use cases are required"),
+                    otherwise: (s) => s.notRequired(),
+                }),
 
-            human_oversight_automation_percentage: Yup.string()
-                .required("Please describe the percentage of automated vs human-reviewed decisions. Enter null if nothing to show"),
-        }),
+                sensitive_data_types: Yup.string().when("uses_special_category_data", {
+                    is: true,
+                    then: (s) =>
+                        s.required("sensitive data types are required"),
+                    otherwise: (s) => s.notRequired(),
+                }),
 
-        // Page 7 – Operational Pillars
-        Yup.object({
-            // Third-Party & Vendor Management
-            third_party_controls: Yup.boolean()
-                .oneOf([true, false], "Please indicate whether vendor due diligence and controls exist"),
+                sensitive_data_logged_where: Yup.string().when("uses_special_category_data", {
+                    is: true,
+                    then: (s) =>
+                        s.required("Where the sensitive data is stored is required"),
+                    otherwise: (s) => s.notRequired(),
+                }),
 
-            third_party_due_diligence: Yup.string().when("third_party_controls", {
-                is: true,
-                then: (s) =>
-                    s.required("Please describe vendor due diligence performed. Enter null if nothing to show"),
+                third_party_services_list: Yup.string().when("uses_third_party_ai", {
+                    is: true,
+                    then: (s) =>
+                        s.required("sensitive data types are required"),
+                    otherwise: (s) => s.notRequired(),
+                }),
+
+                third_party_services_safety: Yup.string().when("uses_third_party_ai", {
+                    is: true,
+                    then: (s) =>
+                        s.required("List of Third Party services are required"),
+                    otherwise: (s) => s.notRequired(),
+                }),
             }),
 
-            third_party_contracts: Yup.string().when("third_party_controls", {
-                is: true,
-                then: (s) =>
-                    s.required("Please describe controls in vendor contracts. Enter null if nothing to show"),
+
+            // Page 2 – Governance
+            Yup.object({
+                // Main governance policy toggle
+                governance_policy: Yup.boolean(),
+
+                // Shown when governance_policy is true
+                governance_policy_type: Yup.string().when("governance_policy", {
+                    is: true,
+                    then: (s) =>
+                        s.required("Governance policy type is required"),
+                    otherwise: (s) => s.notRequired(),
+                }),
+
+                governance_framework: Yup.string().when("governance_policy", {
+                    is: true,
+                    then: (s) =>
+                        s.required("Governance framework or standard is required"),
+                    otherwise: (s) => s.notRequired(),
+                }),
+
+                governance_board_role: Yup.string().when("governance_policy", {
+                    is: true,
+                    then: (s) =>
+                        s.required("Board role in AI governance is required"),
+                    otherwise: (s) => s.notRequired(),
+                }),
+
+                governance_senior_management: Yup.string().when("governance_policy", {
+                    is: true,
+                    then: (s) =>
+                        s.required("Senior management responsibilities are required"),
+                    otherwise: (s) => s.notRequired(),
+                }),
+
+                governance_policy_assigned: Yup.string().when("governance_policy", {
+                    is: true,
+                    then: (s) =>
+                        s.required("Assigned governance responsibilities are required"),
+                    otherwise: (s) => s.notRequired(),
+                }),
+
+                // governance_evidence: Yup.string().when("governance_policy", {
+                //     is: true,
+                //     then: (s) =>
+                //         s.required("Evidence for are required"),
+                //     otherwise: (s) => s.notRequired(),
+                // }),
+
+                // Ethics committee section
+                governance_ethics_committee_details: Yup.string()
+                    .required("Ethics committee details are required"),
+
+                // Risk appetite statement
+                governance_risk_appetite: Yup.string()
+                    .required("Risk appetite statement is required"),
+
+                // Policy review frequency
+                governance_policy_review_frequency: Yup.string()
+                    .required("Policy review frequency is required"),
             }),
 
-            third_party_vendor_risk_assessment: Yup.string()
-                .required("Please describe vendor risk assessment methodology. Enter null if nothing to show"),
+            // Page 3 – Inventory
+            Yup.object({
+                // Main toggle: is the system recorded in inventory
+                inventory_recorded: Yup.boolean(),
 
-            third_party_slas: Yup.string()
-                .required("Please describe SLAs with third-party vendors. Enter null if nothing to show"),
+                // Shown when inventory_recorded is true
+                inventory_location: Yup.string().when("inventory_recorded", {
+                    is: true,
+                    then: (s) =>
+                        s.required("Inventory location is required"),
+                    otherwise: (s) => s.notRequired(),
+                }),
 
-            third_party_vendor_monitoring: Yup.string()
-                .required("Please describe vendor monitoring practices. Enter null if nothing to show"),
+                inventory_risk_classification: Yup.string().when("inventory_recorded", {
+                    is: true,
+                    then: (s) =>
+                        s.required("Risk classification is required"),
+                    otherwise: (s) => s.notRequired(),
+                }),
 
-            third_party_exit_strategy: Yup.string()
-                .required("Please describe vendor exit strategy. Enter null if nothing to show"),
+                // Evidence is optional at schema level (file upload)
 
-            third_party_data_residency: Yup.string()
-                .required("Please describe data residency for vendor data. Enter null if nothing to show"),
+                // Always asked (not gated by toggle)
+                inventory_update_frequency: Yup.string()
+                    .required("Inventory update frequency is required"),
 
-            third_party_incident_reporting: Yup.string()
-                .required("Please describe incident reporting requirements for vendors. Enter null if nothing to show"),
+                inventory_risk_methodology: Yup.string()
+                    .required("Risk classification methodology is required"),
 
-            third_party_audit_rights: Yup.string()
-                .required("Please describe audit rights over vendor operations. Enter null if nothing to show"),
+                inventory_risk_review_process: Yup.string()
+                    .required("Risk review process is required"),
 
-            third_party_multi_vendor: Yup.string()
-                .required("Please describe multi-vendor management approach. Enter null if nothing to show"),
+                inventory_critical_systems: Yup.string()
+                    .required("Critical system identification is required"),
 
-            // Algorithm & Feature Selection
-            algo_documented: Yup.boolean()
-                .oneOf([true, false], "Please indicate whether algorithm selection and feature engineering is documented"),
+                inventory_dependency_mapping: Yup.string()
+                    .required("Dependency mapping details are required"),
 
-            algo_selection_process: Yup.string().when("algo_documented", {
-                is: true,
-                then: (s) =>
-                    s.required("Please describe algorithm selection process. Enter null if nothing to show"),
+                inventory_legacy_systems: Yup.string()
+                    .required("Legacy system handling is required"),
             }),
 
-            algo_feature_engineering: Yup.string().when("algo_documented", {
-                is: true,
-                then: (s) =>
-                    s.required("Please describe feature engineering approach. Enter null if nothing to show"),
+            // Page 4 – Data Quality
+            Yup.object({
+                // Main toggle: data quality checks & bias analysis documented
+                data_quality_checks: Yup.boolean(),
+
+                // Shown when data_quality_checks is true
+                data_quality_methods: Yup.string().when("data_quality_checks", {
+                    is: true,
+                    then: (s) =>
+                        s.required("Data quality checks are required"),
+                    otherwise: (s) => s.notRequired(),
+                }),
+
+                data_bias_analysis: Yup.string().when("data_quality_checks", {
+                    is: true,
+                    then: (s) =>
+                        s.required("Bias analysis details are required"),
+                    otherwise: (s) => s.notRequired(),
+                }),
+
+                // Evidence optional (file upload)
+
+                // Data lineage section (toggle + details)
+                data_lineage_tracking: Yup.boolean(),
+
+                data_lineage_details: Yup.string().when("data_lineage_tracking", {
+                    is: true,
+                    then: (s) =>
+                        s.required("Data lineage tracking details are required"),
+                    otherwise: (s) => s.notRequired(),
+                }),
+
+                // Always-asked data management questions
+                data_retention_policies: Yup.string()
+                    .required("Data retention policies are required"),
+
+                data_minimization: Yup.string()
+                    .required("Data minimization approach is required"),
+
+                data_accuracy_metrics: Yup.string()
+                    .required("Data accuracy metrics are required"),
+
+                data_freshness: Yup.string()
+                    .required("Data freshness approach is required"),
+
+                // Synthetic data usage (toggle + details)
+                data_synthetic_usage: Yup.boolean(),
+
+                data_synthetic_details: Yup.string().when("data_synthetic_usage", {
+                    is: true,
+                    then: (s) =>
+                        s.required("Synthetic data usage details are required"),
+                    otherwise: (s) => s.notRequired(),
+                }),
+
+                data_dpia_conducted: Yup.boolean(),
+
+                data_dpia_details: Yup.string().when("data_dpia_conducted", {
+                    is: true,
+                    then: (s) =>
+                        s.required("Synthetic data usage details are required"),
+                    otherwise: (s) => s.notRequired(),
+                }),
+
+                data_cross_border: Yup.boolean(),
+
+                data_cross_border_safeguards: Yup.string().when("data_cross_border", {
+                    is: true,
+                    then: (s) =>
+                        s.required("Synthetic data usage details are required"),
+                    otherwise: (s) => s.notRequired(),
+                }),
             }),
 
-            algo_selection_criteria: Yup.string()
-                .required("Please describe algorithm selection criteria. Enter null if nothing to show"),
+            // Page 5 – Technical Pillars
+            Yup.object({
+                // Transparency & Explainability
+                transparency_docs: Yup.boolean()
+                    .oneOf([true, false], "Please indicate whether transparency documentation exists"),
 
-            algo_model_comparison: Yup.string()
-                .required("Please describe model comparison methodology. Enter null if nothing to show"),
+                transparency_doc_types: Yup.string().when("transparency_docs", {
+                    is: true,
+                    then: (s) =>
+                        s.required("Please specify transparency documentation types. Enter null if nothing to show"),
+                }),
 
-            algo_feature_importance: Yup.string()
-                .required("Please describe feature importance analysis. Enter null if nothing to show"),
+                transparency_user_explanations: Yup.string().when("transparency_docs", {
+                    is: true,
+                    then: (s) =>
+                        s.required("Please describe user explanation methods. Enter null if nothing to show"),
+                }),
 
-            algo_feature_drift: Yup.string()
-                .required("Please describe feature drift detection and handling. Enter null if nothing to show"),
+                transparency_model_cards: Yup.boolean()
+                    .oneOf([true, false], "Please indicate whether model cards are maintained"),
 
-            algo_model_versioning: Yup.string()
-                .required("Please describe model versioning approach. Enter null if nothing to show"),
+                transparency_model_cards_details: Yup.string().when("transparency_model_cards", {
+                    is: true,
+                    then: (s) =>
+                        s.required("Please describe what information is included in model cards. Enter null if nothing to show"),
+                }),
 
-            algo_ab_testing: Yup.boolean()
-                .oneOf([true, false], "Please indicate whether A/B testing is conducted for algorithm selection"),
+                transparency_explainability_methods: Yup.string()
+                    .required("Please describe explainability methods used. Enter null if nothing to show"),
 
-            algo_ab_testing_details: Yup.string().when("algo_ab_testing", {
-                is: true,
-                then: (s) =>
-                    s.required("Please describe A/B testing methodology. Enter null if nothing to show"),
+                transparency_user_communication: Yup.string()
+                    .required("Please describe how AI limitations are communicated to users. Enter null if nothing to show"),
+
+                transparency_decision_documentation: Yup.string()
+                    .required("Please describe how AI decisions are documented. Enter null if nothing to show"),
+
+                transparency_interpretability_requirements: Yup.string()
+                    .required("Please describe interpretability requirements. Enter null if nothing to show"),
+
+                transparency_stakeholder_communication: Yup.string()
+                    .required("Please describe stakeholder communication about AI behavior. Enter null if nothing to show"),
+
+                fairness_protected_attributes: Yup.string()
+                    .required("Please specify protected attributes tested for. Enter null if nothing to show"),
+
+                // Fairness & Bias Testing
+                fairness_testing: Yup.boolean()
+                    .oneOf([true, false], "Please indicate whether bias or discrimination testing has been performed"),
+
+                fairness_testing_methods: Yup.string().when("fairness_testing", {
+                    is: true,
+                    then: (s) =>
+                        s.required("Please describe bias testing methods used. Enter null if nothing to show"),
+                }),
+
+                fairness_test_results: Yup.string().when("fairness_testing", {
+                    is: true,
+                    then: (s) =>
+                        s.required("Please describe fairness testing results. Enter null if nothing to show"),
+                }),
+
+                fairness_metrics_used: Yup.string()
+                    .required("Please describe fairness metrics used. Enter null if nothing to show"),
+
+                fairness_bias_mitigation: Yup.string()
+                    .required("Please describe bias mitigation strategies. Enter null if nothing to show"),
+
+                fairness_continuous_monitoring: Yup.string()
+                    .required("Please describe continuous bias monitoring. Enter null if nothing to show"),
+
+                fairness_adverse_impact: Yup.string()
+                    .required("Please describe adverse impact analysis. Enter null if nothing to show"),
+
+                fairness_testing_frequency: Yup.string()
+                    .required("Please describe bias testing frequency. Enter null if nothing to show"),
+
+                fairness_external_validation: Yup.boolean(),
+
+                fairness_external_validation_details: Yup.string().when("fairness_external_validation", {
+                    is: true,
+                    then: (s) =>
+                        s.required("Please describe external validation process. Enter null if nothing to show"),
+                }),
+
+                human_oversight_processes: Yup.string().when("fairness_external_validation", {
+                    is: true,
+                    then: (s) =>
+                        s.required("Please describe external validation process. Enter null if nothing to show"),
+                }),
+
+                // Human Oversight
+                human_oversight: Yup.boolean()
+                    .oneOf([true, false], "Please indicate whether human-in-the-loop or human-on-the-loop processes exist"),
+
+                human_oversight_type: Yup.string().when("human_oversight", {
+                    is: true,
+                    then: (s) =>
+                        s.required("Please describe human oversight type (HITL, HOTL, or both). Enter null if nothing to show"),
+                }),
+
+
+                human_oversight_roles: Yup.string()
+                    .required("Please describe human oversight roles and qualifications. Enter null if nothing to show"),
+
+                human_oversight_qualifications: Yup.string()
+                    .required("Please describe qualifications required for human overseers. Enter null if nothing to show"),
+
+                human_oversight_intervention_triggers: Yup.string()
+                    .required("Please describe what triggers human intervention. Enter null if nothing to show"),
+
+                human_oversight_decision_authority: Yup.string()
+                    .required("Please describe human overseers' decision authority. Enter null if nothing to show"),
+
+                human_oversight_training: Yup.string()
+                    .required("Please describe training for human overseers. Enter null if nothing to show"),
+
+                human_oversight_escalation: Yup.string()
+                    .required("Please describe escalation procedures. Enter null if nothing to show"),
+
+                human_oversight_documentation: Yup.string()
+                    .required("Please describe how oversight activities are documented. Enter null if nothing to show"),
+
+                human_oversight_automation_percentage: Yup.string()
+                    .required("Please describe the percentage of automated vs human-reviewed decisions. Enter null if nothing to show"),
             }),
 
-            algo_hyperparameter_tuning: Yup.string()
-                .required("Please describe hyperparameter tuning approach. Enter null if nothing to show"),
+            // Page 7 – Operational Pillars
+            Yup.object({
+                // Third-Party & Vendor Management
+                third_party_controls: Yup.boolean()
+                    .oneOf([true, false], "Please indicate whether vendor due diligence and controls exist"),
 
-            // Evaluation & Testing
-            evaluation_testing: Yup.boolean()
-                .oneOf([true, false], "Please indicate whether pre-deployment testing and robustness checks have been completed"),
+                third_party_due_diligence: Yup.string().when("third_party_controls", {
+                    is: true,
+                    then: (s) =>
+                        s.required("Please describe vendor due diligence performed. Enter null if nothing to show"),
+                }),
 
-            evaluation_test_types: Yup.string().when("evaluation_testing", {
-                is: true,
-                then: (s) =>
-                    s.required("Please describe types of pre-deployment testing completed. Enter null if nothing to show"),
+                third_party_contracts: Yup.string().when("third_party_controls", {
+                    is: true,
+                    then: (s) =>
+                        s.required("Please describe controls in vendor contracts. Enter null if nothing to show"),
+                }),
+
+                third_party_vendor_risk_assessment: Yup.string()
+                    .required("Please describe vendor risk assessment methodology. Enter null if nothing to show"),
+
+                third_party_slas: Yup.string()
+                    .required("Please describe SLAs with third-party vendors. Enter null if nothing to show"),
+
+                third_party_vendor_monitoring: Yup.string()
+                    .required("Please describe vendor monitoring practices. Enter null if nothing to show"),
+
+                third_party_exit_strategy: Yup.string()
+                    .required("Please describe vendor exit strategy. Enter null if nothing to show"),
+
+                third_party_data_residency: Yup.string()
+                    .required("Please describe data residency for vendor data. Enter null if nothing to show"),
+
+                third_party_incident_reporting: Yup.string()
+                    .required("Please describe incident reporting requirements for vendors. Enter null if nothing to show"),
+
+                third_party_audit_rights: Yup.string()
+                    .required("Please describe audit rights over vendor operations. Enter null if nothing to show"),
+
+                third_party_multi_vendor: Yup.string()
+                    .required("Please describe multi-vendor management approach. Enter null if nothing to show"),
+
+                // Algorithm & Feature Selection
+                algo_documented: Yup.boolean()
+                    .oneOf([true, false], "Please indicate whether algorithm selection and feature engineering is documented"),
+
+                algo_selection_process: Yup.string().when("algo_documented", {
+                    is: true,
+                    then: (s) =>
+                        s.required("Please describe algorithm selection process. Enter null if nothing to show"),
+                }),
+
+                algo_feature_engineering: Yup.string().when("algo_documented", {
+                    is: true,
+                    then: (s) =>
+                        s.required("Please describe feature engineering approach. Enter null if nothing to show"),
+                }),
+
+                algo_selection_criteria: Yup.string()
+                    .required("Please describe algorithm selection criteria. Enter null if nothing to show"),
+
+                algo_model_comparison: Yup.string()
+                    .required("Please describe model comparison methodology. Enter null if nothing to show"),
+
+                algo_feature_importance: Yup.string()
+                    .required("Please describe feature importance analysis. Enter null if nothing to show"),
+
+                algo_feature_drift: Yup.string()
+                    .required("Please describe feature drift detection and handling. Enter null if nothing to show"),
+
+                algo_model_versioning: Yup.string()
+                    .required("Please describe model versioning approach. Enter null if nothing to show"),
+
+                algo_ab_testing: Yup.boolean()
+                    .oneOf([true, false], "Please indicate whether A/B testing is conducted for algorithm selection"),
+
+                algo_ab_testing_details: Yup.string().when("algo_ab_testing", {
+                    is: true,
+                    then: (s) =>
+                        s.required("Please describe A/B testing methodology. Enter null if nothing to show"),
+                }),
+
+                algo_hyperparameter_tuning: Yup.string()
+                    .required("Please describe hyperparameter tuning approach. Enter null if nothing to show"),
+
+                // Evaluation & Testing
+                evaluation_testing: Yup.boolean()
+                    .oneOf([true, false], "Please indicate whether pre-deployment testing and robustness checks have been completed"),
+
+                evaluation_test_types: Yup.string().when("evaluation_testing", {
+                    is: true,
+                    then: (s) =>
+                        s.required("Please describe types of pre-deployment testing completed. Enter null if nothing to show"),
+                }),
+
+                evaluation_robustness_checks: Yup.string().when("evaluation_testing", {
+                    is: true,
+                    then: (s) =>
+                        s.required("Please describe robustness checks performed. Enter null if nothing to show"),
+                }),
+
+                evaluation_test_data_management: Yup.string()
+                    .required("Please describe test data management approach. Enter null if nothing to show"),
+
+                evaluation_performance_benchmarks: Yup.string()
+                    .required("Please describe performance benchmarks used. Enter null if nothing to show"),
+
+                evaluation_regression_testing: Yup.boolean()
+                    .oneOf([true, false], "Please indicate whether regression testing is performed when models are updated"),
+
+                evaluation_regression_details: Yup.string().when("evaluation_regression_testing", {
+                    is: true,
+                    then: (s) =>
+                        s.required("Please describe regression testing process. Enter null if nothing to show"),
+                }),
+
+                evaluation_stress_testing: Yup.boolean()
+                    .oneOf([true, false], "Please indicate whether stress testing under extreme conditions has been conducted"),
+
+                evaluation_stress_testing_details: Yup.string().when("evaluation_stress_testing", {
+                    is: true,
+                    then: (s) =>
+                        s.required("Please describe stress testing methodology and results. Enter null if nothing to show"),
+                }),
+
+                evaluation_failsafe_mechanisms: Yup.string()
+                    .required("Please describe failsafe mechanisms in place. Enter null if nothing to show"),
+
+                evaluation_rollback_procedures: Yup.string()
+                    .required("Please describe rollback procedures for model deployments. Enter null if nothing to show"),
+
+                evaluation_test_documentation: Yup.string()
+                    .required("Please describe how test results and evaluation findings are documented. Enter null if nothing to show"),
             }),
 
-            evaluation_robustness_checks: Yup.string().when("evaluation_testing", {
-                is: true,
-                then: (s) =>
-                    s.required("Please describe robustness checks performed. Enter null if nothing to show"),
+            // Page 8 – Security, Monitoring & Capability
+            Yup.object({
+                // Technology & Cybersecurity
+                security_measures: Yup.boolean()
+                    .oneOf([true, false], "Please indicate whether security measures exist"),
+
+                security_cybersecurity_measures: Yup.string().when("security_measures", {
+                    is: true,
+                    then: (s) =>
+                        s.required("Please describe cybersecurity measures in place. Enter null if nothing to show"),
+                }),
+
+                security_prompt_injection: Yup.string().when("security_measures", {
+                    is: true,
+                    then: (s) =>
+                        s.required("Please describe prompt injection protection. Enter null if nothing to show"),
+                }),
+
+                security_data_leakage: Yup.string().when("security_measures", {
+                    is: true,
+                    then: (s) =>
+                        s.required("Please describe data leakage prevention. Enter null if nothing to show"),
+                }),
+
+                security_access_controls: Yup.string()
+                    .required("Please describe access controls for AI systems. Enter null if nothing to show"),
+
+                security_encryption: Yup.string()
+                    .required("Please describe data encryption at rest and in transit. Enter null if nothing to show"),
+
+                security_authentication: Yup.string()
+                    .required("Please describe authentication mechanisms. Enter null if nothing to show"),
+
+                security_network_security: Yup.string()
+                    .required("Please describe network security measures. Enter null if nothing to show"),
+
+                security_vulnerability_scanning: Yup.string()
+                    .required("Please describe vulnerability scanning frequency and process. Enter null if nothing to show"),
+
+                security_penetration_testing: Yup.boolean()
+                    .oneOf([true, false], "Please indicate whether penetration testing is conducted"),
+
+                security_penetration_details: Yup.string().when("security_penetration_testing", {
+                    is: true,
+                    then: (s) =>
+                        s.required("Please describe penetration testing process. Enter null if nothing to show"),
+                }),
+
+                security_incident_response: Yup.string()
+                    .required("Please describe security incident response plan. Enter null if nothing to show"),
+
+                security_certifications: Yup.string()
+                    .required("Please describe security certifications and standards compliance. Enter null if nothing to show"),
+
+                // Monitoring & Change Management
+                monitoring_plan: Yup.boolean()
+                    .oneOf([true, false], "Please indicate whether drift monitoring, incident management, and version control processes exist"),
+
+                monitoring_drift_detection: Yup.string().when("monitoring_plan", {
+                    is: true,
+                    then: (s) =>
+                        s.required("Please describe model drift detection and monitoring. Enter null if nothing to show"),
+                }),
+
+                monitoring_incident_management: Yup.string().when("monitoring_plan", {
+                    is: true,
+                    then: (s) =>
+                        s.required("Please describe incident management process. Enter null if nothing to show"),
+                }),
+
+                monitoring_version_control: Yup.string().when("monitoring_plan", {
+                    is: true,
+                    then: (s) =>
+                        s.required("Please describe version control and model update management. Enter null if nothing to show"),
+                }),
+
+                monitoring_performance_metrics: Yup.string()
+                    .required("Please describe performance metrics monitored. Enter null if nothing to show"),
+
+                monitoring_alert_thresholds: Yup.string()
+                    .required("Please describe alert thresholds configured. Enter null if nothing to show"),
+
+                monitoring_tools: Yup.string()
+                    .required("Please describe monitoring tools used. Enter null if nothing to show"),
+
+                monitoring_change_approval: Yup.string()
+                    .required("Please describe change approval process. Enter null if nothing to show"),
+
+                monitoring_rollback_capability: Yup.string()
+                    .required("Please describe rollback capability and time. Enter null if nothing to show"),
+
+                monitoring_change_impact: Yup.string()
+                    .required("Please describe change impact assessment. Enter null if nothing to show"),
+
+                monitoring_post_deployment: Yup.string()
+                    .required("Please describe post-deployment monitoring. Enter null if nothing to show"),
+
+                monitoring_kill_switch: Yup.boolean()
+                    .oneOf([true, false], "Please indicate whether a kill switch exists to stop the AI system"),
+
+                monitoring_kill_switch_details: Yup.string().when("monitoring_kill_switch", {
+                    is: true,
+                    then: (s) =>
+                        s.required("Please describe kill switch mechanism. Enter null if nothing to show"),
+                }),
+
+                // Capability & Capacity
+                capability_training: Yup.boolean()
+                    .oneOf([true, false], "Please indicate whether team has necessary skills, training, and infrastructure"),
+
+                capability_team_skills: Yup.string().when("capability_training", {
+                    is: true,
+                    then: (s) =>
+                        s.required("Please describe team skills for managing AI systems. Enter null if nothing to show"),
+                }),
+
+                capability_training_programs: Yup.string().when("capability_training", {
+                    is: true,
+                    then: (s) =>
+                        s.required("Please describe training programs completed. Enter null if nothing to show"),
+                }),
+
+                capability_infrastructure: Yup.string().when("capability_training", {
+                    is: true,
+                    then: (s) =>
+                        s.required("Please describe infrastructure and tools for AI governance. Enter null if nothing to show"),
+                }),
             }),
-
-            evaluation_test_data_management: Yup.string()
-                .required("Please describe test data management approach. Enter null if nothing to show"),
-
-            evaluation_performance_benchmarks: Yup.string()
-                .required("Please describe performance benchmarks used. Enter null if nothing to show"),
-
-            evaluation_regression_testing: Yup.boolean()
-                .oneOf([true, false], "Please indicate whether regression testing is performed when models are updated"),
-
-            evaluation_regression_details: Yup.string().when("evaluation_regression_testing", {
-                is: true,
-                then: (s) =>
-                    s.required("Please describe regression testing process. Enter null if nothing to show"),
-            }),
-
-            evaluation_stress_testing: Yup.boolean()
-                .oneOf([true, false], "Please indicate whether stress testing under extreme conditions has been conducted"),
-
-            evaluation_stress_testing_details: Yup.string().when("evaluation_stress_testing", {
-                is: true,
-                then: (s) =>
-                    s.required("Please describe stress testing methodology and results. Enter null if nothing to show"),
-            }),
-
-            evaluation_failsafe_mechanisms: Yup.string()
-                .required("Please describe failsafe mechanisms in place. Enter null if nothing to show"),
-
-            evaluation_rollback_procedures: Yup.string()
-                .required("Please describe rollback procedures for model deployments. Enter null if nothing to show"),
-
-            evaluation_test_documentation: Yup.string()
-                .required("Please describe how test results and evaluation findings are documented. Enter null if nothing to show"),
-        }),
-
-        // Page 8 – Security, Monitoring & Capability
-        Yup.object({
-            // Technology & Cybersecurity
-            security_measures: Yup.boolean()
-                .oneOf([true, false], "Please indicate whether security measures exist"),
-
-            security_cybersecurity_measures: Yup.string().when("security_measures", {
-                is: true,
-                then: (s) =>
-                    s.required("Please describe cybersecurity measures in place. Enter null if nothing to show"),
-            }),
-
-            security_prompt_injection: Yup.string().when("security_measures", {
-                is: true,
-                then: (s) =>
-                    s.required("Please describe prompt injection protection. Enter null if nothing to show"),
-            }),
-
-            security_data_leakage: Yup.string().when("security_measures", {
-                is: true,
-                then: (s) =>
-                    s.required("Please describe data leakage prevention. Enter null if nothing to show"),
-            }),
-
-            security_access_controls: Yup.string()
-                .required("Please describe access controls for AI systems. Enter null if nothing to show"),
-
-            security_encryption: Yup.string()
-                .required("Please describe data encryption at rest and in transit. Enter null if nothing to show"),
-
-            security_authentication: Yup.string()
-                .required("Please describe authentication mechanisms. Enter null if nothing to show"),
-
-            security_network_security: Yup.string()
-                .required("Please describe network security measures. Enter null if nothing to show"),
-
-            security_vulnerability_scanning: Yup.string()
-                .required("Please describe vulnerability scanning frequency and process. Enter null if nothing to show"),
-
-            security_penetration_testing: Yup.boolean()
-                .oneOf([true, false], "Please indicate whether penetration testing is conducted"),
-
-            security_penetration_details: Yup.string().when("security_penetration_testing", {
-                is: true,
-                then: (s) =>
-                    s.required("Please describe penetration testing process. Enter null if nothing to show"),
-            }),
-
-            security_incident_response: Yup.string()
-                .required("Please describe security incident response plan. Enter null if nothing to show"),
-
-            security_certifications: Yup.string()
-                .required("Please describe security certifications and standards compliance. Enter null if nothing to show"),
-
-            // Monitoring & Change Management
-            monitoring_plan: Yup.boolean()
-                .oneOf([true, false], "Please indicate whether drift monitoring, incident management, and version control processes exist"),
-
-            monitoring_drift_detection: Yup.string().when("monitoring_plan", {
-                is: true,
-                then: (s) =>
-                    s.required("Please describe model drift detection and monitoring. Enter null if nothing to show"),
-            }),
-
-            monitoring_incident_management: Yup.string().when("monitoring_plan", {
-                is: true,
-                then: (s) =>
-                    s.required("Please describe incident management process. Enter null if nothing to show"),
-            }),
-
-            monitoring_version_control: Yup.string().when("monitoring_plan", {
-                is: true,
-                then: (s) =>
-                    s.required("Please describe version control and model update management. Enter null if nothing to show"),
-            }),
-
-            monitoring_performance_metrics: Yup.string()
-                .required("Please describe performance metrics monitored. Enter null if nothing to show"),
-
-            monitoring_alert_thresholds: Yup.string()
-                .required("Please describe alert thresholds configured. Enter null if nothing to show"),
-
-            monitoring_tools: Yup.string()
-                .required("Please describe monitoring tools used. Enter null if nothing to show"),
-
-            monitoring_change_approval: Yup.string()
-                .required("Please describe change approval process. Enter null if nothing to show"),
-
-            monitoring_rollback_capability: Yup.string()
-                .required("Please describe rollback capability and time. Enter null if nothing to show"),
-
-            monitoring_change_impact: Yup.string()
-                .required("Please describe change impact assessment. Enter null if nothing to show"),
-
-            monitoring_post_deployment: Yup.string()
-                .required("Please describe post-deployment monitoring. Enter null if nothing to show"),
-
-            monitoring_kill_switch: Yup.boolean()
-                .oneOf([true, false], "Please indicate whether a kill switch exists to stop the AI system"),
-
-            monitoring_kill_switch_details: Yup.string().when("monitoring_kill_switch", {
-                is: true,
-                then: (s) =>
-                    s.required("Please describe kill switch mechanism. Enter null if nothing to show"),
-            }),
-
-            // Capability & Capacity
-            capability_training: Yup.boolean()
-                .oneOf([true, false], "Please indicate whether team has necessary skills, training, and infrastructure"),
-
-            capability_team_skills: Yup.string().when("capability_training", {
-                is: true,
-                then: (s) =>
-                    s.required("Please describe team skills for managing AI systems. Enter null if nothing to show"),
-            }),
-
-            capability_training_programs: Yup.string().when("capability_training", {
-                is: true,
-                then: (s) =>
-                    s.required("Please describe training programs completed. Enter null if nothing to show"),
-            }),
-
-            capability_infrastructure: Yup.string().when("capability_training", {
-                is: true,
-                then: (s) =>
-                    s.required("Please describe infrastructure and tools for AI governance. Enter null if nothing to show"),
-            }),
-        })
-    ];
+        ];
+    }, [assessmentMode]);
 
 
 
@@ -955,20 +1004,6 @@ export default function MasAssessmentPage() {
         await supabase.auth.signOut();
         router.push("/");
     };
-
-
-    // MAS Page structure (7-8 pages)
-    const masPages = [
-        { id: "profile", title: "System Profile & Company Info" },
-        { id: "data", title: "Data & Dependencies" },
-        { id: "governance", title: "Governance & Oversight" },
-        { id: "inventory", title: "Inventory & Risk Classification" },
-        { id: "dataManagement", title: "Data Management & Quality" },
-        { id: "technical", title: "Technical Pillars" },
-        { id: "operational", title: "Operational Pillars" },
-        { id: "security", title: "Security, Monitoring & Capability" },
-    ];
-
 
 
     useEffect(() => {
@@ -1011,10 +1046,19 @@ export default function MasAssessmentPage() {
 
             // If multi-jurisdiction flow, skip page 0 (common questions already answered)
             if (hasMultipleJurisdictions) {
-                console.log(`➡️  [MAS-ASSESSMENT] Multi-jurisdiction detected - skipping page 0, starting at page 1`);
+                console.log(`➡️ [MAS-ASSESSMENT] Multi-jurisdiction detected - skipping page 0`);
                 setMasCurrentPage(1); // Start at page 1 instead of page 0
             } else if (data.current_step && data.current_step > 1) {
                 setMasCurrentPage(data.current_step - 1);
+            }
+
+            // Respect mode passed from intro/multi flow.
+            const modeParam = router.query.mode;
+            const modeValue = Array.isArray(modeParam) ? modeParam[0] : modeParam;
+            if (modeValue === "rapid" || modeValue === "comprehensive") {
+                setAssessmentMode(modeValue);
+            } else if (data.assessment_mode) {
+                setAssessmentMode(data.assessment_mode as 'rapid' | 'comprehensive');
             }
 
             // Determine jurisdiction from data_processing_locations (preferred) or fallback to country
@@ -1044,7 +1088,7 @@ export default function MasAssessmentPage() {
         };
 
         loadSystem();
-    }, [systemId]);
+    }, [systemId, router.query.mode]);
 
     const handleSubmit = async (values: typeof masInitialState) => {
         if (masCurrentPage < masPages.length - 1) return;
@@ -1054,8 +1098,11 @@ export default function MasAssessmentPage() {
 
         const payload = {
             system_id: systemId,
+            assessment_mode: assessmentMode,
             answers: {
                 ...values,
+                company_name: values.owner || "",
+                company_use_case: values.business_use_case || "",
                 ...Object.fromEntries(
                     Object.entries(evidenceContent).map(([k, v]) => [`${k}_content`, v])
                 ),
@@ -1110,15 +1157,15 @@ export default function MasAssessmentPage() {
             console.log(`🔍 [MAS-ASSESSMENT] Multiple jurisdictions detected: ${hasMultipleJurisdictions}`);
 
             if (hasMultipleJurisdictions) {
-                console.log(`➡️  [MAS-ASSESSMENT] Redirecting to multi-jurisdiction page`);
-                router.push(`/assessment/multi/${systemId}?completed=MAS&assessmentId=${assessmentId}`);
+                console.log(`➡️ [MAS-ASSESSMENT] Redirecting to multi-jurisdiction page`);
+                router.push(`/assessment/multi/${systemId}?completed=MAS&assessmentId=${assessmentId}&mode=${assessmentMode}`);
             } else {
-                console.log(`➡️  [MAS-ASSESSMENT] Single jurisdiction - redirecting to MAS results`);
+                console.log(`➡️ [MAS-ASSESSMENT] Single jurisdiction - redirecting to MAS results`);
                 router.push(`/mas/${assessmentId}`);
             }
         } catch (err: any) {
             console.error(`❌ [MAS-ASSESSMENT] Error checking multi-jurisdiction:`, err);
-            console.log(`➡️  [MAS-ASSESSMENT] Fallback: redirecting to MAS results`);
+            console.log(`➡️ [MAS-ASSESSMENT] Fallback: redirecting to MAS results`);
             // Fallback to normal redirect if check fails
             router.push(`/mas/${assessmentId}`);
         }
@@ -1270,7 +1317,7 @@ export default function MasAssessmentPage() {
                         } else {
                             const errorData = await analysisRes.json().catch(() => ({}));
                             console.warn(`\n${'='.repeat(80)}`);
-                            console.warn(`⚠️  [AUTO-POPULATE] Analysis failed`);
+                            console.warn(`⚠️ [AUTO-POPULATE] Analysis failed`);
                             console.warn(`   Status: ${analysisRes.status}`);
                             console.warn(`   Status Text: ${analysisRes.statusText}`);
                             console.warn(`   Error:`, errorData);
@@ -1373,7 +1420,8 @@ export default function MasAssessmentPage() {
                                         style={{
                                             width: `${isMultiJurisdiction
                                                 ? ((masCurrentPage) / (masPages.length - 1)) * 100
-                                                : ((masCurrentPage + 1) / masPages.length) * 100}%`,
+                                                : ((masCurrentPage + 1) / masPages.length) * 100
+                                                }% `,
                                         }}
                                     />
                                 </div>
@@ -1415,63 +1463,73 @@ export default function MasAssessmentPage() {
                                     return (
                                         <form onSubmit={handleSubmit} className="space-y-6">
                                             {masCurrentPage === 0 && !isMultiJurisdiction && (
-                                                <MasPage1SystemProfile masCurrentPage={masCurrentPage} />
-                                            )}
-
-                                            {masCurrentPage === 1 && (
-                                                <MasPage2DataDependencies
+                                                <MasPage1SystemProfile
                                                     masCurrentPage={masCurrentPage}
-                                                />
-
-                                            )}
-
-                                            {masCurrentPage === 2 && (
-                                                <MasPage3GovernanceOversight
-                                                    masCurrentPage={masCurrentPage}
-                                                    handleEvidenceFileChange={handleEvidenceFileChangeWithForm}
-                                                    evidenceContent={evidenceContent}
+                                                    assessmentMode={assessmentMode}
+                                                    setAssessmentMode={setAssessmentMode}
                                                 />
                                             )}
 
-                                            {masCurrentPage === 3 && (
-                                                <MasPage4InventoryRisk
-                                                    masCurrentPage={masCurrentPage}
-                                                    handleEvidenceFileChange={handleEvidenceFileChangeWithForm}
-                                                    evidenceContent={evidenceContent}
-                                                />
-                                            )}
+                                            {assessmentMode === 'rapid' ? (
+                                                <>
+                                                    {masCurrentPage === 1 && <MasPageRapid currentPage={masCurrentPage} />}
+                                                </>
+                                            ) : (
+                                                <>
+                                                    {masCurrentPage === 1 && (
+                                                        <MasPage2DataDependencies
+                                                            masCurrentPage={masCurrentPage}
+                                                        />
+                                                    )}
 
-                                            {masCurrentPage === 4 && (
-                                                <MasPage5DataManagementQuality
-                                                    masCurrentPage={masCurrentPage}
-                                                    handleEvidenceFileChange={handleEvidenceFileChangeWithForm}
-                                                    evidenceContent={evidenceContent}
-                                                />
-                                            )}
+                                                    {masCurrentPage === 2 && (
+                                                        <MasPage3GovernanceOversight
+                                                            masCurrentPage={masCurrentPage}
+                                                            handleEvidenceFileChange={handleEvidenceFileChangeWithForm}
+                                                            evidenceContent={evidenceContent}
+                                                        />
+                                                    )}
 
-                                            {masCurrentPage === 5 && (
-                                                <MasPage6TechnicalPillars
-                                                    masCurrentPage={masCurrentPage}
-                                                    handleEvidenceFileChange={handleEvidenceFileChangeWithForm}
-                                                    evidenceContent={evidenceContent}
-                                                />
-                                            )}
+                                                    {masCurrentPage === 3 && (
+                                                        <MasPage4InventoryRisk
+                                                            masCurrentPage={masCurrentPage}
+                                                            handleEvidenceFileChange={handleEvidenceFileChangeWithForm}
+                                                            evidenceContent={evidenceContent}
+                                                        />
+                                                    )}
 
-                                            {masCurrentPage === 6 && (
-                                                <MasPage7OperationalPillars
-                                                    masCurrentPage={masCurrentPage}
-                                                    handleEvidenceFileChange={handleEvidenceFileChangeWithForm}
-                                                    evidenceContent={evidenceContent}
-                                                />
+                                                    {masCurrentPage === 4 && (
+                                                        <MasPage5DataManagementQuality
+                                                            masCurrentPage={masCurrentPage}
+                                                            handleEvidenceFileChange={handleEvidenceFileChangeWithForm}
+                                                            evidenceContent={evidenceContent}
+                                                        />
+                                                    )}
 
-                                            )}
+                                                    {masCurrentPage === 5 && (
+                                                        <MasPage6TechnicalPillars
+                                                            masCurrentPage={masCurrentPage}
+                                                            handleEvidenceFileChange={handleEvidenceFileChangeWithForm}
+                                                            evidenceContent={evidenceContent}
+                                                        />
+                                                    )}
 
-                                            {masCurrentPage === 7 && (
-                                                <SecurityMonitoring
-                                                    masCurrentPage={masCurrentPage}
-                                                    handleEvidenceFileChange={handleEvidenceFileChangeWithForm}
-                                                // evidenceContent={evidenceContent}
-                                                />
+                                                    {masCurrentPage === 6 && (
+                                                        <MasPage7OperationalPillars
+                                                            masCurrentPage={masCurrentPage}
+                                                            handleEvidenceFileChange={handleEvidenceFileChangeWithForm}
+                                                            evidenceContent={evidenceContent}
+                                                        />
+                                                    )}
+
+                                                    {masCurrentPage === 7 && (
+                                                        <MasPage8SecurityMonitoring
+                                                            masCurrentPage={masCurrentPage}
+                                                            handleEvidenceFileChange={handleEvidenceFileChangeWithForm}
+                                                            evidenceContent={evidenceContent}
+                                                        />
+                                                    )}
+                                                </>
                                             )}
 
                                             <div className="flex justify-between pt-4">
@@ -1487,8 +1545,8 @@ export default function MasAssessmentPage() {
                                                 </Button>
 
                                                 {masCurrentPage < masPages.length - 1 ? (
-                                                    <Button 
-                                                        type="button" 
+                                                    <Button
+                                                        type="button"
                                                         onClick={handleNext}
                                                         className="hover:bg-emerald-700"
                                                     >
@@ -1525,3 +1583,4 @@ export async function getServerSideProps() {
         props: {},
     };
 }
+

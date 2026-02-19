@@ -10,7 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Loader2, Shield, CheckCircle2, XCircle, AlertTriangle } from "lucide-react";
 import type { UKAssessmentResult } from "@/types/uk";
 import { Badge } from "@/components/ui/badge";
@@ -219,6 +219,22 @@ export default function UKAssessmentDetailPage() {
       .join(' ');
   };
 
+  const isRapidMode = data.assessment_mode === "rapid";
+  const rapidChecks = [
+    {
+      label: "Robustness testing defined",
+      passed: data.raw_answers?.robustness_testing === true,
+    },
+    {
+      label: "Human oversight defined",
+      passed: data.raw_answers?.human_oversight === true,
+    },
+    {
+      label: "Accountability statement provided",
+      passed: typeof data.raw_answers?.accountability_roles === "string" && data.raw_answers.accountability_roles.trim().length >= 25,
+    },
+  ];
+
   const PrincipleCard = ({
     title,
     status,
@@ -299,6 +315,38 @@ export default function UKAssessmentDetailPage() {
         </div>
 
         {/* Risk Level and Overall Assessment */}
+        {isRapidMode && (
+          <Alert className="bg-amber-50 border-amber-200">
+            <AlertTriangle className="h-5 w-5 text-amber-700" />
+            <AlertTitle className="text-amber-800 font-bold">Quick Scan Result</AlertTitle>
+            <AlertDescription className="text-amber-700">
+              {data.warning || "Rapid mode covers core indicators only. Run comprehensive mode for full control coverage."}
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {isRapidMode && (
+          <Card className="glass-panel border-border/50 shadow-elevated">
+            <CardHeader className="bg-secondary/30">
+              <CardTitle className="text-xl font-bold text-foreground">Quick Scan Explainability</CardTitle>
+              <CardDescription className="text-muted-foreground">How this rapid result was determined</CardDescription>
+            </CardHeader>
+            <CardContent className="bg-secondary/20 space-y-2">
+              {rapidChecks.map((check) => (
+                <div key={check.label} className="flex items-center justify-between rounded-lg border border-border/40 px-3 py-2 bg-white/60">
+                  <span className="text-sm font-medium text-foreground">{check.label}</span>
+                  <Badge className={check.passed ? "bg-emerald-100 text-emerald-700 border-emerald-200" : "bg-amber-100 text-amber-700 border-amber-200"}>
+                    {check.passed ? "Met" : "Not met"}
+                  </Badge>
+                </div>
+              ))}
+              <p className="text-xs text-muted-foreground pt-1">
+                This is a rapid screen. Use Deep Review for full control-by-control validation.
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Card className="glass-panel border-border/50 shadow-elevated">
             <CardHeader className="bg-secondary/30">
