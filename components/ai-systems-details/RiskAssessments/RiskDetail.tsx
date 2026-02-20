@@ -1,84 +1,45 @@
 "use client";
 
-/**
- * RiskDetail Component
- * 
- * Displays detailed information about a specific risk assessment.
- * Shows summary, risk level, mitigation status, and evidence links.
- */
-
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { ExternalLink, AlertTriangle, CheckCircle2, Clock, FileText, XCircle, Send, User, Shield, AlertCircle } from "lucide-react";
-import { toast } from "sonner";
-import type { RiskAssessment, RiskLevel, MitigationStatus, AssessmentStatus } from "@/types/risk-assessment";
-import { format } from "date-fns";
 import { useState, useEffect } from "react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { AlertTriangle, CheckCircle2, ChevronDown, Clock, ExternalLink, FileText, Send, Shield, User, X, XCircle } from "lucide-react";
+import { toast } from "sonner";
+import { format } from "date-fns";
 import { isActionDisabled, getDisabledReason } from "@/lib/lifecycle-governance-helpers";
-import type { LifecycleStage } from "@/types/lifecycle";
 import { supabase } from "@/utils/supabase/client";
+import type { RiskAssessment, RiskLevel, MitigationStatus, AssessmentStatus } from "@/types/risk-assessment";
+import type { LifecycleStage } from "@/types/lifecycle";
 
-async function backendFetch(
-  path: string,
-  options: RequestInit = {}
-) {
+async function backendFetch(path: string, options: RequestInit = {}) {
   const { data } = await supabase.auth.getSession();
-
   const accessToken = data.session?.access_token;
 
   if (!accessToken) {
-    console.error('❌ No access token found in Supabase session');
     throw new Error("User not authenticated");
   }
 
-  console.log('✅ Frontend: Sending token (first 50 chars):', accessToken.substring(0, 50) + '...');
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
 
-  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-
-  return fetch(
-    `${process.env.NEXT_PUBLIC_BACKEND_URL}${normalizedPath}`,
-    {
-      ...options,
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-    }
-  );
+  return fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}${normalizedPath}`, {
+    ...options,
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
+  });
 }
 
 interface RiskDetailProps {
   assessment: RiskAssessment;
   onClose: () => void;
-  userRole?: 'user' | 'admin';
+  userRole?: "user" | "admin";
   currentUserId?: string;
-  onStatusChange?: () => void; // Callback to refresh data after status change
-  lifecycleStage?: LifecycleStage | null; // For EU AI Act lifecycle governance
-  systemType?: 'EU AI Act' | 'MAS' | 'UK AI Act' | null;
+  onStatusChange?: () => void;
+  lifecycleStage?: LifecycleStage | null;
+  systemType?: "EU AI Act" | "MAS" | "UK AI Act" | null;
 }
 
-export default function RiskDetail({ 
-  assessment, 
-  onClose, 
-  userRole = 'user',
-  currentUserId,
-  onStatusChange,
-  lifecycleStage = null,
-  systemType = null
-}: RiskDetailProps) {
+export default function RiskDetail({ assessment, onClose, userRole = "user", currentUserId, onStatusChange, lifecycleStage = null, systemType = null }: RiskDetailProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isApproving, setIsApproving] = useState(false);
   const [isRejecting, setIsRejecting] = useState(false);
@@ -86,53 +47,57 @@ export default function RiskDetail({
   const [error, setError] = useState<string | null>(null);
   const [showRejectForm, setShowRejectForm] = useState(false);
   const [isUpdatingMitigation, setIsUpdatingMitigation] = useState(false);
-  // Local state for mitigation status to update UI immediately
   const [localMitigationStatus, setLocalMitigationStatus] = useState<MitigationStatus>(assessment.mitigation_status);
 
-  // Sync local state when assessment prop changes
   useEffect(() => {
     setLocalMitigationStatus(assessment.mitigation_status);
   }, [assessment.mitigation_status]);
 
   const isCreator = currentUserId && assessment.assessed_by === currentUserId;
-  const getRiskBadge = (level: RiskLevel) => {
-    const variants = {
-      low: "bg-gradient-to-r from-emerald-50 to-emerald-100/80 text-emerald-700 border border-emerald-200/60 font-semibold px-4 py-2 rounded-full shadow-md",
-      medium: "bg-gradient-to-r from-amber-50 to-amber-100/80 text-amber-700 border border-amber-200/60 font-semibold px-4 py-2 rounded-full shadow-md",
-      high: "bg-gradient-to-r from-red-50 to-red-100/80 text-red-700 border border-red-200/60 font-semibold px-4 py-2 rounded-full shadow-md",
-    };
-    return (
-      <Badge className={variants[level]}>
-        {level.charAt(0).toUpperCase() + level.slice(1)} Risk
-      </Badge>
-    );
+
+  const riskBadgeClasses: Record<RiskLevel, string> = {
+    low: "border-[#8EC4F8] bg-[#D9EEFF] text-[#2573C2]",
+    medium: "border-[#F2CD69] bg-[#FFF3CF] text-[#A97B00]",
+    high: "border-[#F1A4A4] bg-[#FFE0E0] text-[#C71F1F]",
   };
 
-  const getMitigationBadge = (status: MitigationStatus) => {
-    const variants = {
-      not_started: "bg-secondary/30 text-muted-foreground border-border/50",
-      in_progress: "bg-gradient-to-r from-blue-50 to-blue-100/80 text-blue-700 border border-blue-200/60 font-semibold px-4 py-2 rounded-full shadow-md",
-      mitigated: "bg-gradient-to-r from-emerald-50 to-emerald-100/80 text-emerald-700 border border-emerald-200/60 font-semibold px-4 py-2 rounded-full shadow-md",
-    };
+  const mitigationBadgeClasses: Record<MitigationStatus, string> = {
+    not_started: "border-[#E2E8F0] bg-[#F8FAFC] text-[#667085]",
+    in_progress: "border-[#93C5FD] bg-[#EAF4FF] text-[#2573C2]",
+    mitigated: "border-[#86EFAC] bg-[#E8FAEF] text-[#178746]",
+  };
 
-    const icons = {
-      not_started: <AlertTriangle className="h-4 w-4 mr-1" />,
-      in_progress: <Clock className="h-4 w-4 mr-1" />,
-      mitigated: <CheckCircle2 className="h-4 w-4 mr-1" />,
-    };
+  const statusBadgeClasses: Record<AssessmentStatus, string> = {
+    draft: "border-[#E2E8F0] bg-[#F8FAFC] text-[#667085]",
+    submitted: "border-[#F2CD69] bg-[#FFF3CF] text-[#A97B00]",
+    approved: "border-[#86EFAC] bg-[#E8FAEF] text-[#178746]",
+    rejected: "border-[#F1A4A4] bg-[#FFE0E0] text-[#C71F1F]",
+  };
 
-    const labels = {
-      not_started: "Not Started",
-      in_progress: "In Progress",
-      mitigated: "Mitigated",
-    };
+  const mitigationIcons: Record<MitigationStatus, JSX.Element> = {
+    not_started: <AlertTriangle className="mr-1 h-3 w-3" />,
+    in_progress: <Clock className="mr-1 h-3 w-3" />,
+    mitigated: <CheckCircle2 className="mr-1 h-3 w-3" />,
+  };
 
-    return (
-      <Badge className={variants[status]}>
-        {icons[status]}
-        {labels[status]}
-      </Badge>
-    );
+  const statusIcons: Record<AssessmentStatus, JSX.Element> = {
+    draft: <FileText className="mr-1 h-3 w-3" />,
+    submitted: <Clock className="mr-1 h-3 w-3" />,
+    approved: <CheckCircle2 className="mr-1 h-3 w-3" />,
+    rejected: <XCircle className="mr-1 h-3 w-3" />,
+  };
+
+  const mitigationLabels: Record<MitigationStatus, string> = {
+    not_started: "Not Started",
+    in_progress: "In Progress",
+    mitigated: "Mitigated",
+  };
+
+  const statusLabels: Record<AssessmentStatus, string> = {
+    draft: "Draft",
+    submitted: "Submitted",
+    approved: "Approved",
+    rejected: "Rejected",
   };
 
   const getCategoryLabel = (category: string) => {
@@ -145,56 +110,17 @@ export default function RiskDetail({
     return labels[category] || category;
   };
 
-  const getStatusBadge = (status: AssessmentStatus) => {
-    const variants = {
-      draft: "bg-secondary/30 text-muted-foreground border-border/50 font-semibold px-4 py-2 rounded-full shadow-md",
-      submitted: "bg-gradient-to-r from-amber-50 to-amber-100/80 text-amber-700 border border-amber-200/60 font-semibold px-4 py-2 rounded-full shadow-md",
-      approved: "bg-gradient-to-r from-emerald-50 to-emerald-100/80 text-emerald-700 border border-emerald-200/60 font-semibold px-4 py-2 rounded-full shadow-md",
-      rejected: "bg-gradient-to-r from-red-50 to-red-100/80 text-red-700 border border-red-200/60 font-semibold px-4 py-2 rounded-full shadow-md",
-    };
-
-    const icons = {
-      draft: <FileText className="h-4 w-4 mr-1" />,
-      submitted: <Clock className="h-4 w-4 mr-1" />,
-      approved: <CheckCircle2 className="h-4 w-4 mr-1" />,
-      rejected: <XCircle className="h-4 w-4 mr-1" />,
-    };
-
-    const labels = {
-      draft: "Draft",
-      submitted: "Submitted",
-      approved: "Approved",
-      rejected: "Rejected",
-    };
-
-    return (
-      <Badge className={variants[status]}>
-        {icons[status]}
-        {labels[status]}
-      </Badge>
-    );
-  };
-
   const handleSubmit = async () => {
     try {
       setIsSubmitting(true);
       setError(null);
 
-      const res = await backendFetch(`/api/risk-assessments/${assessment.id}/submit`, {
-        method: "POST",
-      });
+      const res = await backendFetch(`/api/risk-assessments/${assessment.id}/submit`, { method: "POST" });
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         const errorMsg = err.error || "Failed to submit assessment";
-        
-        // Show toast for prohibited system errors
-        if (err.prohibited_system) {
-          toast.error(errorMsg, { duration: 6000 });
-        } else {
-          toast.error(errorMsg, { duration: 5000 });
-        }
-        
+        toast.error(errorMsg);
         throw new Error(errorMsg);
       }
 
@@ -213,22 +139,12 @@ export default function RiskDetail({
       setIsApproving(true);
       setError(null);
 
-      const res = await backendFetch(`/api/risk-assessments/${assessment.id}/approve`, {
-        method: "POST",
-        body: JSON.stringify({}),
-      });
+      const res = await backendFetch(`/api/risk-assessments/${assessment.id}/approve`, { method: "POST", body: JSON.stringify({}) });
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         const errorMsg = err.error || "Failed to approve assessment";
-        
-        // Show toast for prohibited system errors
-        if (err.prohibited_system) {
-          toast.error(errorMsg, { duration: 6000 });
-        } else {
-          toast.error(errorMsg, { duration: 5000 });
-        }
-        
+        toast.error(errorMsg);
         throw new Error(errorMsg);
       }
 
@@ -252,10 +168,7 @@ export default function RiskDetail({
       setIsRejecting(true);
       setError(null);
 
-      const res = await backendFetch(`/api/risk-assessments/${assessment.id}/reject`, {
-        method: "POST",
-        body: JSON.stringify({ review_comment: rejectComment }),
-      });
+      const res = await backendFetch(`/api/risk-assessments/${assessment.id}/reject`, { method: "POST", body: JSON.stringify({ review_comment: rejectComment }) });
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -272,20 +185,15 @@ export default function RiskDetail({
   };
 
   const handleMitigationStatusChange = async (newStatus: MitigationStatus) => {
-    // Update local state immediately for instant UI feedback
     setLocalMitigationStatus(newStatus);
-    
+
     try {
       setIsUpdatingMitigation(true);
       setError(null);
 
-      const res = await backendFetch(`/api/risk-assessments/${assessment.id}/mitigation-status`, {
-        method: "PUT",
-        body: JSON.stringify({ mitigation_status: newStatus }),
-      });
+      const res = await backendFetch(`/api/risk-assessments/${assessment.id}/mitigation-status`, { method: "PUT", body: JSON.stringify({ mitigation_status: newStatus }) });
 
       if (!res.ok) {
-        // Revert local state on error
         setLocalMitigationStatus(assessment.mitigation_status);
         const err = await res.json().catch(() => ({}));
         const errorMsg = err.error || "Failed to update mitigation status";
@@ -294,192 +202,116 @@ export default function RiskDetail({
         throw new Error(errorMsg);
       }
 
-      // Get updated assessment data
       const response = await res.json();
-      
-      // Update local state with server response to ensure sync
       if (response.assessment?.mitigation_status) {
         setLocalMitigationStatus(response.assessment.mitigation_status);
       }
-      
-      // Show success message with formatted status name
-      const statusLabel = newStatus === 'not_started' ? 'Not Started' : 
-                         newStatus === 'in_progress' ? 'In Progress' : 
-                         'Mitigated';
+
+      const statusLabel = mitigationLabels[newStatus];
       toast.success(`Mitigation status updated to "${statusLabel}"`);
-      
-      // Refresh the parent component to show updated status
-      // This will reload the assessment data from the server
-      if (onStatusChange) {
-        onStatusChange();
-      }
+      if (onStatusChange) onStatusChange();
     } catch (err: any) {
-      // Error already handled above, local state already reverted
       console.error("Error updating mitigation status:", err);
     } finally {
       setIsUpdatingMitigation(false);
     }
   };
 
-
   return (
-    <Card className="glass-card shadow-premium rounded-2xl border-0 bg-gradient-to-br from-white/90 via-white/80 to-white/70 backdrop-blur-xl">
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="text-foreground">
-              {getCategoryLabel(assessment.category)}
-            </CardTitle>
-            <CardDescription className="text-muted-foreground mt-1">
-              Assessment ID: {assessment.id.substring(0, 8)}...
-            </CardDescription>
-          </div>
-          <Button
-            variant="ghost"
-            onClick={onClose}
-            className="text-muted-foreground hover:text-foreground"
-          >
-            ×
-          </Button>
+    <div className="overflow-hidden rounded-[15px] bg-white">
+      <div className="flex items-center justify-between border-b border-[#E2E8F0] px-6 py-4">
+        <div>
+          <h2 className="text-[17px] font-bold text-[#1E293B]">{getCategoryLabel(assessment.category)}</h2>
+          <p className="mt-1 text-[12px] text-[#667085]">Assessment ID: {assessment.id.substring(0, 8)}...</p>
         </div>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {/* Status, Risk Level and Mitigation Status */}
-        <div className="flex gap-4 flex-wrap">
+        <button type="button" onClick={onClose} className="flex h-8 w-8 items-center justify-center rounded-full text-[#667085] hover:bg-[#F1F5F9] transition-colors">
+          <X className="h-5 w-5" />
+        </button>
+      </div>
+      <div className="p-6 space-y-6">
+        <div className="flex flex-wrap gap-4">
           <div>
-            <p className="text-sm text-muted-foreground mb-2">Status</p>
-            {getStatusBadge(assessment.status)}
+            <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-[#94A3B8]">Status</p>
+            <span className={`inline-flex items-center rounded-full border px-3 py-1.5 text-[12px] font-semibold ${statusBadgeClasses[assessment.status]}`}>
+              {statusIcons[assessment.status]}
+              {statusLabels[assessment.status]}
+            </span>
           </div>
           <div>
-            <p className="text-sm text-muted-foreground mb-2">Risk Level</p>
-            {getRiskBadge(assessment.risk_level)}
+            <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-[#94A3B8]">Risk Level</p>
+            <span className={`inline-flex items-center rounded-full border px-3 py-1.5 text-[12px] font-semibold ${riskBadgeClasses[assessment.risk_level]}`}>
+              {assessment.risk_level.charAt(0).toUpperCase() + assessment.risk_level.slice(1)} Risk
+            </span>
           </div>
           <div>
-            <p className="text-sm text-muted-foreground mb-2">Mitigation Status</p>
+            <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-[#94A3B8]">Mitigation Status</p>
             <div className="flex items-center gap-2">
-              {getMitigationBadge(localMitigationStatus)}
-              {/* Allow updating mitigation status ONLY for submitted assessments (not approved) */}
-              {currentUserId && assessment.status === 'submitted' && (() => {
-                const mitigationDisabled = isActionDisabled(lifecycleStage, systemType, 'update_mitigation', assessment.status);
-                const mitigationReason = getDisabledReason(lifecycleStage, systemType, 'update_mitigation', assessment.status);
-                
-                const selectComponent = (
-                  <Select
-                    value={localMitigationStatus}
-                    onValueChange={(value) => handleMitigationStatusChange(value as MitigationStatus)}
-                    disabled={isUpdatingMitigation || mitigationDisabled}
-                  >
-                  <SelectTrigger className="w-[140px] h-8 bg-background border-border text-foreground text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-background border-border">
-                    <SelectItem value="not_started" className="text-foreground hover:bg-accent">
-                      Not Started
-                    </SelectItem>
-                    <SelectItem value="in_progress" className="text-blue-600 hover:bg-accent">
-                      In Progress
-                    </SelectItem>
-                    <SelectItem value="mitigated" className="text-emerald-600 hover:bg-accent">
-                      Mitigated
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
+              <span className={`inline-flex items-center rounded-full border px-3 py-1.5 text-[12px] font-semibold ${mitigationBadgeClasses[localMitigationStatus]}`}>
+                {mitigationIcons[localMitigationStatus]}
+                {mitigationLabels[localMitigationStatus]}
+              </span>
+              {currentUserId && assessment.status === "submitted" && (() => {
+                const mitigationDisabled = isActionDisabled(lifecycleStage, systemType, "update_mitigation", assessment.status);
+
+                return (
+                  <div className="relative">
+                    <select
+                      value={localMitigationStatus}
+                      onChange={(e) => handleMitigationStatusChange(e.target.value as MitigationStatus)}
+                      disabled={isUpdatingMitigation || mitigationDisabled}
+                      className="h-8 w-[130px] appearance-none rounded-[6px] border border-[#CBD5E1] bg-white px-2 pr-8 text-[11px] text-[#1E293B] outline-none transition-all focus:border-[#3B82F6] disabled:opacity-50"
+                    >
+                      <option value="not_started">Not Started</option>
+                      <option value="in_progress">In Progress</option>
+                      <option value="mitigated">Mitigated</option>
+                    </select>
+                    <ChevronDown className="absolute right-2 top-1/2 h-3 w-3 -translate-y-1/2 text-[#94A3B8] pointer-events-none" />
+                  </div>
                 );
-                
-                if (mitigationDisabled && mitigationReason) {
-                  return (
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <div>{selectComponent}</div>
-                        </TooltipTrigger>
-                        <TooltipContent className="max-w-xs">
-                          <p className="text-sm">{mitigationReason}</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  );
-                }
-                
-                return selectComponent;
               })()}
-              {/* Show read-only badge for approved assessments */}
-              {assessment.status === 'approved' && (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <div className="cursor-not-allowed opacity-60">
-                        <Select disabled value={localMitigationStatus}>
-                          <SelectTrigger className="w-[140px] h-8 bg-background/50 border-border/50 text-foreground text-xs cursor-not-allowed">
-                            <SelectValue />
-                          </SelectTrigger>
-                        </Select>
-                      </div>
-                    </TooltipTrigger>
-                    <TooltipContent className="max-w-xs">
-                      <p className="text-sm">Mitigation status cannot be changed after approval. Assessment is finalized.</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              )}
             </div>
           </div>
         </div>
 
-        {/* Assessment Metadata */}
-        <div className="space-y-2">
+        <div className="grid grid-cols-2 gap-4 rounded-[10px] border border-[#E2E8F0] bg-[#F8FAFC] p-4">
           <div>
-            <p className="text-sm text-muted-foreground mb-1">Assessed At</p>
-            <p className="text-foreground">
-              {format(new Date(assessment.assessed_at), "MMMM dd, yyyy 'at' HH:mm")}
-            </p>
+            <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-[#94A3B8]">Assessed At</p>
+            <p className="text-[13px] font-medium text-[#1E293B]">{format(new Date(assessment.assessed_at), "MMM dd, yyyy 'at' HH:mm")}</p>
           </div>
           {assessment.assessed_by && (
             <div>
-              <p className="text-sm text-muted-foreground mb-1 flex items-center gap-1">
+              <p className="mb-1 flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-[#94A3B8]">
                 <User className="h-3 w-3" />
                 Created By
               </p>
-              <p className="text-foreground text-sm">
-                {assessment.assessed_by.substring(0, 8)}...
-              </p>
+              <p className="text-[13px] font-medium text-[#1E293B]">{assessment.assessed_by.substring(0, 8)}...</p>
             </div>
           )}
           {assessment.reviewed_by && (
             <div>
-              <p className="text-sm text-muted-foreground mb-1 flex items-center gap-1">
+              <p className="mb-1 flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-[#94A3B8]">
                 <Shield className="h-3 w-3" />
                 Reviewed By
               </p>
-              <p className="text-foreground text-sm">
-                {assessment.reviewed_by.substring(0, 8)}...
-              </p>
+              <p className="text-[13px] font-medium text-[#1E293B]">{assessment.reviewed_by.substring(0, 8)}...</p>
             </div>
           )}
           {assessment.reviewed_at && (
             <div>
-              <p className="text-sm text-muted-foreground mb-1">Reviewed At</p>
-              <p className="text-foreground text-sm">
-                {format(new Date(assessment.reviewed_at), "MMMM dd, yyyy 'at' HH:mm")}
-              </p>
+              <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-[#94A3B8]">Reviewed At</p>
+              <p className="text-[13px] font-medium text-[#1E293B]">{format(new Date(assessment.reviewed_at), "MMM dd, yyyy 'at' HH:mm")}</p>
             </div>
           )}
         </div>
 
-        {/* Summary */}
         <div>
-          <p className="text-sm text-muted-foreground mb-2 font-semibold">Summary</p>
-          <p className="text-foreground/80 whitespace-pre-wrap leading-relaxed">
-            {assessment.summary}
-          </p>
+          <p className="mb-2 text-[13px] font-semibold text-[#1E293B]">Summary</p>
+          <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-[#475569]">{assessment.summary}</p>
         </div>
 
-        {/* Evidence Links */}
         {assessment.evidence_links && assessment.evidence_links.length > 0 && (
           <div>
-            <p className="text-sm text-muted-foreground mb-3 font-semibold">
-              Evidence Links
-            </p>
+            <p className="mb-3 text-[13px] font-semibold text-[#1E293B]">Evidence Links</p>
             <div className="space-y-2">
               {assessment.evidence_links.map((link, index) => (
                 <a
@@ -487,166 +319,135 @@ export default function RiskDetail({
                   href={link}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-purple-400 hover:text-purple-300 transition-colors"
+                  className="flex items-center gap-2 rounded-[6px] border border-[#E2E8F0] bg-[#F8FAFC] px-3 py-2 text-[12px] text-[#3B82F6] transition-colors hover:bg-[#EAF4FF]"
                 >
-                  <ExternalLink className="h-4 w-4" />
-                  <span className="text-sm truncate">{link}</span>
+                  <ExternalLink className="h-3.5 w-3.5" />
+                  <span className="truncate">{link}</span>
                 </a>
               ))}
             </div>
           </div>
         )}
 
-        {/* Review Comment (if rejected) */}
-        {assessment.status === 'rejected' && assessment.review_comment && (
-          <div>
-            <p className="text-sm text-muted-foreground mb-2 font-semibold">Review Comment</p>
-            <Alert variant="destructive" className="bg-red-900/20 border-red-700/50">
-              <AlertDescription className="text-red-300">
-                {assessment.review_comment}
-              </AlertDescription>
-            </Alert>
+        {assessment.status === "rejected" && assessment.review_comment && (
+          <div className="rounded-[10px] border border-[#F1A4A4] bg-[#FFE0E0] p-4">
+            <p className="mb-2 text-[12px] font-semibold text-[#C71F1F]">Review Comment</p>
+            <p className="text-[13px] text-[#991B1B]">{assessment.review_comment}</p>
           </div>
         )}
 
-        {/* Workflow Actions */}
-        <div className="pt-4 border-t border-border space-y-3">
-          {/* User Actions: Submit for Review */}
-          {userRole === 'user' && isCreator && assessment.status === 'draft' && (
-            <Button
+        <div className="space-y-3 border-t border-[#E2E8F0] pt-4">
+          {userRole === "user" && isCreator && assessment.status === "draft" && (
+            <button
+              type="button"
               onClick={handleSubmit}
               disabled={isSubmitting}
-              className="w-full bg-amber-600 hover:bg-amber-700 text-foreground border border-amber-500/50"
+              className="flex h-10 w-full items-center justify-center gap-2 rounded-[8px] bg-[#F59E0B] text-[13px] font-semibold text-white shadow-sm hover:bg-[#D97706] transition-all disabled:opacity-50"
             >
-              <Send className="h-4 w-4 mr-2" />
+              <Send className="h-4 w-4" />
               {isSubmitting ? "Submitting..." : "Submit for Review"}
-            </Button>
+            </button>
           )}
 
-          {/* Review Actions: Approve/Reject (currently available to all authenticated users) */}
-          {currentUserId && assessment.status === 'submitted' && (
+          {currentUserId && assessment.status === "submitted" && (
             <div className="space-y-3">
               {!showRejectForm ? (
                 <div className="flex gap-3">
-                  <Button
+                  <button
+                    type="button"
                     onClick={handleApprove}
                     disabled={isApproving}
-                    className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-foreground border border-emerald-500/50"
+                    className="flex h-10 flex-1 items-center justify-center gap-2 rounded-[8px] bg-[#178746] text-[13px] font-semibold text-white shadow-sm hover:bg-[#146B38] transition-all disabled:opacity-50"
                   >
-                    <CheckCircle2 className="h-4 w-4 mr-2" />
+                    <CheckCircle2 className="h-4 w-4" />
                     {isApproving ? "Approving..." : "Approve"}
-                  </Button>
-                  <Button
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => setShowRejectForm(true)}
                     disabled={isRejecting}
-                    variant="destructive"
-                    className="flex-1 bg-red-600 hover:bg-red-700 text-foreground border border-red-500/50"
+                    className="flex h-10 flex-1 items-center justify-center gap-2 rounded-[8px] bg-[#C71F1F] text-[13px] font-semibold text-white shadow-sm hover:bg-[#991B1B] transition-all disabled:opacity-50"
                   >
-                    <XCircle className="h-4 w-4 mr-2" />
+                    <XCircle className="h-4 w-4" />
                     Reject
-                  </Button>
+                  </button>
                 </div>
               ) : (
                 <div className="space-y-3">
                   <div>
-                    <Label htmlFor="reject-comment" className="text-foreground">
-                      Rejection Reason *
-                    </Label>
-                    <Textarea
-                      id="reject-comment"
+                    <label className="text-[13px] font-semibold text-[#1E293B]">Rejection Reason *</label>
+                    <textarea
                       value={rejectComment}
                       onChange={(e) => setRejectComment(e.target.value)}
                       placeholder="Explain why this assessment is being rejected..."
-                      className="bg-background border-border text-foreground placeholder:text-muted-foreground focus:border-red-500/50 mt-2"
+                      className="mt-2 min-h-[80px] w-full resize-y rounded-[8px] border border-[#CBD5E1] bg-white px-3 py-2.5 text-[13px] text-[#1E293B] placeholder:text-[#94A3B8] outline-none transition-all focus:border-[#C71F1F] focus:ring-2 focus:ring-[#C71F1F]/20"
                       rows={3}
                     />
                   </div>
                   <div className="flex gap-3">
-                    <Button
+                    <button
+                      type="button"
                       onClick={handleReject}
                       disabled={isRejecting || !rejectComment.trim()}
-                      variant="destructive"
-                      className="flex-1 bg-red-600 hover:bg-red-700 text-foreground border border-red-500/50"
+                      className="flex h-10 flex-1 items-center justify-center gap-2 rounded-[8px] bg-[#C71F1F] text-[13px] font-semibold text-white shadow-sm hover:bg-[#991B1B] transition-all disabled:opacity-50"
                     >
-                      <XCircle className="h-4 w-4 mr-2" />
+                      <XCircle className="h-4 w-4" />
                       {isRejecting ? "Rejecting..." : "Confirm Rejection"}
-                    </Button>
-                    <Button
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => {
                         setShowRejectForm(false);
                         setRejectComment("");
                       }}
-                      variant="outline"
-                      className="border-border bg-background text-muted-foreground hover:bg-accent/50"
+                      className="h-10 rounded-[8px] border border-[#CBD5E1] bg-white px-5 text-[13px] font-semibold text-[#475569] hover:bg-[#F8FAFC] transition-all"
                     >
                       Cancel
-                    </Button>
+                    </button>
                   </div>
                 </div>
               )}
             </div>
           )}
 
-          {/* Status Messages */}
-          {assessment.status === 'submitted' && !currentUserId && (
-            <p className="text-sm text-amber-300 text-center">
-              Assessment submitted and pending review
-            </p>
+          {assessment.status === "submitted" && !currentUserId && (
+            <p className="text-center text-[13px] text-[#A97B00]">Assessment submitted and pending review</p>
           )}
-          {assessment.status === 'approved' && (
-            <p className="text-sm text-emerald-600 text-center">
-              ✓ Assessment approved - counts toward overall risk level
-            </p>
+          {assessment.status === "approved" && (
+            <p className="text-center text-[13px] text-[#178746]">✓ Assessment approved - counts toward overall risk level</p>
           )}
-          {assessment.status === 'rejected' && (
-            <p className="text-sm text-red-300 text-center">
-              Assessment rejected - does not count toward overall risk level
-            </p>
+          {assessment.status === "rejected" && (
+            <p className="text-center text-[13px] text-[#C71F1F]">Assessment rejected - does not count toward overall risk level</p>
           )}
 
-          {/* Error Message */}
           {error && (
-            <Alert 
-              variant="destructive" 
-              className="bg-gradient-to-r from-amber-50 to-red-50 dark:from-amber-950/30 dark:to-red-950/30 border-2 border-amber-200 dark:border-amber-800 rounded-lg shadow-lg"
-            >
-              <div className="flex items-start gap-3">
-                <div className="flex-shrink-0 mt-0.5">
-                  <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
-                </div>
-                <div className="flex-1 space-y-2">
-                  <AlertDescription className="text-amber-900 dark:text-amber-100 font-medium text-sm leading-relaxed">
-                    {error}
-                  </AlertDescription>
-                  {error.includes('Prohibited') && (
-                    <div className="mt-3 pt-3 border-t border-amber-200 dark:border-amber-800">
-                      <p className="text-xs text-amber-800 dark:text-amber-200 mb-2 font-semibold">
-                        What you can do:
-                      </p>
-                      <ul className="text-xs text-amber-700 dark:text-amber-300 space-y-1 list-disc list-inside">
-                        <li>Review your EU AI Act compliance assessment</li>
-                        <li>Remove prohibited practices from your system</li>
-                        <li>Update the system's risk tier classification</li>
-                        <li>Contact your compliance officer for assistance</li>
-                      </ul>
-                    </div>
-                  )}
-                </div>
+            <div className="flex items-start gap-3 rounded-[10px] border border-[#F2CD69] bg-[#FFFBEB] px-4 py-3">
+              <AlertTriangle className="mt-0.5 h-5 w-5 flex-shrink-0 text-[#B45309]" />
+              <div className="flex-1 space-y-2">
+                <p className="text-[13px] font-medium text-[#92400E]">{error}</p>
+                {error.includes("Prohibited") && (
+                  <div className="mt-2 border-t border-[#F2CD69] pt-2">
+                    <p className="mb-1 text-[11px] font-semibold text-[#92400E]">What you can do:</p>
+                    <ul className="space-y-0.5 text-[11px] text-[#B45309]">
+                      <li>• Review your EU AI Act compliance assessment</li>
+                      <li>• Remove prohibited practices from your system</li>
+                      <li>• Update the system's risk tier classification</li>
+                      <li>• Contact your compliance officer for assistance</li>
+                    </ul>
+                  </div>
+                )}
               </div>
-            </Alert>
+            </div>
           )}
         </div>
 
-        {/* Metadata */}
-        <div className="pt-4 border-t border-border">
-          <p className="text-xs text-slate-500">
+        <div className="border-t border-[#E2E8F0] pt-4">
+          <p className="text-[11px] text-[#94A3B8]">
             Created: {format(new Date(assessment.created_at), "MMM dd, yyyy")}
-            {assessment.updated_at !== assessment.created_at && (
-              <> • Updated: {format(new Date(assessment.updated_at), "MMM dd, yyyy")}</>
-            )}
+            {assessment.updated_at !== assessment.created_at && <> • Updated: {format(new Date(assessment.updated_at), "MMM dd, yyyy")}</>}
           </p>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
