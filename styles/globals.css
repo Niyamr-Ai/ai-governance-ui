@@ -11,45 +11,45 @@
 @layer base {
   :root {
     /* ===== LIGHT THEME COLOR SYSTEM ===== */
-    
+
     /* Background - Pure White with subtle warmth */
     --color-background: oklch(99% 0.002 250);
     --color-foreground: oklch(15% 0.01 250);
-    
+
     /* Card - Slightly off-white for depth */
     --color-card: oklch(100% 0 0);
     --color-card-foreground: oklch(15% 0.01 250);
-    
+
     /* Popover */
     --color-popover: oklch(100% 0 0);
     --color-popover-foreground: oklch(15% 0.01 250);
-    
+
     /* Primary - Vibrant Blue (#527DFF → #5B7FCE) */
     --color-primary: oklch(60% 0.15 255);
     --color-primary-foreground: oklch(100% 0 0);
     --color-primary-glow: oklch(75% 0.2 235);
-    
+
     /* Secondary - Soft Gray */
     --color-secondary: oklch(92% 0.01 240);
     --color-secondary-foreground: oklch(15% 0.01 250);
-    
+
     /* Muted - Light Gray */
     --color-muted: oklch(88% 0.01 240);
     --color-muted-foreground: oklch(40% 0.01 250);
-    
+
     /* Accent - Light Blue (#64C1FF) */
     --color-accent: oklch(75% 0.2 235);
     --color-accent-foreground: oklch(15% 0.01 250);
-    
+
     /* Destructive */
     --color-destructive: oklch(55% 0.2 25);
     --color-destructive-foreground: oklch(100% 0 0);
-    
+
     /* Border & Input - Very subtle */
     --color-border: oklch(92% 0.01 240);
     --color-input: oklch(92% 0.01 240);
     --color-ring: oklch(60% 0.15 255);
-    
+
     /* ===== BORDER RADIUS ===== */
     --radius-lg: 1rem;
     --radius-md: calc(1rem - 2px);
@@ -57,7 +57,7 @@
     --radius-xl: 1.25rem;
     --radius-2xl: 1.5rem;
     --radius-3xl: 2rem;
-    
+
     /* ===== SHADOWS ===== */
     --shadow-premium: 0 16px 48px -12px rgba(0, 0, 0, 0.16);
     --shadow-glow: 0 0 60px -10px rgba(100, 193, 255, 0.4);
@@ -81,7 +81,12 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   font-family: 'Outfit', sans-serif;
   font-weight: 700;
 }
@@ -130,7 +135,7 @@ h1, h2, h3, h4, h5, h6 {
 
 /* ===== HERO GRADIENT (Light Version) ===== */
 .hero-gradient {
-  background: 
+  background:
     radial-gradient(circle at 50% 0%, rgba(91, 127, 206, 0.08) 0%, transparent 50%),
     radial-gradient(circle at 80% 20%, rgba(100, 193, 255, 0.06) 0%, transparent 50%);
 }
@@ -217,28 +222,37 @@ h1, h2, h3, h4, h5, h6 {
 
 /* ===== ANIMATIONS ===== */
 @keyframes float {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: translateY(0px);
   }
+
   50% {
     transform: translateY(-20px);
   }
 }
 
 @keyframes pulse-soft {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 0.6;
   }
+
   50% {
     opacity: 1;
   }
 }
 
 @keyframes pulse-glow {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 0.7;
     transform: scale(1);
   }
+
   50% {
     opacity: 1;
     transform: scale(1.05);
@@ -250,6 +264,7 @@ h1, h2, h3, h4, h5, h6 {
     opacity: 0;
     transform: translateY(30px);
   }
+
   100% {
     opacity: 1;
     transform: translateY(0);
@@ -260,6 +275,7 @@ h1, h2, h3, h4, h5, h6 {
   0% {
     transform: rotate(0deg);
   }
+
   100% {
     transform: rotate(360deg);
   }
@@ -269,6 +285,7 @@ h1, h2, h3, h4, h5, h6 {
   0% {
     background-position: -200% 0;
   }
+
   100% {
     background-position: 200% 0;
   }
@@ -278,6 +295,7 @@ h1, h2, h3, h4, h5, h6 {
   0% {
     stroke-dashoffset: 24;
   }
+
   100% {
     stroke-dashoffset: 0;
   }
@@ -290,9 +308,12 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 @keyframes glow-pulse {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 0.6;
   }
+
   50% {
     opacity: 1;
   }
@@ -346,12 +367,10 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .shimmer {
-  background: linear-gradient(
-    90deg,
-    rgba(91, 127, 206, 0) 0%,
-    rgba(91, 127, 206, 0.3) 50%,
-    rgba(91, 127, 206, 0) 100%
-  );
+  background: linear-gradient(90deg,
+      rgba(91, 127, 206, 0) 0%,
+      rgba(91, 127, 206, 0.3) 50%,
+      rgba(91, 127, 206, 0) 100%);
   background-size: 200% 100%;
   animation: shimmer 3s ease-in-out infinite;
 }
@@ -624,7 +643,7 @@ body::before {
   left: 0;
   right: 0;
   bottom: 0;
-  background-image: 
+  background-image:
     radial-gradient(circle at 20% 30%, rgba(91, 127, 206, 0.03) 0%, transparent 50%),
     radial-gradient(circle at 80% 70%, rgba(100, 193, 255, 0.03) 0%, transparent 50%);
   pointer-events: none;

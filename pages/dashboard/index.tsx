@@ -1,1745 +1,476 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
-import { marked } from "marked";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import Head from "next/head";
+import Image from "next/image";
+import { useMemo, useState, useEffect } from "react";
+import { useRouter } from "next/router";
+import { backendFetch } from "@/utils/backend-fetch";
+import { supabase } from "@/utils/supabase/client";
+import Sidebar from "@/components/sidebar";
 import {
   AlertTriangle,
-  CheckCircle,
-  XCircle,
-  TrendingUp,
-  Plus,
+  ArrowUpRight,
   Ban,
-  FileText,
-  Shield,
-  Download,
-  RefreshCw,
-  LayoutDashboard,
-  Layers,
-  Lock,
-  ArrowRight,
-  MoreVertical,
-  Trash2,
-  Eye,
+  BarChart3,
+  CheckCircle2,
+  ChevronDown,
+  LogOut,
+  ShieldCheck,
+  UserCircle2,
+  XCircle,
 } from "lucide-react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { supabase } from "@/utils/supabase/client";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import AuthenticatedLayout from "@/components/layout/AuthenticatedLayout";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Loader2, X } from "lucide-react";
-import Head from 'next/head';
-import { useToast } from "@/hooks/use-toast";
 
-async function backendFetch(
-  path: string,
-  options: RequestInit = {}
-) {
-  const { data } = await supabase.auth.getSession();
+type ComplianceTone = "Compliant" | "Partially compliant" | "Non-compliant";
+type RiskTone = "High" | "Medium" | "Low";
+type Regulation = "EU AI Act" | "UK AI Act" | "MAS";
 
-  const accessToken = data.session?.access_token;
-
-  if (!accessToken) {
-    console.error('❌ No access token found in Supabase session');
-    throw new Error("User not authenticated");
-  }
-
-  console.log('✅ Frontend: Sending token (first 50 chars):', accessToken.substring(0, 50) + '...');
-
-  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-
-  return fetch(
-    `${process.env.NEXT_PUBLIC_BACKEND_URL}${normalizedPath}`,
-    {
-      ...options,
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-    }
-  );
-}
-
-interface ComplianceTest {
+type UnifiedRow = {
   id: string;
-  risk_tier: string;
-  compliance_status: string;
-  prohibited_practices_detected: boolean;
-  high_risk_all_fulfilled: boolean;
-  high_risk_missing: string[];
-  transparency_required: boolean;
-  transparency_missing: string[];
-  monitoring_required: boolean;
-  post_market_monitoring: boolean;
-  incident_reporting: boolean;
-  fria_completed: boolean;
-  summary: string;
-  reference: string;
-  created_at: string;
-  has_detailed_check?: boolean;
-  assessment_mode?: string;
-  assessment_confidence?: string;
-  is_provisional?: boolean;
+  systemName: string;
+  createdAt: string;
+  regulation: Regulation;
+  risk: RiskTone;
+  status: ComplianceTone;
+  score: string;
+  scoreValue: number;
+  accountability: string;
+  detailsPath: string;
+  deletePath: string;
+  raw: any;
+};
+
+function normalizeStatus(value: string | undefined): ComplianceTone {
+  const clean = (value || "").toLowerCase().trim();
+  if (clean.includes("partial")) return "Partially compliant";
+  if (clean.includes("non")) return "Non-compliant";
+  return "Compliant";
 }
 
-interface MasAssessmentSummary {
-  id: string;
-  system_name?: string;
-  sector?: string;
-  overall_risk_level?: string;
-  overall_compliance_status?: string;
-  created_at?: string;
+function normalizeUkRisk(value: string | undefined): RiskTone {
+  const clean = (value || "").toLowerCase();
+  if (clean.includes("frontier") || clean.includes("high")) return "High";
+  if (clean.includes("medium")) return "Medium";
+  return "Low";
 }
 
-interface UkAssessmentSummary {
-  id: string;
-  risk_level?: string;
-  overall_assessment?: string;
-  sector_regulation?: { sector?: string };
-  created_at?: string;
+function normalizeMasRisk(value: string | undefined): RiskTone {
+  const clean = (value || "").toLowerCase();
+  if (clean.includes("critical") || clean.includes("high")) return "High";
+  if (clean.includes("medium")) return "Medium";
+  return "Low";
 }
 
-interface UnifiedAssessment {
-  id: string;
-  category: "EU AI Act" | "MAS" | "UK AI Act";
-  name?: string;
-  risk?: string;
-  compliance_status?: string;
-  sector?: string;
-  created_at: string;
-  has_detailed_check?: boolean;
-  // EU-specific fields
-  prohibited_practices_detected?: boolean;
-  high_risk_all_fulfilled?: boolean;
-  high_risk_missing?: string[];
-  monitoring_required?: boolean;
-  // Accountability fields
-  accountability?: string;
-  accountable_person?: string;
-  raw_answers?: any;
-  // Lifecycle governance
-  lifecycle_stage?: string;
-  // Rapid Mode fields
-  assessment_mode?: string;
-  assessment_confidence?: string;
-  is_provisional?: boolean;
+function normalizeEuRisk(value: string | undefined): RiskTone {
+  const clean = (value || "").toLowerCase();
+  if (clean.includes("prohibited") || clean.includes("unacceptable") || clean.includes("high")) return "High";
+  if (clean.includes("limited") || clean.includes("medium")) return "Medium";
+  return "Low";
 }
 
-export default function ComplianceDashboard() {
+function statusClasses(status: ComplianceTone): string {
+  if (status === "Compliant") return "border-[#8EC4F8] bg-[#D9EEFF] text-[#2573C2]";
+  if (status === "Partially compliant") return "border-[#F2CD69] bg-[#FFF3CF] text-[#A97B00]";
+  return "border-[#F1A4A4] bg-[#FFE0E0] text-[#C71F1F]";
+}
+
+function statusIcon(status: ComplianceTone) {
+  if (status === "Compliant") return <CheckCircle2 className="h-[11px] w-[11px]" />;
+  if (status === "Partially compliant") return <AlertTriangle className="h-[11px] w-[11px]" />;
+  return <XCircle className="h-[11px] w-[11px]" />;
+}
+
+function riskClasses(risk: RiskTone): string {
+  if (risk === "High") return "bg-[#FFE6EA] text-[#C71F1F]";
+  if (risk === "Medium") return "bg-[#FFF5D9] text-[#A97B00]";
+  return "bg-[#E8FAEF] text-[#178746]";
+}
+
+export default function DashboardPage() {
   const router = useRouter();
-  const [tests, setTests] = useState<ComplianceTest[]>([]);
+  const [allRows, setAllRows] = useState<UnifiedRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [mas, setMas] = useState<MasAssessmentSummary[]>([]);
-  const [uk, setUk] = useState<UkAssessmentSummary[]>([]);
-  const [shadowAIWarning, setShadowAIWarning] = useState<string | null>(null);
-  const [selectedSystem, setSelectedSystem] = useState<UnifiedAssessment | null>(null);
-  const [systemDetails, setSystemDetails] = useState<any>(null);
-  const [loadingDetails, setLoadingDetails] = useState(false);
-  const [showDetailsModal, setShowDetailsModal] = useState(false);
-  const [riskAssessments, setRiskAssessments] = useState<any[]>([]);
-  const [loadingRiskAssessments, setLoadingRiskAssessments] = useState(false);
-  const [documentation, setDocumentation] = useState<any[]>([]);
-  const [loadingDocumentation, setLoadingDocumentation] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-
-  // Check authentication status and wait for session
-  useEffect(() => {
-    const checkAuth = async () => {
-      // Wait a bit for session to be established (e.g., after email confirmation)
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      const { data: { session }, error } = await supabase.auth.getSession();
-
-      if (!session || error) {
-        console.log('❌ No session found, redirecting to sign-in');
-        router.push("/sign-in");
-        return;
-      }
-
-      setIsLoggedIn(!!session.user);
-    };
-    checkAuth();
-  }, [router]);
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push("/");
-  };
-  const [automatedRiskAssessments, setAutomatedRiskAssessments] = useState<Map<string, { overall_risk_level: string; composite_score: number; assessed_at: string; approval_status?: string }>>(new Map());
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [assessmentToDelete, setAssessmentToDelete] = useState<UnifiedAssessment | null>(null);
-  const [deleting, setDeleting] = useState(false);
-  const { toast } = useToast();
+  const [error, setError] = useState<string | null>(null);
+  const [regulationFilter, setRegulationFilter] = useState<"all" | Regulation>("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | ComplianceTone>("all");
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchData = async () => {
-      // Double-check session before making API calls
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        console.log('❌ No session found in fetchData, redirecting to sign-in');
-        router.push("/sign-in");
-        return;
-      }
-
+    const load = async () => {
+      setLoading(true);
+      setError(null);
       try {
-        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
-        console.log('🔍 Backend URL:', backendUrl);
-
-        const [euRes, masRes, ukRes, discoveryRes] = await Promise.all([
-          backendFetch("/api/compliance").catch(err => {
-            console.error('❌ Error fetching EU compliance:', err);
-            return null;
-          }),
-          backendFetch("/api/mas-compliance").catch(err => {
-            console.error('❌ Error fetching MAS compliance:', err);
-            return null;
-          }),
-          backendFetch("/api/uk-compliance").catch(err => {
-            console.error('❌ Error fetching UK compliance:', err);
-            return null;
-          }),
-          backendFetch("/api/discovery?shadow_status=confirmed").catch(err => {
-            console.error('❌ Error fetching discovery:', err);
-            return null;
-          }),
+        const [ukRes, masRes, euRes] = await Promise.all([
+          backendFetch("/api/uk-compliance"),
+          backendFetch("/api/mas-compliance"),
+          backendFetch("/api/compliance"),
         ]);
 
-        if (euRes instanceof Response && euRes.ok) {
-          const data = await euRes.json();
-          setTests(data || []);
-        } else {
-          setTests([]);
-        }
+        const ukData = ukRes.ok ? await ukRes.json() : [];
+        const masData = masRes.ok ? await masRes.json() : [];
+        const euData = euRes.ok ? await euRes.json() : [];
 
-        if (masRes instanceof Response && masRes.ok) {
-          const data = await masRes.json();
-          setMas(Array.isArray(data) ? data : []);
-        } else {
-          setMas([]);
-        }
-
-        if (ukRes instanceof Response && ukRes.ok) {
-          const data = await ukRes.json();
-          setUk(Array.isArray(data) ? data : []);
-        } else {
-          setUk([]);
-        }
-
-        // Check for Shadow AI
-        if (discoveryRes instanceof Response && discoveryRes.ok) {
-          const discoveryData = await discoveryRes.json();
-          const confirmedShadowCount = discoveryData.stats?.confirmed_shadow || 0;
-          if (confirmedShadowCount > 0) {
-            setShadowAIWarning(`Unregistered AI usage detected: ${confirmedShadowCount} confirmed Shadow AI system${confirmedShadowCount !== 1 ? 's' : ''}. Compliance approvals may be blocked.`);
-          }
-        }
-
-        // Fetch automated risk assessment data for all systems
-        const allSystemIds = [
-          ...tests.map(t => t.id),
-          ...mas.map(m => m.id),
-          ...uk.map(u => u.id),
-        ];
-
-        if (allSystemIds.length > 0) {
-          // Fetch full assessment data for systems that have automated risk assessments
-          const assessmentData = await Promise.all(
-            allSystemIds.map(async (id) => {
-              try {
-                const res = await backendFetch(`/api/ai-systems/${id}/automated-risk-assessment`);
-                if (res.ok) {
-                  const data = await res.json();
-                  return { id, data };
-                }
-                return null;
-              } catch {
-                return null;
-              }
+        const ukRows: UnifiedRow[] = Array.isArray(ukData)
+          ? ukData.map((item: any) => {
+              const fallbackScore = item.overall_assessment === "Compliant" ? 100 : item.overall_assessment === "Partially compliant" ? 65 : 30;
+              const numericScore = item.compliance_score != null ? Math.round(Number(item.compliance_score)) : fallbackScore;
+              return {
+                id: String(item.id),
+                systemName: item.raw_answers?.system_name || item.raw_answers?.name || "Untitled",
+                createdAt: item.created_at,
+                regulation: "UK AI Act",
+                risk: normalizeUkRisk(item.risk_level),
+                status: normalizeStatus(item.overall_assessment),
+                score: `${numericScore}%`,
+                scoreValue: numericScore,
+                accountability: item.raw_answers?.owner || item.raw_answers?.accountability_owner || "N/A",
+                detailsPath: `/uk/${item.id}`,
+                deletePath: `/api/uk-compliance/${item.id}`,
+                raw: item,
+              };
             })
-          );
+          : [];
 
-          const assessmentMap = new Map(
-            assessmentData
-              .filter((item): item is { id: string; data: any } => item !== null)
-              .map(item => [item.id, {
-                overall_risk_level: item.data.overall_risk_level,
-                composite_score: item.data.composite_score,
-                assessed_at: item.data.assessed_at,
-                approval_status: item.data.approval_status
-              }])
-          );
-          setAutomatedRiskAssessments(assessmentMap);
-        }
-      } catch (error: any) {
-        console.error("Error fetching dashboard data:", error);
-        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
-        const errorMessage = error?.message?.includes('Failed to fetch') || error?.message?.includes('NetworkError')
-          ? `Cannot connect to backend server at ${backendUrl}. Please ensure the backend is running: cd ai-governance-backend && npm run dev`
-          : error?.message || "Failed to fetch dashboard data";
-        console.error('❌ Dashboard fetch error:', errorMessage);
-        setTests([]);
-        setMas([]);
-        setUk([]);
-        // Don't set error state here - let individual fetch errors be handled gracefully
+        const masRows: UnifiedRow[] = Array.isArray(masData)
+          ? masData.map((item: any) => {
+              const pillars = [
+                item.governance,
+                item.inventory,
+                item.dataManagement,
+                item.transparency,
+                item.fairness,
+                item.humanOversight,
+                item.thirdParty,
+                item.algoSelection,
+                item.evaluationTesting,
+                item.techCybersecurity,
+                item.monitoringChange,
+                item.capabilityCapacity,
+              ].filter(Boolean);
+              const missingCount = pillars.filter((p: any) => p.status !== "Compliant").length;
+              const fallbackScore = Math.max(0, 100 - missingCount * 8);
+              const numericScore = item.compliance_score != null ? Math.round(Number(item.compliance_score)) : fallbackScore;
+              return {
+                id: String(item.id),
+                systemName: item.system_name || "Untitled",
+                createdAt: item.created_at,
+                regulation: "MAS" as const,
+                risk: normalizeMasRisk(item.overall_risk_level),
+                status: normalizeStatus(item.overall_compliance_status),
+                score: `${numericScore}%`,
+                scoreValue: numericScore,
+                accountability: item.owner || "N/A",
+                detailsPath: `/mas/${item.id}`,
+                deletePath: `/api/mas-compliance/${item.id}`,
+                raw: item,
+              };
+            })
+          : [];
+
+        const euRows: UnifiedRow[] = Array.isArray(euData)
+          ? euData.map((item: any) => {
+              const fallbackScore = item.compliance_status === "Compliant" ? 100 : item.compliance_status === "Partially compliant" ? 65 : 30;
+              const numericScore = item.compliance_score != null ? Math.round(Number(item.compliance_score)) : fallbackScore;
+              return {
+                id: String(item.id),
+                systemName: item.system_name || item.raw_answers?.system_name || "Untitled",
+                createdAt: item.created_at,
+                regulation: "EU AI Act",
+                risk: normalizeEuRisk(item.risk_tier),
+                status: normalizeStatus(item.compliance_status),
+                score: `${numericScore}%`,
+                scoreValue: numericScore,
+                accountability: item.raw_answers?.owner || item.accountable_owner || "N/A",
+                detailsPath: `/compliance/${item.id}`,
+                deletePath: `/api/compliance/${item.id}`,
+                raw: item,
+              };
+            })
+          : [];
+
+        const merged = [...euRows, ...masRows, ...ukRows].sort((a, b) => {
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        });
+        setAllRows(merged);
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : "Unable to load dashboard";
+        setError(message);
       } finally {
         setLoading(false);
       }
     };
-    fetchData();
-  }, [router]);
+    void load();
+  }, []);
 
-  // Helper function to extract accountable person/role
-  const getAccountablePerson = (assessment: any, category: string): string => {
-    if (category === "EU AI Act") {
-      // Get from accountable_person field or raw_answers.q10
-      return assessment.accountable_person || assessment.raw_answers?.q10 || "Not specified";
-    } else if (category === "UK AI Act") {
-      // Get from accountable_person field or raw_answers.uk9
-      return assessment.accountable_person || assessment.raw_answers?.uk9 || "Not specified";
-    } else if (category === "MAS") {
-      // MAS uses owner field
-      return assessment.owner || "Not specified";
-    }
-    return "Not specified";
-  };
-
-  // Combine all assessments into unified structure
-  const unifiedAssessments: UnifiedAssessment[] = [
-    ...tests.map((t): UnifiedAssessment => ({
-      id: t.id,
-      category: "EU AI Act",
-      name: (t as any).system_name,
-      risk: t.risk_tier,
-      compliance_status: t.compliance_status,
-      created_at: t.created_at,
-      has_detailed_check: t.has_detailed_check,
-      prohibited_practices_detected: t.prohibited_practices_detected,
-      high_risk_all_fulfilled: t.high_risk_all_fulfilled,
-      high_risk_missing: t.high_risk_missing,
-      monitoring_required: t.monitoring_required,
-      raw_answers: (t as any).raw_answers,
-      accountable_person: (t as any).accountable_person,
-      accountability: getAccountablePerson(t, "EU AI Act"),
-      lifecycle_stage: (t as any).lifecycle_stage || 'Draft',
-      assessment_mode: t.assessment_mode,
-      assessment_confidence: t.assessment_confidence,
-      is_provisional: t.is_provisional,
-    })),
-    ...mas.map((m): UnifiedAssessment => ({
-      id: m.id,
-      category: "MAS",
-      name: (m as any).system_name,
-      risk: (m as any).overall_risk_level,
-      compliance_status: (m as any).overall_compliance_status,
-      sector: (m as any).sector,
-      created_at: (m as any).created_at || new Date().toISOString(),
-      accountability: getAccountablePerson(m, "MAS"),
-      lifecycle_stage: (m as any).lifecycle_stage || 'Draft',
-    })),
-    ...uk.map((u): UnifiedAssessment => ({
-      id: u.id,
-      category: "UK AI Act",
-      name: (u as any).system_name,
-      risk: u.risk_level,
-      compliance_status: u.overall_assessment,
-      sector: u.sector_regulation?.sector,
-      created_at: u.created_at || new Date().toISOString(),
-      accountable_person: (u as any).accountable_person,
-      accountability: getAccountablePerson(u, "UK AI Act"),
-      lifecycle_stage: (u as any).lifecycle_stage || 'Draft',
-    })),
-  ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-
-  // Stats - combined across all regulations
-  const totalAssessments = unifiedAssessments.length;
-  const prohibitedTests =
-    unifiedAssessments.filter((a) => a.risk?.toLowerCase() === "prohibited").length || 0;
-  const highRiskTests =
-    unifiedAssessments.filter((a) => {
-      const r = (a.risk || "").toLowerCase();
-      return r === "high" || r === "critical" || r.includes("high-risk") || r.includes("frontier");
-    }).length || 0;
-  const failedTests =
-    unifiedAssessments.filter((a) =>
-      (a.compliance_status || "").toLowerCase().includes("non")
-    ).length || 0;
-
-  // Debug: Log stats when they change
-  useEffect(() => {
-    console.log("📊 Stats updated:", {
-      totalAssessments,
-      prohibitedTests,
-      highRiskTests,
-      failedTests,
-      prohibitedOrHighRisk: prohibitedTests + highRiskTests,
+  const rows = useMemo(() => {
+    return allRows.filter((row) => {
+      const matchRegulation = regulationFilter === "all" || row.regulation === regulationFilter;
+      const matchStatus = statusFilter === "all" || row.status === statusFilter;
+      return matchRegulation && matchStatus;
     });
-  }, [totalAssessments, prohibitedTests, highRiskTests, failedTests]);
+  }, [allRows, regulationFilter, statusFilter]);
 
-  // Delete handler
-  const handleDeleteClick = (assessment: UnifiedAssessment) => {
-    setAssessmentToDelete(assessment);
-    setDeleteDialogOpen(true);
+  const metrics = useMemo(() => {
+    const prohibited = allRows.filter((row) => row.status === "Non-compliant").length;
+    const highRisks = allRows.filter((row) => row.risk === "High").length;
+    const total = allRows.length;
+    const compliancePoints = allRows.reduce((acc, row) => acc + row.scoreValue, 0);
+    const average = total > 0 ? Math.round(compliancePoints / total) : 0;
+    return { prohibited, highRisks, total, average };
+  }, [allRows]);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push("/sign-in");
   };
 
-  const handleDeleteConfirm = async () => {
-    if (!assessmentToDelete) return;
-
-    setDeleting(true);
+  const handleDeleteRow = async (row: UnifiedRow) => {
+    const previousRows = allRows;
+    setError(null);
+    setAllRows((prev) => prev.filter((item) => !(item.id === row.id && item.regulation === row.regulation)));
     try {
-      let endpoint = "";
-      if (assessmentToDelete.category === "EU AI Act") {
-        endpoint = `/api/compliance/${assessmentToDelete.id}`;
-      } else if (assessmentToDelete.category === "MAS") {
-        endpoint = `/api/mas-compliance/${assessmentToDelete.id}`;
-      } else {
-        endpoint = `/api/uk-compliance/${assessmentToDelete.id}`;
+      setDeletingId(row.id);
+      const res = await backendFetch(row.deletePath, { method: "DELETE" });
+      if (!res.ok) {
+        const payload = await res.json().catch(() => ({}));
+        throw new Error(payload.error || "Delete failed");
       }
-
-      console.log("🗑️ Deleting assessment:", {
-        category: assessmentToDelete.category,
-        id: assessmentToDelete.id,
-        endpoint,
-      });
-
-      const response = await backendFetch(endpoint, {
-        method: "DELETE",
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.error("❌ Delete failed:", {
-          status: response.status,
-          errorData,
-          endpoint,
-        });
-        throw new Error(errorData.message || "Failed to delete assessment");
-      }
-
-      // Remove from local state using functional updates to ensure we have latest state
-      if (assessmentToDelete.category === "EU AI Act") {
-        setTests((prevTests) => prevTests.filter((t) => t.id !== assessmentToDelete.id));
-      } else if (assessmentToDelete.category === "MAS") {
-        setMas((prevMas) => prevMas.filter((m) => m.id !== assessmentToDelete.id));
-      } else {
-        setUk((prevUk) => prevUk.filter((u) => u.id !== assessmentToDelete.id));
-      }
-
-      toast({
-        title: "Assessment deleted",
-        description: "The assessment has been successfully deleted.",
-      });
-
-      setDeleteDialogOpen(false);
-      setAssessmentToDelete(null);
-    } catch (error: any) {
-      console.error("Error deleting assessment:", error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to delete assessment. Please try again.",
-        variant: "destructive",
-      });
+    } catch (err: unknown) {
+      setAllRows(previousRows);
+      const message = err instanceof Error ? err.message : "Delete failed";
+      setError(message);
     } finally {
-      setDeleting(false);
+      setDeletingId(null);
     }
   };
 
-  // Badges
-  const getStatusBadge = (status: string, category?: string) => {
-    if (!status) return <Badge className="bg-secondary/80 text-muted-foreground border-border/50 font-medium px-2.5 py-1 rounded-full shadow-sm hover:shadow-md transition-all">Unknown</Badge>;
-    const s = status.toLowerCase();
-
-    // Color scheme based on AI Act
-    const actColors = {
-      "EU AI Act": {
-        compliant: "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100",
-        nonCompliant: "bg-red-50 text-red-700 border-red-200 hover:bg-red-100",
-        partial: "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100",
-      },
-      "MAS": {
-        compliant: "bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100",
-        nonCompliant: "bg-red-50 text-red-700 border-red-200 hover:bg-red-100",
-        partial: "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100",
-      },
-      "UK AI Act": {
-        compliant: "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100",
-        nonCompliant: "bg-red-50 text-red-700 border-red-200 hover:bg-red-100",
-        partial: "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100",
-      },
-    };
-
-    const colors = actColors[category as keyof typeof actColors] || actColors["EU AI Act"];
-
-    if (s.includes("pass") || (s.includes("compliant") && !s.includes("partial")))
-      return (
-        <Badge className={`${colors.compliant} font-medium px-2.5 py-1 rounded-full shadow-sm hover:shadow-md transition-all flex items-center gap-1.5`}>
-          <CheckCircle className="w-3.5 h-3.5" /> {status}
-        </Badge>
-      );
-    if (s.includes("fail") || s.includes("non"))
-      return (
-        <Badge className={`${colors.nonCompliant} font-medium px-2.5 py-1 rounded-full shadow-sm hover:shadow-md transition-all flex items-center gap-1.5`}>
-          <XCircle className="w-3.5 h-3.5" /> {status}
-        </Badge>
-      );
-    return (
-      <Badge className={`${colors.partial} font-medium px-2.5 py-1 rounded-full shadow-sm hover:shadow-md transition-all flex items-center gap-1.5`}>
-        <AlertTriangle className="w-3.5 h-3.5" /> {status}
-      </Badge>
-    );
-  };
-
-  const getRiskBadge = (risk: string, category?: string) => {
-    if (!risk) return <Badge className="bg-secondary/80 text-muted-foreground border-border/50 font-medium px-2.5 py-1 rounded-full shadow-sm hover:shadow-md transition-all">Unknown</Badge>;
-    const r = risk.toLowerCase();
-
-    // Color scheme based on AI Act
-    const actColors = {
-      "EU AI Act": {
-        prohibited: "bg-red-50 text-red-700 border-red-200 hover:bg-red-100",
-        high: "bg-red-50 text-red-700 border-red-200 hover:bg-red-100",
-        medium: "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100",
-        low: "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100",
-      },
-      "MAS": {
-        prohibited: "bg-red-50 text-red-700 border-red-200 hover:bg-red-100",
-        high: "bg-red-50 text-red-700 border-red-200 hover:bg-red-100",
-        medium: "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100",
-        low: "bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100",
-      },
-      "UK AI Act": {
-        prohibited: "bg-red-50 text-red-700 border-red-200 hover:bg-red-100",
-        high: "bg-red-50 text-red-700 border-red-200 hover:bg-red-100",
-        medium: "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100",
-        low: "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100",
-      },
-    };
-
-    const colors = actColors[category as keyof typeof actColors] || actColors["EU AI Act"];
-
-    if (r === "prohibited")
-      return (
-        <Badge className={`${colors.prohibited} font-medium px-2.5 py-1 rounded-full shadow-sm hover:shadow-md transition-all flex items-center gap-1.5`}>
-          <Ban className="w-3.5 h-3.5" /> Prohibited
-        </Badge>
-      );
-    if (r === "high" || r.includes("high-risk"))
-      return (
-        <Badge className={`${colors.high} font-medium px-2.5 py-1 rounded-full shadow-sm hover:shadow-md transition-all flex items-center gap-1.5`}>
-          High Risk
-        </Badge>
-      );
-    if (r === "medium" || r.includes("medium-risk"))
-      return (
-        <Badge className={`${colors.medium} font-medium px-2.5 py-1 rounded-full shadow-sm hover:shadow-md transition-all`}>
-          Medium Risk
-        </Badge>
-      );
-    if (r === "low" || r.includes("low-risk"))
-      return (
-        <Badge className={`${colors.low} font-medium px-2.5 py-1 rounded-full shadow-sm hover:shadow-md transition-all`}>
-          Low Risk
-        </Badge>
-      );
-    return <Badge className="bg-secondary/80 text-muted-foreground border-border/50 font-medium px-2.5 py-1 rounded-full shadow-sm hover:shadow-md transition-all">{risk}</Badge>;
-  };
-
-  const getMasRiskBadge = (risk?: string) => {
-    if (!risk) return <Badge className="bg-secondary/80 text-muted-foreground border-border/50 font-medium px-2.5 py-1 rounded-full shadow-sm hover:shadow-md transition-all">Unknown</Badge>;
-    const r = risk.toLowerCase();
-    if (r === "critical" || r === "high")
-      return <Badge className="bg-red-50 text-red-700 border border-red-200 font-medium px-2.5 py-1 rounded-full shadow-sm hover:shadow-md hover:bg-red-100 transition-all flex items-center gap-1.5">High</Badge>;
-    if (r === "medium")
-      return <Badge className="bg-amber-50 text-amber-700 border border-amber-200 font-medium px-2.5 py-1 rounded-full shadow-sm hover:shadow-md hover:bg-amber-100 transition-all">Medium</Badge>;
-    return <Badge className="bg-purple-50 text-purple-700 border border-purple-200 font-medium px-2.5 py-1 rounded-full shadow-sm hover:shadow-md hover:bg-purple-100 transition-all">Low</Badge>;
-  };
-
-  const getMasComplianceBadge = (status?: string) => {
-    if (!status) return <Badge className="bg-secondary/80 text-muted-foreground border-border/50 font-medium px-2.5 py-1 rounded-full shadow-sm hover:shadow-md transition-all">Unknown</Badge>;
-    const s = status.toLowerCase();
-    if (s.includes("compliant") && !s.includes("partial"))
-      return <Badge className="bg-purple-50 text-purple-700 border border-purple-200 font-medium px-2.5 py-1 rounded-full shadow-sm hover:shadow-md hover:bg-purple-100 transition-all">Compliant</Badge>;
-    if (s.includes("partial"))
-      return <Badge className="bg-amber-50 text-amber-700 border border-amber-200 font-medium px-2.5 py-1 rounded-full shadow-sm hover:shadow-md hover:bg-amber-100 transition-all">Partially compliant</Badge>;
-    return <Badge className="bg-red-50 text-red-700 border border-red-200 font-medium px-2.5 py-1 rounded-full shadow-sm hover:shadow-md hover:bg-red-100 transition-all">Non-compliant</Badge>;
-  };
-
-  const getUkRiskBadge = (risk?: string) => {
-    if (!risk) return <Badge className="bg-secondary/80 text-muted-foreground border-border/50 font-medium px-2.5 py-1 rounded-full shadow-sm hover:shadow-md transition-all">Unknown</Badge>;
-    const r = risk.toLowerCase();
-    if (r.includes("frontier") || r.includes("high-risk"))
-      return <Badge className="bg-red-50 text-red-700 border border-red-200 font-medium px-2.5 py-1 rounded-full shadow-sm hover:shadow-md hover:bg-red-100 transition-all flex items-center gap-1.5">High / Frontier</Badge>;
-    if (r.includes("medium"))
-      return <Badge className="bg-amber-50 text-amber-700 border border-amber-200 font-medium px-2.5 py-1 rounded-full shadow-sm hover:shadow-md hover:bg-amber-100 transition-all">Medium</Badge>;
-    return <Badge className="bg-emerald-50 text-emerald-700 border border-emerald-200 font-medium px-2.5 py-1 rounded-full shadow-sm hover:shadow-md hover:bg-emerald-100 transition-all">Low</Badge>;
-  };
-
-  const getUkComplianceBadge = (status?: string) => {
-    if (!status) return <Badge className="bg-secondary/80 text-muted-foreground border-border/50 font-medium px-2.5 py-1 rounded-full shadow-sm hover:shadow-md transition-all">Unknown</Badge>;
-    const s = status.toLowerCase();
-    if (s === "compliant")
-      return <Badge className="bg-emerald-50 text-emerald-700 border border-emerald-200 font-medium px-2.5 py-1 rounded-full shadow-sm hover:shadow-md hover:bg-emerald-100 transition-all">Compliant</Badge>;
-    if (s.includes("partial"))
-      return <Badge className="bg-amber-50 text-amber-700 border border-amber-200 font-medium px-2.5 py-1 rounded-full shadow-sm hover:shadow-md hover:bg-amber-100 transition-all">Partially compliant</Badge>;
-    return <Badge className="bg-red-50 text-red-700 border border-red-200 font-medium px-2.5 py-1 rounded-full shadow-sm hover:shadow-md hover:bg-red-100 transition-all">Non-compliant</Badge>;
-  };
-
-  // Display accountable person/role as text instead of badge
-  const renderAccountability = (accountablePerson?: string) => {
-    if (!accountablePerson || accountablePerson === "Not specified") {
-      return <span className="text-muted-foreground italic">Not specified</span>;
-    }
-    return <span className="text-foreground font-medium">{accountablePerson}</span>;
-  };
-
-  // Handle system click to show details
-  const handleSystemClick = async (assessment: UnifiedAssessment) => {
-    setSelectedSystem(assessment);
-    setShowDetailsModal(true);
-    setLoadingDetails(true);
-    setSystemDetails(null);
-    setRiskAssessments([]);
-    setDocumentation([]);
-
-    try {
-      const [complianceRes, riskRes, docRes] = await Promise.all([
-        backendFetch(`/api/ai-systems/${assessment.id}/compliance-data`),
-        backendFetch(`/api/ai-systems/${assessment.id}/risk-assessments`),
-        backendFetch(`/api/ai-systems/${assessment.id}/documentation`),
-      ]);
-
-      if (complianceRes.ok) {
-        setSystemDetails(await complianceRes.json());
-      }
-
-      if (riskRes.ok) {
-        setRiskAssessments(await riskRes.json());
-      }
-
-      if (docRes.ok) {
-        const docData = await docRes.json();
-        setDocumentation(docData.documentation || []);
-      }
-    } catch (error) {
-      console.error("Error fetching system details:", error);
-    } finally {
-      setLoadingDetails(false);
-    }
-  };
-
-
-  // Handle document download as PDF
-  const handleDownloadDocument = async (doc: any) => {
-    try {
-      // Convert markdown to HTML (await the async parse function)
-      const htmlContent = await marked.parse(doc.content);
-
-      // Create a temporary container with styled HTML
-      // Use explicit hex colors to avoid html2canvas parsing issues with modern CSS color functions
-      const tempDiv = document.createElement('div');
-      tempDiv.style.position = 'absolute';
-      tempDiv.style.left = '-9999px';
-      tempDiv.style.top = '0';
-      tempDiv.style.width = '210mm'; // A4 width
-      tempDiv.style.padding = '25mm 20mm';
-      tempDiv.style.fontFamily = 'Arial, sans-serif';
-      tempDiv.style.fontSize = '11pt';
-      tempDiv.style.lineHeight = '1.8';
-      tempDiv.style.color = '#000000'; // Explicit black hex
-      tempDiv.style.backgroundColor = '#ffffff'; // Explicit white hex
-      tempDiv.style.boxSizing = 'border-box';
-
-      // Enhanced HTML with better spacing and structure
-      // All colors must be in hex format to avoid html2canvas parsing issues
-      tempDiv.innerHTML = `
-        <style>
-          * { margin: 0; padding: 0; box-sizing: border-box; }
-          body, div { background-color: #ffffff !important; color: #000000 !important; }
-          h1 { font-size: 24pt; color: #1a1a1a !important; margin-bottom: 15px; margin-top: 0; font-weight: bold; }
-          h2 { font-size: 18pt; color: #2a2a2a !important; margin-top: 25px; margin-bottom: 12px; font-weight: bold; border-bottom: 1px solid #dddddd; padding-bottom: 8px; }
-          h3 { font-size: 14pt; color: #3a3a3a !important; margin-top: 20px; margin-bottom: 10px; font-weight: bold; }
-          h4 { font-size: 12pt; color: #4a4a4a !important; margin-top: 18px; margin-bottom: 8px; font-weight: bold; }
-          p { margin-bottom: 12px; margin-top: 0; text-align: justify; color: #000000 !important; }
-          ul, ol { margin-top: 10px; margin-bottom: 15px; padding-left: 25px; }
-          li { margin-bottom: 8px; line-height: 1.7; color: #000000 !important; }
-          strong { font-weight: bold; color: #1a1a1a !important; }
-          em { font-style: italic; }
-          code { background-color: #f5f5f5 !important; color: #000000 !important; padding: 2px 6px; border-radius: 3px; font-family: 'Courier New', monospace; font-size: 10pt; }
-          pre { background-color: #f5f5f5 !important; color: #000000 !important; padding: 12px; border-radius: 5px; margin: 15px 0; overflow-x: auto; font-family: 'Courier New', monospace; font-size: 10pt; line-height: 1.6; }
-          blockquote { border-left: 4px solid #cccccc; padding-left: 15px; margin: 15px 0; color: #555555 !important; font-style: italic; }
-          table { width: 100%; border-collapse: collapse; margin: 15px 0; }
-          th, td { border: 1px solid #dddddd; padding: 10px; text-align: left; color: #000000 !important; }
-          th { background-color: #f5f5f5 !important; font-weight: bold; }
-          hr { border: none; border-top: 1px solid #dddddd; margin: 20px 0; }
-        </style>
-        <div style="margin-bottom: 35px; border-bottom: 3px solid #333333; padding-bottom: 20px; background-color: #ffffff !important;">
-          <h1 style="margin: 0 0 12px 0; font-size: 26pt; color: #1a1a1a !important; font-weight: bold;">${doc.regulation_type}</h1>
-          <p style="margin: 0; color: #666666 !important; font-size: 11pt; line-height: 1.6;">
-            <strong>Version:</strong> ${doc.version} &nbsp;|&nbsp; 
-            <strong>Generated:</strong> ${new Date(doc.created_at).toLocaleString()}
-            ${doc.document_type && doc.document_type !== 'Compliance Summary' ? ` &nbsp;|&nbsp; <strong>Type:</strong> ${doc.document_type}` : ''}
-          </p>
-        </div>
-        <div style="margin-top: 25px; padding-top: 15px; background-color: #ffffff !important; color: #000000 !important;">
-          ${htmlContent}
-        </div>
-      `;
-
-      document.body.appendChild(tempDiv);
-
-      // Convert HTML to canvas with better settings
-      // Use explicit hex background color and ignore external styles
-      const canvas = await html2canvas(tempDiv, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        backgroundColor: '#ffffff',
-        ignoreElements: (element) => {
-          // Ignore any elements that might have problematic styles
-          return false;
-        },
-        onclone: (clonedDoc) => {
-          // Ensure all styles are applied in the cloned document with explicit colors
-          const clonedDiv = clonedDoc.querySelector('div');
-          if (clonedDiv) {
-            clonedDiv.style.width = '210mm';
-            clonedDiv.style.padding = '25mm 20mm';
-            clonedDiv.style.backgroundColor = '#ffffff';
-            clonedDiv.style.color = '#000000';
-          }
-          // Remove any computed styles that might use modern color functions
-          const allElements = clonedDoc.querySelectorAll('*');
-          allElements.forEach((el: any) => {
-            if (el.style) {
-              // Force explicit colors if they exist
-              const computedStyle = window.getComputedStyle(el);
-              if (computedStyle.backgroundColor && !computedStyle.backgroundColor.match(/^#[0-9a-fA-F]{3,6}$|^rgb/)) {
-                el.style.backgroundColor = '#ffffff';
-              }
-              if (computedStyle.color && !computedStyle.color.match(/^#[0-9a-fA-F]{3,6}$|^rgb/)) {
-                el.style.color = '#000000';
-              }
-            }
-          });
-        }
-      });
-
-      // Remove temporary element
-      document.body.removeChild(tempDiv);
-
-      // Create PDF with proper margins
-      const imgData = canvas.toDataURL('image/png', 1.0);
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
-      const imgWidth = pdfWidth - 20; // Leave 10mm margin on each side
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      const margin = 10;
-      let heightLeft = imgHeight;
-      let position = margin;
-
-      // Add first page
-      pdf.addImage(imgData, 'PNG', margin, position, imgWidth, imgHeight);
-      heightLeft -= (pdfHeight - 2 * margin);
-
-      // Add additional pages if needed
-      while (heightLeft > 0) {
-        position = margin - (imgHeight - heightLeft);
-        pdf.addPage();
-        pdf.addImage(imgData, 'PNG', margin, position, imgWidth, imgHeight);
-        heightLeft -= (pdfHeight - 2 * margin);
-      }
-
-      // Download PDF
-      pdf.save(`${doc.regulation_type.replace(/\s+/g, '_')}_v${doc.version}_${doc.id.substring(0, 8)}.pdf`);
-    } catch (error) {
-      console.error("Error generating PDF:", error);
-      alert(`Failed to generate PDF: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again.`);
-      // Don't fallback to markdown - show error instead
-      throw error;
-    }
-  };
-
-  // Get lifecycle stage badge
-  const getLifecycleBadge = (stage?: string) => {
-    const s = (stage || 'Draft').toLowerCase();
-    const variants: Record<string, string> = {
-      draft: "bg-secondary/80 text-muted-foreground border-border/50",
-      development: "bg-primary/10 text-primary border border-primary/30",
-      testing: "bg-secondary/60 text-muted-foreground border border-border/50",
-      deployed: "bg-primary/10 text-primary border border-primary/30",
-      monitoring: "bg-accent/10 text-accent border border-accent/30",
-      retired: "bg-secondary/60 text-muted-foreground border border-border/50",
-    };
-    return (
-      <Badge className={`${variants[s] || variants.draft} font-medium px-2.5 py-1 rounded-full shadow-sm hover:shadow-md transition-all`}>
-        {stage || 'Draft'}
-      </Badge>
-    );
+  const handleDownloadRow = (row: UnifiedRow) => {
+    const blob = new Blob([JSON.stringify(row.raw, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `${row.regulation}-${row.systemName}-${row.id}.json`.replace(/\s+/g, "_");
+    anchor.click();
+    URL.revokeObjectURL(url);
   };
 
   return (
-    <AuthenticatedLayout showLoading={loading}>
+    <div className="min-h-screen bg-[#F6F6F6] text-[#18181B]" style={{ fontFamily: "Inter, Plus Jakarta Sans, sans-serif" }}>
       <Head>
-        <title>Dashboard | AI Governance</title>
-        <meta name="description" content="Overview of all AI compliance assessments." />
+        <title>Dashboard</title>
+        <meta name="description" content="AI Systems Compliance Dashboard" />
       </Head>
-      <div className="space-y-8">
-        {/* Header */}
-        <div className="max-w-7xl mx-auto space-y-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-4xl lg:text-5xl font-extrabold text-foreground">
-                Compliance <span className="gradient-text">Dashboard</span>
-              </h1>
-              <p className="text-muted-foreground mt-3 text-lg font-medium">
-                Monitor and manage all AI compliance assessments across EU AI Act, MAS, and UK AI Act
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Shadow AI Warning Banner */}
-        {shadowAIWarning && (
-          <div className="max-w-7xl mx-auto">
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3 glass-panel">
-              <AlertTriangle className="h-5 w-5 text-red-500 flex-shrink-0" />
-              <div className="flex-1">
-                <p className="text-red-700 font-semibold">{shadowAIWarning}</p>
-                <Button
-                  variant="link"
-                  className="text-red-600 hover:text-red-700 p-0 h-auto mt-1"
-                  onClick={() => router.push("/discovery")}
-                >
-                  View Discovery Dashboard →
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Stats Cards */}
-        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Card className="glass-panel shadow-elevated border-border/50 hover:shadow-blue transition-all duration-300 hover:-translate-y-1 hover:border-primary/30">
-            <CardHeader className="flex flex-row items-center justify-between pb-3">
-              <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                Total Assessments
-              </CardTitle>
-              <div className="p-2 bg-primary/10 rounded-lg border border-primary/20">
-                <TrendingUp className="h-5 w-5 text-primary" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-4xl font-extrabold text-foreground">
-                {loading ? "..." : totalAssessments}
-              </div>
-              <p className="text-xs text-muted-foreground mt-2">All assessments</p>
-            </CardContent>
-          </Card>
-
-          <Card className="glass-panel shadow-elevated border-border/50 hover:shadow-red-500/20 transition-all duration-300 hover:-translate-y-1 hover:border-red-500/30">
-            <CardHeader className="flex flex-row items-center justify-between pb-3">
-              <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                Prohibited / High Risk
-              </CardTitle>
-              <div className="p-2 bg-red-500/10 rounded-lg border border-red-500/20">
-                <Ban className="h-5 w-5 text-red-500" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-4xl font-extrabold text-red-500">
-                {loading ? "..." : prohibitedTests + highRiskTests}
-              </div>
-              <p className="text-xs text-muted-foreground mt-2">Critical systems</p>
-            </CardContent>
-          </Card>
-
-          <Card className="glass-panel shadow-elevated border-border/50 hover:shadow-orange-500/20 transition-all duration-300 hover:-translate-y-1 hover:border-orange-500/30">
-            <CardHeader className="flex flex-row items-center justify-between pb-3">
-              <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                High Risk
-              </CardTitle>
-              <div className="p-2 bg-orange-500/10 rounded-lg border border-orange-500/20">
-                <AlertTriangle className="h-5 w-5 text-orange-500" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-4xl font-extrabold text-orange-500">
-                {loading ? "..." : highRiskTests}
-              </div>
-              <p className="text-xs text-muted-foreground mt-2">Requires attention</p>
-            </CardContent>
-          </Card>
-
-          <Card className="glass-panel shadow-elevated border-border/50 hover:shadow-red-500/20 transition-all duration-300 hover:-translate-y-1 hover:border-red-500/30">
-            <CardHeader className="flex flex-row items-center justify-between pb-3">
-              <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                Non-Compliant
-              </CardTitle>
-              <div className="p-2 bg-red-500/10 rounded-lg border border-red-500/20">
-                <XCircle className="h-5 w-5 text-red-500" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-4xl font-extrabold text-red-500">
-                {loading ? "..." : failedTests}
-              </div>
-              <p className="text-xs text-muted-foreground mt-2">Action needed</p>
-            </CardContent>
-          </Card>
-        </div>
-
-
-        <div className="max-w-7xl mx-auto flex justify-end">
-          <Button
-            onClick={() => router.push("/assessment")}
-            variant="hero"
-            size="lg"
-            className="flex items-center gap-2 rounded-xl"
-          >
-            <Plus className="w-5 h-5" />
-            New Assessment
-          </Button>
-        </div>
-
-        {/* Unified Assessments Table */}
-        <Card className="glass-panel shadow-elevated border-border/50 w-full">
-          <CardHeader className="border-b border-border/30 pb-4">
-            <CardTitle className="text-2xl font-bold text-foreground">All Compliance Assessments</CardTitle>
-            <CardDescription className="text-muted-foreground mt-1 text-base">
-              Unified view of all AI compliance assessments across EU AI Act, MAS, and UK AI Act
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <div className="flex items-center justify-center py-12">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                <p className="ml-3 text-foreground font-medium">Loading assessments...</p>
-              </div>
-            ) : unifiedAssessments.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-foreground font-medium">No assessments found.</p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto w-full">
-                <Table className="w-full">
-                  <TableHeader>
-                    <TableRow className="bg-secondary/30 hover:bg-secondary/30 border-b border-border">
-                      <TableHead className="font-bold text-foreground text-xs uppercase tracking-wider">AI Act</TableHead>
-                      <TableHead className="font-bold text-foreground text-xs uppercase tracking-wider">Mode</TableHead>
-                      <TableHead className="font-bold text-foreground text-xs uppercase tracking-wider">Name</TableHead>
-                      <TableHead className="font-bold text-foreground text-xs uppercase tracking-wider">Lifecycle</TableHead>
-                      <TableHead className="font-bold text-foreground text-xs uppercase tracking-wider">Risk Tier</TableHead>
-                      <TableHead className="font-bold text-foreground text-xs uppercase tracking-wider">Status</TableHead>
-                      <TableHead className="font-bold text-foreground text-xs uppercase tracking-wider">Prohibited</TableHead>
-                      <TableHead className="font-bold text-foreground text-xs uppercase tracking-wider">Obligations</TableHead>
-                      <TableHead className="font-bold text-foreground text-xs uppercase tracking-wider">Monitoring</TableHead>
-                      <TableHead className="font-bold text-foreground text-xs uppercase tracking-wider">Accountability</TableHead>
-                      <TableHead className="font-bold text-foreground text-xs uppercase tracking-wider">Sector</TableHead>
-                      <TableHead className="font-bold text-foreground text-xs uppercase tracking-wider">Date</TableHead>
-                      <TableHead className="font-bold text-foreground text-xs uppercase tracking-wider">Detailed</TableHead>
-                      <TableHead className="font-bold text-foreground text-xs uppercase tracking-wider">Risk Assessment</TableHead>
-                      <TableHead className="font-bold text-foreground text-xs uppercase tracking-wider">Automated Risk</TableHead>
-                      <TableHead className="font-bold text-foreground text-xs uppercase tracking-wider">Documentation</TableHead>
-                      <TableHead className="font-bold text-foreground text-xs uppercase tracking-wider">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {unifiedAssessments.map((assessment) => {
-                      const getRiskBadgeForAssessment = () => {
-                        if (assessment.category === "EU AI Act") {
-                          return getRiskBadge(assessment.risk || "", "EU AI Act");
-                        } else if (assessment.category === "MAS") {
-                          return getMasRiskBadge(assessment.risk);
-                        } else {
-                          return getUkRiskBadge(assessment.risk);
-                        }
-                      };
-
-                      const getComplianceBadgeForAssessment = () => {
-                        if (assessment.category === "EU AI Act") {
-                          return getStatusBadge(assessment.compliance_status || "", "EU AI Act");
-                        } else if (assessment.category === "MAS") {
-                          return getMasComplianceBadge(assessment.compliance_status);
-                        } else {
-                          return getUkComplianceBadge(assessment.compliance_status);
-                        }
-                      };
-
-                      const getCategoryBadge = () => {
-                        const colors = {
-                          "EU AI Act": "bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100",
-                          "MAS": "bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100",
-                          "UK AI Act": "bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100",
-                        };
-                        return (
-                          <Badge className={`${colors[assessment.category]} font-medium px-2.5 py-1 rounded-full shadow-sm hover:shadow-md transition-all`}>
-                            {assessment.category}
-                          </Badge>
-                        );
-                      };
-
-                      const handleViewDetails = () => {
-                        if (assessment.category === "EU AI Act") {
-                          router.push(`/compliance/${assessment.id}`);
-                        } else if (assessment.category === "MAS") {
-                          router.push(`/mas/${assessment.id}`);
-                        } else {
-                          router.push(`/uk/${assessment.id}`);
-                        }
-                      };
-
-                      return (
-                        <TableRow
-                          key={`${assessment.category}-${assessment.id}`}
-                          className="hover:bg-secondary/20 transition-colors duration-150 border-b border-border/30"
-                        >
-                          <TableCell
-                            className="py-4 cursor-pointer hover:bg-secondary/30 rounded"
-                            onClick={() => handleSystemClick(assessment)}
-                          >
-                            {getCategoryBadge()}
-                          </TableCell>
-                          <TableCell className="py-4">
-                            {assessment.category === "EU AI Act" ? (
-                              <div className="flex flex-col gap-1">
-                                <Badge className={`${assessment.assessment_mode === 'rapid' ? 'bg-amber-100 text-amber-700 border-amber-200' : 'bg-green-100 text-green-700 border-green-200'} font-medium px-2 py-0.5 rounded-full text-[10px] uppercase tracking-tight shadow-sm`}>
-                                  {assessment.assessment_mode || 'comprehensive'}
-                                </Badge>
-                              </div>
-                            ) : (
-                              <span className="text-muted-foreground">—</span>
-                            )}
-                          </TableCell>
-                          <TableCell
-                            className="font-semibold text-foreground py-4 cursor-pointer hover:bg-secondary/30 rounded"
-                            onClick={() => handleSystemClick(assessment)}
-                          >
-                            {assessment.name || `ID: ${assessment.id.substring(0, 8)}...`}
-                          </TableCell>
-                          <TableCell className="py-4">
-                            {assessment.category === 'EU AI Act'
-                              ? getLifecycleBadge(assessment.lifecycle_stage)
-                              : <span className="text-muted-foreground text-sm">N/A</span>
-                            }
-                          </TableCell>
-                          <TableCell>{getRiskBadgeForAssessment()}</TableCell>
-                          <TableCell>{getComplianceBadgeForAssessment()}</TableCell>
-                          <TableCell className="py-4">
-                            {assessment.category === "EU AI Act" ? (
-                              assessment.prohibited_practices_detected ? (
-                                <Badge className="bg-red-50 text-red-700 border-red-200 font-medium px-2.5 py-1 rounded-full shadow-sm hover:shadow-md hover:bg-red-100 transition-all">Detected</Badge>
-                              ) : (
-                                <Badge className="bg-blue-50 text-blue-700 border-blue-200 font-medium px-2.5 py-1 rounded-full shadow-sm hover:shadow-md hover:bg-blue-100 transition-all">None</Badge>
-                              )
-                            ) : (
-                              <span className="text-muted-foreground">—</span>
-                            )}
-                          </TableCell>
-                          <TableCell className="py-4">
-                            {assessment.category === "EU AI Act" ? (
-                              assessment.high_risk_all_fulfilled ? (
-                                <Badge className="bg-blue-50 text-blue-700 border-blue-200 font-medium px-2.5 py-1 rounded-full shadow-sm hover:shadow-md hover:bg-blue-100 transition-all">Fulfilled</Badge>
-                              ) : (
-                                <Badge className="bg-red-50 text-red-700 border-red-200 font-medium px-2.5 py-1 rounded-full shadow-sm hover:shadow-md hover:bg-red-100 transition-all">
-                                  {(assessment.high_risk_missing || []).length} Missing
-                                </Badge>
-                              )
-                            ) : (
-                              <span className="text-muted-foreground">—</span>
-                            )}
-                          </TableCell>
-                          <TableCell className="py-4">
-                            {assessment.category === "EU AI Act" ? (
-                              assessment.monitoring_required ? (
-                                <Badge className="bg-blue-50 text-blue-700 border-blue-200 font-medium px-2.5 py-1 rounded-full shadow-sm hover:shadow-md hover:bg-blue-100 transition-all">Monitoring Required</Badge>
-                              ) : (
-                                <Badge className="bg-secondary/80 text-muted-foreground border-border/50 font-medium px-2.5 py-1 rounded-full shadow-sm hover:shadow-md transition-all">N/A</Badge>
-                              )
-                            ) : (
-                              <span className="text-muted-foreground">—</span>
-                            )}
-                          </TableCell>
-                          <TableCell className="py-4">
-                            {renderAccountability(assessment.accountability)}
-                          </TableCell>
-                          <TableCell className="text-foreground font-medium py-4">
-                            {assessment.sector || <span className="text-muted-foreground">—</span>}
-                          </TableCell>
-                          <TableCell className="text-sm text-muted-foreground font-medium py-4">
-                            {new Date(assessment.created_at).toLocaleDateString()}
-                          </TableCell>
-                          <TableCell className="py-4">
-                            {assessment.category === "EU AI Act" ? (
-                              assessment.has_detailed_check ? (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="flex items-center gap-2 border-primary/40 bg-primary/5 text-primary hover:bg-primary/10 hover:border-primary/60 hover:shadow-md transition-all font-medium rounded-xl px-3 py-1.5"
-                                  onClick={() => {
-                                    console.log("🔍 Dashboard: Clicking detailed assessment for assessment:", assessment);
-                                    console.log("🔍 Dashboard: assessment.id:", assessment.id);
-                                    router.push(`/compliance/detailed/${assessment.id}`);
-                                  }}
-                                >
-                                  <CheckCircle className="w-4 h-4" />
-                                  <span>View Detailed</span>
-                                </Button>
-                              ) : (
-                                <Button
-                                  size="sm"
-                                  className="bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20 hover:border-primary/50 hover:shadow-md flex items-center gap-2 transition-all font-medium rounded-xl px-3 py-1.5"
-                                  onClick={() => {
-                                    console.log("🔍 Dashboard: Clicking detailed assessment for assessment:", assessment);
-                                    console.log("🔍 Dashboard: assessment.id:", assessment.id);
-                                    router.push(`/compliance/detailed/${assessment.id}`);
-                                  }}
-                                >
-                                  <Plus className="w-4 h-4" />
-                                  <span>Run Detailed</span>
-                                </Button>
-                              )
-                            ) : (
-                              <span className="text-muted-foreground">—</span>
-                            )}
-                          </TableCell>
-                          <TableCell className="py-4">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="border-secondary/40 bg-secondary/30 text-foreground hover:bg-secondary/50 hover:border-primary/40 hover:shadow-md transition-all font-medium flex items-center gap-2 rounded-xl px-3 py-1.5"
-                              onClick={() => router.push(`/ai-systems/${assessment.id}?tab=risk-assessments`)}
-                            >
-                              <AlertTriangle className="w-4 h-4" />
-                              <span>Check Assessment</span>
-                            </Button>
-                          </TableCell>
-                          <TableCell className="py-4">
-                            {automatedRiskAssessments.has(assessment.id) ? (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="border-primary/40 bg-primary/5 text-primary hover:bg-primary/10 hover:border-primary/60 hover:shadow-md transition-all font-medium flex items-center gap-2 rounded-xl px-3 py-1.5"
-                                onClick={() => router.push(`/ai-systems/${assessment.id}/automated-risk-assessment`)}
-                              >
-                                <Shield className="w-4 h-4" />
-                                <span>View Report</span>
-                              </Button>
-                            ) : (
-                              <Button
-                                size="sm"
-                                className="bg-green-500/10 text-green-600 border border-green-500/30 hover:bg-green-500/20 hover:border-green-500/50 hover:shadow-md transition-all font-medium flex items-center gap-2 rounded-xl px-3 py-1.5 dark:bg-green-500/20 dark:text-green-400 dark:border-green-500/40 dark:hover:bg-green-500/30"
-                                onClick={() => router.push(`/ai-systems/${assessment.id}/automated-risk-assessment`)}
-                              >
-                                <Shield className="w-4 h-4" />
-                                <span>Generate</span>
-                              </Button>
-                            )}
-                          </TableCell>
-                          <TableCell className="py-4">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="border-primary/40 bg-primary/5 text-primary hover:bg-primary/10 hover:border-primary/60 hover:shadow-md transition-all font-medium flex items-center gap-2 rounded-xl px-3 py-1.5"
-                              onClick={() => router.push(`/ai-systems/${assessment.id}?tab=documentation`)}
-                            >
-                              <FileText className="w-4 h-4" />
-                              <span>Generate</span>
-                            </Button>
-                          </TableCell>
-                          <TableCell className="py-4">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="border-border/50 bg-secondary/30 text-foreground hover:bg-secondary/50 hover:border-primary/40 hover:shadow-md transition-all font-medium rounded-xl px-3 py-1.5"
-                                >
-                                  <MoreVertical className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent
-                                align="end"
-                                className="w-48 bg-white dark:bg-slate-900 border-border shadow-lg backdrop-blur-none"
-                              >
-                                <DropdownMenuItem
-                                  onClick={handleViewDetails}
-                                  className="cursor-pointer"
-                                >
-                                  <Eye className="h-4 w-4 mr-2" />
-                                  View details
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={() => handleDeleteClick(assessment)}
-                                  className="cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50"
-                                >
-                                  <Trash2 className="h-4 w-4 mr-2" />
-                                  Delete
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* System Details Modal */}
-        <Dialog open={showDetailsModal} onOpenChange={setShowDetailsModal}>
-          <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto glass-card shadow-premium rounded-2xl border-0 bg-gradient-to-br from-white/90 via-white/80 to-white/70 backdrop-blur-xl">
-            <DialogHeader className="pb-6 border-b border-border/50">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-xl bg-primary/10 border border-primary/30">
-                    <Shield className="h-6 w-6 text-primary" />
-                  </div>
-                  <div>
-                    <DialogTitle className="text-3xl font-extrabold text-foreground">
-                      AI System Details
-                    </DialogTitle>
-                    <DialogDescription className="text-muted-foreground mt-1.5 text-base">
-                      Complete information about the selected AI system
-                    </DialogDescription>
-                  </div>
+      <Sidebar onLogout={handleLogout} />
+      <div className="mx-auto w-full max-w-[1440px] lg:pl-[267px]">
+        <main className="flex-1">
+          <header className="flex h-[83px] items-center justify-between border-b border-[#E4E4E7] px-9">
+            <h1 className="text-[22px] font-semibold tracking-[0.5px]">Dashboard</h1>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setAccountMenuOpen((prev) => !prev)}
+                className="flex items-center gap-2 rounded-full border border-[#E4E4E7] bg-white px-2 py-1"
+              >
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#E5E7EB]">
+                  <UserCircle2 className="h-6 w-6 text-[#6B7280]" />
                 </div>
-                {selectedSystem && (() => {
-                  const colors = {
-                    "EU AI Act": "bg-blue-50 text-blue-700 border-blue-200 shadow-sm",
-                    "MAS": "bg-purple-50 text-purple-700 border-purple-200 shadow-sm",
-                    "UK AI Act": "bg-emerald-50 text-emerald-700 border-emerald-200 shadow-sm",
-                  };
-                  return (
-                    <Badge className={`${colors[selectedSystem.category]} font-bold px-4 py-1.5 text-sm border rounded-xl`}>
-                      {selectedSystem.category}
-                    </Badge>
-                  );
-                })()}
-              </div>
-            </DialogHeader>
-
-            {loadingDetails ? (
-              <div className="flex flex-col items-center justify-center py-16">
-                <div className="relative">
-                  <div className="absolute inset-0 rounded-full bg-primary/20 blur-xl"></div>
-                  <Loader2 className="h-12 w-12 animate-spin text-primary relative" />
+                <ChevronDown className="h-4 w-4 text-[#667085]" />
+              </button>
+              {accountMenuOpen && (
+                <div className="absolute right-0 z-20 mt-2 w-36 rounded-[10px] border border-[#E4E4E7] bg-white p-1 shadow-lg">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAccountMenuOpen(false);
+                      void handleLogout();
+                    }}
+                    className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-[14px] text-[#E72C2C] hover:bg-[#FFF1F2]"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    Logout
+                  </button>
                 </div>
-                <p className="ml-3 text-muted-foreground mt-4 font-medium">Loading system details...</p>
-              </div>
-            ) : systemDetails && selectedSystem ? (
-              <div className="space-y-6 mt-6">
-                {/* System Information */}
-                <Card className="glass-card shadow-premium rounded-2xl border-0 bg-gradient-to-br from-white/90 via-white/80 to-white/70 backdrop-blur-xl">
-                  <CardHeader className="pb-4 border-b border-border/50">
-                    <CardTitle className="text-xl font-bold text-foreground flex items-center gap-2">
-                      <div className="p-1.5 rounded-lg bg-primary/10 border border-primary/30">
-                        <FileText className="h-4 w-4 text-primary" />
-                      </div>
-                      System Information
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4 pt-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                      <div className="p-4 rounded-xl glass-panel border border-border/50 hover:border-primary/30 transition-colors">
-                        <p className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wider">System Name</p>
-                        <p className="text-foreground font-bold text-lg">{systemDetails.systemInfo?.name || selectedSystem.name || "Unnamed System"}</p>
-                      </div>
-                      <div className="p-4 rounded-xl glass-panel border border-border/50 hover:border-primary/30 transition-colors">
-                        <p className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wider">System ID</p>
-                        <p className="text-foreground text-sm font-mono bg-secondary/50 px-2 py-1 rounded-xl border border-border inline-block">{selectedSystem.id}</p>
-                      </div>
-                      <div className="p-4 rounded-xl glass-panel border border-border/50 hover:border-primary/30 transition-colors">
-                        <p className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wider">Regulation Type</p>
-                        <Badge className="bg-primary/10 text-primary border-primary/30 border px-3 py-1 font-semibold rounded-xl">
-                          {systemDetails.systemInfo?.type || selectedSystem.category}
-                        </Badge>
-                      </div>
-                      <div className="p-4 rounded-xl glass-panel border border-border/50 hover:border-primary/30 transition-colors">
-                        <p className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wider">Accountable Person</p>
-                        <p className="text-foreground font-semibold">{systemDetails.systemInfo?.accountable_person || selectedSystem.accountability || "Not specified"}</p>
-                      </div>
-                      <div className="p-4 rounded-xl glass-panel border border-border/50 hover:border-primary/30 transition-colors">
-                        <p className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wider">Created At</p>
-                        <p className="text-foreground text-sm font-medium">
-                          {new Date(systemDetails.systemInfo?.created_at || selectedSystem.created_at).toLocaleString()}
-                        </p>
-                      </div>
-                      {selectedSystem.category === 'EU AI Act' && (
-                        <div className="p-4 rounded-xl glass-panel border border-border/50 hover:border-primary/30 transition-colors">
-                          <p className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wider">Lifecycle Stage</p>
-                          {getLifecycleBadge(systemDetails.systemInfo?.lifecycle_stage || selectedSystem.lifecycle_stage)}
-                        </div>
-                      )}
-                      {selectedSystem.sector && (
-                        <div className="p-4 rounded-xl glass-panel border border-border/50 hover:border-primary/30 transition-colors">
-                          <p className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wider">Sector</p>
-                          <p className="text-foreground font-semibold">{selectedSystem.sector}</p>
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
+              )}
+            </div>
+          </header>
 
+          <section className="px-9 py-7">
+            <div className="mb-8 grid grid-cols-2 gap-[22px] xl:grid-cols-4">
+              <MetricCard label="Prohibited" value={String(metrics.prohibited)} footer="Critical Systems" valueColor="#E72C2C" iconType="prohibited" />
+              <MetricCard label="High Risks" value={String(metrics.highRisks)} footer="Requires Attention" valueColor="#E7BB2C" iconType="highRisk" />
+              <MetricCard label="Total Assessments" value={String(metrics.total)} footer="Total Assessments" valueColor="#0D1C2E" iconType="total" />
+              <MetricCard label="Average Compliance Score" value={`${metrics.average}%`} footer="Overall Health Metric" valueColor="#0D1C2E" iconType="average" />
+            </div>
 
-                {/* Risk & Compliance Summary */}
-                <Card className="glass-card shadow-premium rounded-2xl border-0 bg-gradient-to-br from-white/90 via-white/80 to-white/70 backdrop-blur-xl">
-                  <CardHeader className="pb-4 border-b border-border/50">
-                    <CardTitle className="text-xl font-bold text-foreground flex items-center gap-2">
-                      <div className="p-1.5 rounded-lg bg-amber-500/10 border border-amber-500/30">
-                        <AlertTriangle className="h-4 w-4 text-amber-600" />
-                      </div>
-                      Risk & Compliance Summary
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4 pt-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                      <div className="p-4 rounded-xl glass-panel border border-border/50 hover:border-primary/30 transition-colors">
-                        <p className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wider">Risk Tier</p>
-                        <div className="flex items-center">
-                          {(() => {
-                            if (selectedSystem.category === "EU AI Act") {
-                              return getRiskBadge(selectedSystem.risk || "");
-                            } else if (selectedSystem.category === "MAS") {
-                              return getMasRiskBadge(selectedSystem.risk);
-                            } else {
-                              return getUkRiskBadge(selectedSystem.risk);
-                            }
-                          })()}
-                        </div>
-                      </div>
-                      <div className="p-4 rounded-xl glass-panel border border-border/50 hover:border-primary/30 transition-colors">
-                        <p className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wider">Compliance Status</p>
-                        <div className="flex items-center">
-                          {(() => {
-                            if (selectedSystem.category === "EU AI Act") {
-                              return getStatusBadge(selectedSystem.compliance_status || "");
-                            } else if (selectedSystem.category === "MAS") {
-                              return getMasComplianceBadge(selectedSystem.compliance_status);
-                            } else {
-                              return getUkComplianceBadge(selectedSystem.compliance_status);
-                            }
-                          })()}
-                        </div>
-                      </div>
-                      {selectedSystem.category === "EU AI Act" && (
-                        <>
-                          <div className="p-4 rounded-xl glass-panel border border-border/50 hover:border-primary/30 transition-colors">
-                            <p className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wider">Prohibited Practices</p>
-                            {selectedSystem.prohibited_practices_detected ? (
-                              <Badge className="bg-red-50 text-red-700 border-red-200 border px-3 py-1 font-semibold rounded-xl">Detected</Badge>
-                            ) : (
-                              <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 border px-3 py-1 font-semibold rounded-xl">None</Badge>
-                            )}
-                          </div>
-                          <div className="p-4 rounded-xl glass-panel border border-border/50 hover:border-primary/30 transition-colors">
-                            <p className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wider">High-Risk Obligations</p>
-                            {selectedSystem.high_risk_all_fulfilled ? (
-                              <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 border px-3 py-1 font-semibold rounded-xl">All Fulfilled</Badge>
-                            ) : (
-                              <Badge className="bg-red-50 text-red-700 border-red-200 border px-3 py-1 font-semibold rounded-xl">
-                                {(selectedSystem.high_risk_missing || []).length} Missing
-                              </Badge>
-                            )}
-                          </div>
-                          {selectedSystem.monitoring_required && (
-                            <div className="p-4 rounded-xl glass-panel border border-border/50 hover:border-primary/30 transition-colors">
-                              <p className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wider">Monitoring</p>
-                              <Badge className="bg-blue-50 text-blue-700 border-blue-200 border px-3 py-1 font-semibold rounded-xl">Required</Badge>
-                            </div>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Compliance Details */}
-                {systemDetails.complianceData && (
-                  <Card className="glass-card shadow-premium rounded-2xl border-0 bg-gradient-to-br from-white/90 via-white/80 to-white/70 backdrop-blur-xl">
-                    <CardHeader className="pb-4 border-b border-border/50">
-                      <CardTitle className="text-xl font-bold text-foreground flex items-center gap-2">
-                        <div className="p-1.5 rounded-lg bg-primary/10 border border-primary/30">
-                          <CheckCircle className="h-4 w-4 text-primary" />
-                        </div>
-                        Compliance Details
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="pt-6">
-                      {selectedSystem.category === "EU AI Act" && systemDetails.complianceData.eu && (
-                        <div className="space-y-4">
-                          {systemDetails.complianceData.eu.summary && (
-                            <div className="p-4 rounded-xl glass-panel border border-border/50">
-                              <p className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wider">Summary</p>
-                              <p className="text-foreground text-sm leading-relaxed">{systemDetails.complianceData.eu.summary}</p>
-                            </div>
-                          )}
-                          {systemDetails.complianceData.eu.reference && typeof systemDetails.complianceData.eu.reference === 'object' && (
-                            <div className="p-4 rounded-xl glass-panel border border-border/50">
-                              <p className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wider">Reference</p>
-                              <div className="text-foreground text-sm space-y-2.5">
-                                {systemDetails.complianceData.eu.reference.riskTierBasis && (
-                                  <div className="flex items-start gap-2">
-                                    <span className="font-bold text-primary min-w-[140px]">Risk Tier Basis:</span>
-                                    <span className="text-foreground">{systemDetails.complianceData.eu.reference.riskTierBasis}</span>
-                                  </div>
-                                )}
-                                {systemDetails.complianceData.eu.reference.transparencyBasis && (
-                                  <div className="flex items-start gap-2">
-                                    <span className="font-bold text-primary min-w-[140px]">Transparency Basis:</span>
-                                    <span className="text-foreground">{systemDetails.complianceData.eu.reference.transparencyBasis}</span>
-                                  </div>
-                                )}
-                                {systemDetails.complianceData.eu.reference.missingObligations && Array.isArray(systemDetails.complianceData.eu.reference.missingObligations) && systemDetails.complianceData.eu.reference.missingObligations.length > 0 && (
-                                  <div className="flex items-start gap-2">
-                                    <span className="font-bold text-primary min-w-[140px]">Missing Obligations:</span>
-                                    <span className="text-foreground">{systemDetails.complianceData.eu.reference.missingObligations.join(", ")}</span>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          )}
-                          {systemDetails.complianceData.eu.reference && typeof systemDetails.complianceData.eu.reference === 'string' && (
-                            <div className="p-4 rounded-xl glass-panel border border-border/50">
-                              <p className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wider">Reference</p>
-                              <p className="text-foreground text-sm">{systemDetails.complianceData.eu.reference}</p>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                      {selectedSystem.category === "MAS" && systemDetails.complianceData.mas && (
-                        <div className="space-y-4">
-                          {systemDetails.complianceData.mas.description && (
-                            <div className="p-4 rounded-xl glass-panel border border-border/50">
-                              <p className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wider">Description</p>
-                              <p className="text-foreground text-sm leading-relaxed">{systemDetails.complianceData.mas.description}</p>
-                            </div>
-                          )}
-                          {systemDetails.complianceData.mas.business_use_case && (
-                            <div className="p-4 rounded-xl glass-panel border border-border/50">
-                              <p className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wider">Business Use Case</p>
-                              <p className="text-foreground text-sm leading-relaxed">{systemDetails.complianceData.mas.business_use_case}</p>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                      {selectedSystem.category === "UK AI Act" && systemDetails.complianceData.uk && (
-                        <div className="space-y-4">
-                          {systemDetails.complianceData.uk.summary && (
-                            <div className="p-4 rounded-xl glass-panel border border-border/50">
-                              <p className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wider">Summary</p>
-                              <p className="text-foreground text-sm leading-relaxed">{systemDetails.complianceData.uk.summary}</p>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                )}
-
-                {/* Risk Assessments */}
-                <Card className="glass-card shadow-premium rounded-2xl border-0 bg-gradient-to-br from-white/90 via-white/80 to-white/70 backdrop-blur-xl">
-                  <CardHeader className="pb-4 border-b border-border/50">
-                    <CardTitle className="text-xl font-bold text-foreground flex items-center gap-2">
-                      <div className="p-1.5 rounded-lg bg-red-500/10 border border-red-500/30">
-                        <AlertTriangle className="h-4 w-4 text-red-600" />
-                      </div>
-                      Risk Assessments
-                      <Badge className="ml-auto bg-secondary text-foreground border-border rounded-xl">
-                        {riskAssessments.length} {riskAssessments.length === 1 ? 'Assessment' : 'Assessments'}
-                      </Badge>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="pt-6">
-                    {riskAssessments.length === 0 ? (
-                      <div className="text-center py-8">
-                        <p className="text-muted-foreground text-sm">No risk assessments found</p>
-                      </div>
-                    ) : (
-                      <div className="space-y-3">
-                        {riskAssessments.slice(0, 3).map((assessment: any) => (
-                          <div key={assessment.id} className="p-4 rounded-xl glass-panel border border-border/50 hover:border-primary/30 transition-colors">
-                            <div className="flex items-start justify-between">
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2 mb-2">
-                                  <Badge className={
-                                    assessment.risk_level === 'high'
-                                      ? "bg-red-50 text-red-700 border-red-200"
-                                      : assessment.risk_level === 'medium'
-                                        ? "bg-amber-50 text-amber-700 border-amber-200"
-                                        : "bg-emerald-50 text-emerald-700 border-emerald-200"
-                                  }>
-                                    {assessment.risk_level?.charAt(0).toUpperCase() + assessment.risk_level?.slice(1) || 'Unknown'}
-                                  </Badge>
-                                  <Badge variant="outline" className="bg-secondary text-foreground border-border text-xs rounded-xl">
-                                    {assessment.category || 'General'}
-                                  </Badge>
-                                  <Badge variant="outline" className={
-                                    assessment.status === 'approved'
-                                      ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                                      : assessment.status === 'submitted'
-                                        ? "bg-blue-50 text-blue-700 border-blue-200"
-                                        : "bg-secondary text-foreground border-border"
-                                  }>
-                                    {assessment.status || 'Draft'}
-                                  </Badge>
-                                </div>
-                                {assessment.summary && (
-                                  <p className="text-foreground text-sm line-clamp-2">{assessment.summary}</p>
-                                )}
-                                <p className="text-xs text-muted-foreground mt-2">
-                                  {new Date(assessment.assessed_at || assessment.created_at).toLocaleDateString()}
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                        {riskAssessments.length > 3 && (
-                          <p className="text-xs text-muted-foreground text-center pt-2">
-                            +{riskAssessments.length - 3} more assessment{riskAssessments.length - 3 !== 1 ? 's' : ''}
-                          </p>
-                        )}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-
-                {/* Documentation */}
-                <Card className="glass-card shadow-premium rounded-2xl border-0 bg-gradient-to-br from-white/90 via-white/80 to-white/70 backdrop-blur-xl">
-                  <CardHeader className="pb-4 border-b border-border/50">
-                    <CardTitle className="text-xl font-bold text-foreground flex items-center gap-2">
-                      <div className="p-1.5 rounded-lg bg-primary/10 border border-primary/30">
-                        <FileText className="h-4 w-4 text-primary" />
-                      </div>
-                      Documentation
-                      <Badge className="ml-auto bg-secondary text-foreground border-border rounded-xl">
-                        {documentation.length} {documentation.length === 1 ? 'Document' : 'Documents'}
-                      </Badge>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="pt-6">
-                    {documentation.length === 0 ? (
-                      <div className="text-center py-8">
-                        <FileText className="h-12 w-12 mx-auto mb-3 text-muted-foreground" />
-                        <p className="text-muted-foreground text-sm mb-2">No documentation generated yet</p>
-                        <Button
-                          variant="hero"
-                          size="sm"
-                          onClick={() => {
-                            setShowDetailsModal(false);
-                            router.push(`/ai-systems/${selectedSystem.id}?tab=documentation`);
-                          }}
-                          className="mt-2 rounded-xl"
-                        >
-                          Generate Documentation
-                        </Button>
-                      </div>
-                    ) : (
-                      <div className="space-y-3">
-                        {documentation.slice(0, 3).map((doc: any) => (
-                          <div key={doc.id} className="p-4 rounded-xl glass-panel border border-border/50 hover:border-primary/30 transition-colors">
-                            <div className="flex items-start justify-between">
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2 mb-2">
-                                  <span className="font-semibold text-foreground">
-                                    Version {doc.version}
-                                  </span>
-                                  <Badge className={
-                                    doc.status === 'current'
-                                      ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                                      : doc.status === 'requires_regeneration'
-                                        ? "bg-red-50 text-red-700 border-red-200"
-                                        : "bg-amber-50 text-amber-700 border-amber-200"
-                                  }>
-                                    {doc.status === 'current' ? 'Current' : doc.status === 'requires_regeneration' ? 'Requires Regeneration' : 'Outdated'}
-                                  </Badge>
-                                  {doc.document_type && doc.document_type !== 'Compliance Summary' && (
-                                    <Badge variant="outline" className="bg-secondary text-foreground border-border text-xs rounded-xl">
-                                      {doc.document_type}
-                                    </Badge>
-                                  )}
-                                </div>
-                                <p className="text-foreground text-sm font-medium mb-1">{doc.regulation_type}</p>
-                                <p className="text-xs text-muted-foreground">
-                                  Generated: {new Date(doc.created_at).toLocaleDateString()}
-                                </p>
-                              </div>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleDownloadDocument(doc)}
-                                className="border-green-500/50 bg-green-500/10 text-green-700 hover:bg-green-500/20 ml-3 rounded-xl"
-                              >
-                                <Download className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </div>
-                        ))}
-                        {documentation.length > 3 && (
-                          <p className="text-xs text-muted-foreground text-center pt-2">
-                            +{documentation.length - 3} more document{documentation.length - 3 !== 1 ? 's' : ''}
-                          </p>
-                        )}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-
-                {/* Action Buttons */}
-                <div className="flex gap-4 pt-6 border-t border-border/50">
-                  <Button
-                    onClick={() => {
-                      setShowDetailsModal(false);
-                      router.push(`/ai-systems/${selectedSystem.id}`);
-                    }}
-                    variant="hero"
-                    className="rounded-xl"
-                  >
-                    View Full Details
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setShowDetailsModal(false);
-                      if (selectedSystem.category === "EU AI Act") {
-                        router.push(`/compliance/${selectedSystem.id}`);
-                      } else if (selectedSystem.category === "MAS") {
-                        router.push(`/mas/${selectedSystem.id}`);
-                      } else {
-                        router.push(`/uk/${selectedSystem.id}`);
-                      }
-                    }}
-                    className="rounded-xl"
-                  >
-                    View Compliance
-                  </Button>
-                  {documentation.length > 0 && (
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        setShowDetailsModal(false);
-                        router.push(`/ai-systems/${selectedSystem.id}?tab=documentation`);
-                      }}
-                      className="rounded-xl"
+            <section className="overflow-hidden rounded-[15px] border border-[#CBD5E1] bg-white shadow-[0px_3.5px_7px_-1.75px_rgba(23,23,23,0.10),0px_1.7px_3.5px_-1.75px_rgba(23,23,23,0.06)]">
+              <div className="flex items-start justify-between px-[20.9px] pb-3 pt-4">
+                <div>
+                  <h2 className="text-[17.5px] font-extrabold tracking-[-0.01em] text-[#1E293B]">AI Systems Compliance Overview</h2>
+                  <p className="text-[11px] text-[#667085]">Unified view of all AI compliance assessments across EU AI Act, MAS, and UK AI Act</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="flex h-9 items-center gap-2 rounded-[10px] border border-[#CBD5E1] px-3 text-[12px] font-bold text-[#475569]">
+                    <ShieldCheck className="h-4 w-4" />
+                    <select
+                      value={regulationFilter}
+                      onChange={(e) => setRegulationFilter(e.target.value as "all" | Regulation)}
+                      className="bg-transparent text-[12px] font-bold outline-none"
                     >
-                      <FileText className="h-4 w-4 mr-2" />
-                      View All Docs
-                    </Button>
-                  )}
+                      <option value="all">All Regulations</option>
+                      <option value="EU AI Act">EU AI Act</option>
+                      <option value="UK AI Act">UK AI Act</option>
+                      <option value="MAS">MAS</option>
+                    </select>
+                  </label>
+                  <label className="flex h-9 items-center gap-2 rounded-[10px] border border-[#CBD5E1] px-3 text-[12px] font-bold text-[#475569]">
+                    <AlertTriangle className="h-4 w-4" />
+                    <select
+                      value={statusFilter}
+                      onChange={(e) => setStatusFilter(e.target.value as "all" | ComplianceTone)}
+                      className="bg-transparent text-[12px] font-bold outline-none"
+                    >
+                      <option value="all">All Status</option>
+                      <option value="Compliant">Compliant</option>
+                      <option value="Partially compliant">Partially</option>
+                      <option value="Non-compliant">Non-compliant</option>
+                    </select>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => router.push("/assessment")}
+                    className="flex h-9 items-center gap-2 rounded-[10px] bg-[#88BEF1] px-4 text-[15px] font-semibold text-white"
+                  >
+                    <span className="text-[18px] leading-none">+</span>
+                    New Assessment
+                  </button>
                 </div>
               </div>
-            ) : (
-              <div className="text-center py-12">
-                <p className="text-muted-foreground">Failed to load system details</p>
-              </div>
-            )}
-          </DialogContent>
-        </Dialog>
 
-        {/* Delete Confirmation Dialog */}
-        <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-          <DialogContent className="sm:max-w-md border-red-200 dark:border-red-900">
-            <DialogHeader className="space-y-3">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-full bg-red-100 dark:bg-red-900/30 border border-red-200 dark:border-red-800">
-                  <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" />
-                </div>
-                <DialogTitle className="text-xl font-bold text-foreground">
-                  Delete Assessment
-                </DialogTitle>
-              </div>
-              <DialogDescription className="text-base text-muted-foreground pt-2">
-                Are you sure you want to delete this assessment? This action cannot be undone.
-              </DialogDescription>
-            </DialogHeader>
-
-            {assessmentToDelete && (
-              <div className="mt-4 p-4 bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-950/20 dark:to-orange-950/20 border border-red-200 dark:border-red-800 rounded-lg">
-                <div className="flex items-start gap-3">
-                  <div className="p-1.5 rounded-md bg-white dark:bg-slate-800 border border-red-200 dark:border-red-800">
-                    <FileText className="h-4 w-4 text-red-600 dark:text-red-400" />
+              <div className="overflow-x-auto">
+                <div className="min-w-[920px]">
+                  <div
+                    className="grid grid-cols-[2fr_1fr_1fr_1.4fr_1fr_1.3fr_1.2fr] border-y border-[#CBD5E1] bg-[#F8FAFC] px-[20.9px] py-3 text-[12.2px] font-bold text-[#1E293B]"
+                    style={{ fontFamily: "Plus Jakarta Sans, Inter, sans-serif" }}
+                  >
+                    <span>System Name</span>
+                    <span>Regulation</span>
+                    <span>Risks</span>
+                    <span>Status</span>
+                    <span>Score</span>
+                    <span>Accountability</span>
+                    <span>Actions</span>
                   </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-semibold text-foreground mb-1">
-                      {assessmentToDelete.name || "Unnamed Assessment"}
-                    </p>
-                    <div className="flex items-center gap-2">
-                      <Badge className="bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border-red-300 dark:border-red-800 text-xs px-2 py-0.5">
-                        {assessmentToDelete.category}
-                      </Badge>
-                    </div>
-                  </div>
+
+                  {loading && <div className="px-[20.9px] py-6 text-[15px] text-[#667085]">Loading assessments...</div>}
+                  {!loading && error && <div className="px-[20.9px] py-6 text-[15px] font-semibold text-[#E72C2C]">{error}</div>}
+                  {!loading && !error && rows.length === 0 && <div className="px-[20.9px] py-6 text-[15px] text-[#667085]">No records found.</div>}
+
+                  {!loading &&
+                    !error &&
+                    rows.map((row) => (
+                      <article
+                        key={`${row.regulation}-${row.id}`}
+                        className="grid grid-cols-[2fr_1fr_1fr_1.4fr_1fr_1.3fr_1.2fr] items-center border-b border-[#E2E8F0] px-[20.9px] py-[10.5px] text-[13px] transition-colors hover:bg-[#F8FAFC] last:border-b-0"
+                        style={{ minHeight: "62.8px", fontFamily: "Plus Jakarta Sans, Inter, sans-serif" }}
+                      >
+                        <div className="min-w-0">
+                          <button
+                            type="button"
+                            onClick={() => router.push(row.detailsPath)}
+                            className="block truncate text-left text-[14px] font-bold text-[#000000]"
+                          >
+                            {row.systemName}
+                          </button>
+                          <p className="truncate text-[11.5px] text-[#667085]">Created At: {new Date(row.createdAt).toLocaleString()}</p>
+                        </div>
+
+                        <p className="text-[15px] font-bold text-[#475569]">{row.regulation}</p>
+                        <span className={`inline-flex w-fit rounded-full px-[10px] py-[4px] text-[12px] font-semibold ${riskClasses(row.risk)}`}>{row.risk}</span>
+                        <span className={`inline-flex w-fit items-center gap-1 rounded-[10.4px] border px-[10.4px] py-[4px] text-[10px] font-bold ${statusClasses(row.status)}`}>
+                          {statusIcon(row.status)}
+                          {row.status === "Partially compliant" ? "Partially Compliant" : row.status}
+                        </span>
+                        <span className="text-[15px] text-[#000000]">{row.score}</span>
+                        <span className="text-[15px] text-[#000000]">{row.accountability}</span>
+
+                        <div className="flex items-center gap-[6px] text-[#475569]">
+                          <button
+                            type="button"
+                            onClick={() => void handleDeleteRow(row)}
+                            disabled={deletingId === row.id}
+                            className="rounded p-1 hover:bg-[#F1F5F9] disabled:opacity-50"
+                            aria-label="Delete row"
+                          >
+                            <Image src="/images/uipro/Button-Icon.svg" alt="" width={28} height={28} className="h-6 w-6" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDownloadRow(row)}
+                            className="rounded p-1 hover:bg-[#F1F5F9]"
+                            aria-label="Download row"
+                          >
+                            <Image src="/images/uipro/Button-Icon1.svg" alt="" width={28} height={28} className="h-6 w-6" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => router.push(row.detailsPath)}
+                            className="rounded p-1 hover:bg-[#F1F5F9]"
+                            aria-label="Open row details"
+                          >
+                            <ArrowUpRight className="h-6 w-6" />
+                          </button>
+                        </div>
+                      </article>
+                    ))}
                 </div>
               </div>
-            )}
-
-            <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-border">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setDeleteDialogOpen(false);
-                  setAssessmentToDelete(null);
-                }}
-                disabled={deleting}
-                className="hover:bg-secondary/50 transition-colors"
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={handleDeleteConfirm}
-                disabled={deleting}
-                className="bg-red-600 hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700 text-white border-red-700 hover:border-red-800 shadow-md hover:shadow-lg transition-all duration-200 font-medium"
-              >
-                {deleting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Deleting...
-                  </>
-                ) : (
-                  <>
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Delete
-                  </>
-                )}
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+            </section>
+          </section>
+        </main>
       </div>
-    </AuthenticatedLayout>
+    </div>
+  );
+}
+
+function MetricCard({
+  label,
+  value,
+  footer,
+  valueColor,
+  iconType,
+}: {
+  label: string;
+  value: string;
+  footer: string;
+  valueColor: string;
+  iconType: "prohibited" | "highRisk" | "total" | "average";
+}) {
+  const iconByType = {
+    prohibited: <Ban className="h-4 w-4 text-[#E72C2C]" />,
+    highRisk: <AlertTriangle className="h-4 w-4 text-[#E7BB2C]" />,
+    total: <BarChart3 className="h-4 w-4 text-[#61A9ED]" />,
+    average: <ShieldCheck className="h-4 w-4 text-[#61A9ED]" />,
+  } as const;
+
+  const bgByType = {
+    prohibited: "bg-[#FFE8E8]",
+    highRisk: "bg-[#FFF8E2]",
+    total: "bg-[#EAF4FF]",
+    average: "bg-[#EAF4FF]",
+  } as const;
+
+  return (
+    <article className="h-[136px] rounded-[15px] border border-[#E4E4E7] bg-white p-5">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-[15px] font-medium text-[#18181B]">{label}</p>
+          <p className="mt-[5px] text-[23px] font-semibold leading-[38px]" style={{ color: valueColor }}>
+            {value}
+          </p>
+          <p className="text-[13px] font-medium text-[#18181B]">{footer}</p>
+        </div>
+        <div className={`flex h-9 w-9 items-center justify-center rounded-full ${bgByType[iconType]}`}>{iconByType[iconType]}</div>
+      </div>
+    </article>
   );
 }
