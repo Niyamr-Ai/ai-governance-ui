@@ -28,12 +28,18 @@ export default function Chatbot() {
   const [error, setError] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
+  const [sessionId, setSessionId] = useState<string>('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const pathname = usePathname();
   const params = useParams();
   const previousSystemIdRef = useRef<string | undefined>(undefined);
+
+  // Initialize session ID
+  useEffect(() => {
+    setSessionId(crypto.randomUUID());
+  }, []);
 
   // Check authentication status and listen for changes
   useEffect(() => {
@@ -93,7 +99,7 @@ export default function Chatbot() {
    */
   function getPageTypeFromPath(path: string | null): PageContext['pageType'] {
     if (!path) return 'unknown';
-    
+
     if (path.startsWith('/ai-systems/')) return 'ai-system';
     if (path.startsWith('/dashboard')) return 'dashboard';
     if (path.startsWith('/compliance')) return 'compliance';
@@ -104,7 +110,7 @@ export default function Chatbot() {
     if (path.startsWith('/assessment')) return 'assessment';
     if (path.startsWith('/mas/')) return 'compliance'; // MAS assessment pages
     if (path.startsWith('/uk/')) return 'compliance'; // UK assessment pages
-    
+
     return 'unknown';
   }
 
@@ -120,7 +126,7 @@ export default function Chatbot() {
     if (!systemId && pathname) {
       // Handle routes like /mas/[id], /uk/[id], /compliance/detailed/[id]
       const pathParts = pathname.split('/').filter(Boolean);
-      
+
       // Check if we're on a detail page with an ID
       if (pathParts.length >= 2) {
         const lastPart = pathParts[pathParts.length - 1];
@@ -164,16 +170,16 @@ export default function Chatbot() {
 
     // Check if context has changed (systemId changed or became undefined/defined)
     const contextChanged = previousSystemId !== currentSystemId;
-    
+
     // Check if we're on a generic page (dashboard, discovery, etc.) without systemId
     // Also include root path "/" which typically redirects to dashboard for logged-in users
-    const isOnGenericPage = currentSystemId === undefined && 
+    const isOnGenericPage = currentSystemId === undefined &&
       (pathname === '/' ||
-       currentContext.pageType === 'dashboard' || 
-       currentContext.pageType === 'discovery' || 
-       currentContext.pageType === 'documentation' || 
-       currentContext.pageType === 'policy-tracker' || 
-       currentContext.pageType === 'red-teaming');
+        currentContext.pageType === 'dashboard' ||
+        currentContext.pageType === 'discovery' ||
+        currentContext.pageType === 'documentation' ||
+        currentContext.pageType === 'policy-tracker' ||
+        currentContext.pageType === 'red-teaming');
 
     // Check if we're on an assessment page (has systemId)
     const isOnAssessmentPage = currentSystemId !== undefined && currentSystemId !== null;
@@ -186,6 +192,7 @@ export default function Chatbot() {
       setMessages([]);
       setError(null);
       setInputValue('');
+      setSessionId(crypto.randomUUID());
     }
     // Case 2: Navigating FROM dashboard/generic page TO assessment page
     // Close chatbot and clear messages
@@ -195,6 +202,7 @@ export default function Chatbot() {
       setMessages([]);
       setError(null);
       setInputValue('');
+      setSessionId(crypto.randomUUID());
     }
     // Case 3: Navigating FROM one assessment page TO different assessment page
     // Close chatbot and clear messages
@@ -204,6 +212,7 @@ export default function Chatbot() {
       setMessages([]);
       setError(null);
       setInputValue('');
+      setSessionId(crypto.randomUUID());
     }
 
     // Update the ref for next comparison
@@ -237,12 +246,12 @@ export default function Chatbot() {
       // If no systemId in context, try to extract and lookup system name from message
       if (!pageContext.systemId) {
         const systemNames = extractSystemNames(userMessage);
-        
+
         // Try to lookup systemId for each extracted name
         for (const systemName of systemNames) {
           try {
             const lookupResponse = await backendFetch(`/api/ai-systems/lookup-by-name?name=${encodeURIComponent(systemName)}`);
-            
+
             if (lookupResponse.ok) {
               const lookupData = await lookupResponse.json();
               if (lookupData.systemId) {
@@ -267,7 +276,8 @@ export default function Chatbot() {
         body: JSON.stringify({
           message: userMessage,
           pageContext,
-          conversationHistory: messages
+          conversationHistory: messages,
+          sessionId: sessionId || 'default'
         })
       });
 
@@ -303,7 +313,7 @@ export default function Chatbot() {
     } catch (err: any) {
       console.error('Error sending message:', err);
       setError(err.message || 'Failed to send message. Please try again.');
-      
+
       // Add error message to chat
       const errorMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
@@ -333,6 +343,7 @@ export default function Chatbot() {
   function handleClearChat() {
     setMessages([]);
     setError(null);
+    setSessionId(crypto.randomUUID());
   }
 
   // Don't render if not authenticated
@@ -377,144 +388,142 @@ export default function Chatbot() {
             onClick={() => setIsOpen(false)}
           />
           <Card className="fixed bottom-0 left-0 right-0 lg:bottom-24 lg:left-auto lg:right-6 w-full lg:w-1/2 max-w-[calc(100vw-3rem)] lg:max-w-none h-[85vh] lg:h-[600px] flex flex-col shadow-2xl z-50 border-2 lg:border-2 bg-slate-50 dark:bg-slate-900 rounded-t-xl lg:rounded-lg">
-          {/* Header */}
-          <div className="p-4 border-b flex items-center justify-between bg-slate-100 dark:bg-slate-800">
-            <div className="flex items-center gap-2">
-              <MessageCircle className="h-5 w-5 text-primary" />
-              <h3 className="font-semibold text-sm">AI Governance Copilot</h3>
-            </div>
-            <div className="flex items-center gap-2">
-              {messages.length > 0 && (
+            {/* Header */}
+            <div className="p-4 border-b flex items-center justify-between bg-slate-100 dark:bg-slate-800">
+              <div className="flex items-center gap-2">
+                <MessageCircle className="h-5 w-5 text-primary" />
+                <h3 className="font-semibold text-sm">AI Governance Copilot</h3>
+              </div>
+              <div className="flex items-center gap-2">
+                {messages.length > 0 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleClearChat}
+                    className="h-7 text-xs"
+                  >
+                    Clear
+                  </Button>
+                )}
                 <Button
                   variant="ghost"
-                  size="sm"
-                  onClick={handleClearChat}
-                  className="h-7 text-xs"
+                  size="icon"
+                  onClick={() => setIsOpen(false)}
+                  className="h-7 w-7"
                 >
-                  Clear
+                  <X className="h-4 w-4" />
                 </Button>
-              )}
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setIsOpen(false)}
-                className="h-7 w-7"
-              >
-                <X className="h-4 w-4" />
-              </Button>
+              </div>
             </div>
-          </div>
 
-          {/* Messages Area */}
-          <ScrollArea className="flex-1 p-4 bg-slate-50 dark:bg-slate-900">
-            {messages.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground">
-                <MessageCircle className="h-32 w-32 mb-6 mt-5 opacity-50" />
-                <p className="text-base mb-2">AI Governance Copilot</p>
-                <p className="text-sm mb-4">
-                  Ask me about regulations, analyze your systems, or get actionable next steps.
-                </p>
-                <div className="mt-4 space-y-2 text-xs">
-                  <p className="font-medium">Try asking:</p>
-                  <ul className="space-y-1 text-left">
-                    <li>• "What is the EU AI Act?"</li>
-                    <li>• "Is my system compliant?"</li>
-                    <li>• "What should I do next?"</li>
-                  </ul>
+            {/* Messages Area */}
+            <ScrollArea className="flex-1 p-4 bg-slate-50 dark:bg-slate-900">
+              {messages.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground">
+                  <MessageCircle className="h-32 w-32 mb-6 mt-5 opacity-50" />
+                  <p className="text-base mb-2">AI Governance Copilot</p>
+                  <p className="text-sm mb-4">
+                    Ask me about regulations, analyze your systems, or get actionable next steps.
+                  </p>
+                  <div className="mt-4 space-y-2 text-xs">
+                    <p className="font-medium">Try asking:</p>
+                    <ul className="space-y-1 text-left">
+                      <li>• "What is the EU AI Act?"</li>
+                      <li>• "Is my system compliant?"</li>
+                      <li>• "What should I do next?"</li>
+                    </ul>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {messages.map((message) => (
+                    <div
+                      key={message.id}
+                      className={`flex flex-col gap-2 ${message.role === 'user' ? 'items-end' : 'items-start'
+                        }`}
+                    >
+                      <div
+                        className={`max-w-[80%] rounded-xl px-4 py-3 text-sm ${message.role === 'user'
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-slate-100'
+                          }`}
+                      >
+                        {message.role === 'user' ? (
+                          <p className="whitespace-pre-wrap">{message.content}</p>
+                        ) : (
+                          <div className="prose prose-sm max-w-none dark:prose-invert">
+                            <ReactMarkdown
+                              components={{
+                                h1: ({ node, ...props }) => <h1 className="text-lg font-bold mb-2 mt-2" {...props} />,
+                                h2: ({ node, ...props }) => <h2 className="text-base font-bold mb-2 mt-2" {...props} />,
+                                h3: ({ node, ...props }) => <h3 className="text-sm font-bold mb-1 mt-1" {...props} />,
+                                p: ({ node, ...props }) => <p className="mb-2 last:mb-0" {...props} />,
+                                ul: ({ node, ...props }) => <ul className="list-disc mb-2 space-y-1 pl-6" {...props} />,
+                                ol: ({ node, ...props }) => <ol className="list-decimal mb-2 space-y-1 pl-6" {...props} />,
+                                li: ({ node, ...props }) => <li className="leading-relaxed" {...props} />,
+                                strong: ({ node, ...props }) => <strong className="font-semibold" {...props} />,
+                                em: ({ node, ...props }) => <em className="italic" {...props} />,
+                                code: ({ node, ...props }) => <code className="bg-secondary px-1 py-0.5 rounded text-xs" {...props} />,
+                                blockquote: ({ node, ...props }) => <blockquote className="border-l-4 border-primary pl-2 italic my-2" {...props} />,
+                              }}
+                            >
+                              {message.content}
+                            </ReactMarkdown>
+                          </div>
+                        )}
+                      </div>
+                      <span className="text-xs text-muted-foreground">
+                        {message.timestamp.toLocaleTimeString()}
+                      </span>
+                    </div>
+                  ))}
+                  {isLoading && (
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span className="text-xs">Thinking...</span>
+                    </div>
+                  )}
+                  <div ref={messagesEndRef} />
+                </div>
+              )}
+            </ScrollArea>
+
+            {/* Error Message */}
+            {error && (
+              <div className="px-4 py-2 bg-destructive/10 border-t">
+                <div className="flex items-center gap-2 text-destructive text-xs">
+                  <AlertCircle className="h-4 w-4" />
+                  <span>{error}</span>
                 </div>
               </div>
-            ) : (
-              <div className="space-y-4">
-                {messages.map((message) => (
-                  <div
-                    key={message.id}
-                    className={`flex flex-col gap-2 ${
-                      message.role === 'user' ? 'items-end' : 'items-start'
-                    }`}
-                  >
-                    <div
-                      className={`max-w-[80%] rounded-xl px-4 py-3 text-sm ${
-                        message.role === 'user'
-                          ? 'bg-primary text-primary-foreground'
-                          : 'bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-slate-100'
-                      }`}
-                    >
-                      {message.role === 'user' ? (
-                        <p className="whitespace-pre-wrap">{message.content}</p>
-                      ) : (
-                        <div className="prose prose-sm max-w-none dark:prose-invert">
-                          <ReactMarkdown
-                            components={{
-                              h1: ({node, ...props}) => <h1 className="text-lg font-bold mb-2 mt-2" {...props} />,
-                              h2: ({node, ...props}) => <h2 className="text-base font-bold mb-2 mt-2" {...props} />,
-                              h3: ({node, ...props}) => <h3 className="text-sm font-bold mb-1 mt-1" {...props} />,
-                              p: ({node, ...props}) => <p className="mb-2 last:mb-0" {...props} />,
-                              ul: ({node, ...props}) => <ul className="list-disc mb-2 space-y-1 pl-6" {...props} />,
-                              ol: ({node, ...props}) => <ol className="list-decimal mb-2 space-y-1 pl-6" {...props} />,
-                              li: ({node, ...props}) => <li className="leading-relaxed" {...props} />,
-                              strong: ({node, ...props}) => <strong className="font-semibold" {...props} />,
-                              em: ({node, ...props}) => <em className="italic" {...props} />,
-                              code: ({node, ...props}) => <code className="bg-secondary px-1 py-0.5 rounded text-xs" {...props} />,
-                              blockquote: ({node, ...props}) => <blockquote className="border-l-4 border-primary pl-2 italic my-2" {...props} />,
-                            }}
-                          >
-                            {message.content}
-                          </ReactMarkdown>
-                        </div>
-                      )}
-                    </div>
-                    <span className="text-xs text-muted-foreground">
-                      {message.timestamp.toLocaleTimeString()}
-                    </span>
-                  </div>
-                ))}
-                {isLoading && (
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span className="text-xs">Thinking...</span>
-                  </div>
-                )}
-                <div ref={messagesEndRef} />
-              </div>
             )}
-          </ScrollArea>
 
-          {/* Error Message */}
-          {error && (
-            <div className="px-4 py-2 bg-destructive/10 border-t">
-              <div className="flex items-center gap-2 text-destructive text-xs">
-                <AlertCircle className="h-4 w-4" />
-                <span>{error}</span>
+            {/* Input Area */}
+            <div className="p-4 border-t bg-slate-100 dark:bg-slate-800">
+              <div className="flex gap-2">
+                <Input
+                  ref={inputRef}
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  placeholder="Ask a question..."
+                  disabled={isLoading}
+                  className="flex-1"
+                />
+                <Button
+                  onClick={handleSendMessage}
+                  disabled={!inputValue.trim() || isLoading}
+                  size="icon"
+                >
+                  {isLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Send className="h-4 w-4" />
+                  )}
+                </Button>
               </div>
             </div>
-          )}
-
-          {/* Input Area */}
-          <div className="p-4 border-t bg-slate-100 dark:bg-slate-800">
-            <div className="flex gap-2">
-              <Input
-                ref={inputRef}
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyPress={handleKeyPress}
-                placeholder="Ask a question..."
-                disabled={isLoading}
-                className="flex-1"
-              />
-              <Button
-                onClick={handleSendMessage}
-                disabled={!inputValue.trim() || isLoading}
-                size="icon"
-              >
-                {isLoading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Send className="h-4 w-4" />
-                )}
-              </Button>
-            </div>
-          </div>
-        </Card>
+          </Card>
         </>
       )}
     </>

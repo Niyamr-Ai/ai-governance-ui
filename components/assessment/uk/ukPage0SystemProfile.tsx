@@ -1,10 +1,7 @@
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-} from "@/components/ui/card";
+"use client";
+
+import { useFormContext, Controller } from "react-hook-form";
+import { Settings } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -15,202 +12,207 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Button } from "@/components/ui/button"; // Added missing import
-import { useFormikContext } from "formik";
+import { AssessmentCard } from "@/components/assessment/shared";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/utils/shared-utils";
 
-
-type Props = {
-  ukCurrentPage: number;
-  assessmentMode?: 'rapid' | 'comprehensive';
-  setAssessmentMode?: (mode: 'rapid' | 'comprehensive') => void;
-};
+interface UkPage0SystemProfileProps {
+  assessmentMode: "rapid" | "comprehensive";
+  onModeChange: (mode: "rapid" | "comprehensive") => void;
+}
 
 export default function UkPage0SystemProfile({
-  ukCurrentPage,
-  assessmentMode = 'comprehensive',
-  setAssessmentMode = () => { }
-}: Props) {
+  assessmentMode,
+  onModeChange,
+}: UkPage0SystemProfileProps) {
   const {
-    values,
-    setFieldValue,
-    errors,
-    touched,
-  } = useFormikContext<any>();
-
-  if (ukCurrentPage !== 0) return null;
+    control,
+    formState: { errors },
+  } = useFormContext();
 
   return (
-    <Card className="glass-panel">
-      <CardHeader>
-        <CardTitle className="text-foreground">
-          System Profile & Company Information
-        </CardTitle>
-        <CardDescription className="text-muted-foreground">
-          Tell us about your AI system and company - basic information to get started
-        </CardDescription>
-      </CardHeader>
-
-      <CardContent className="space-y-6">
-        {/* Assessment Mode Selector */}
-        <div className="p-4 bg-purple-50 rounded-xl border border-purple-100 flex flex-col md:flex-row gap-4 items-center justify-between">
-          <div>
-            <h4 className="font-semibold text-purple-900">Assessment Mode</h4>
-            <p className="text-xs text-purple-700">Quick Scan gives a fast high-level check. Deep Review covers full controls, evidence, and governance depth.</p>
-          </div>
-          <div className="flex gap-2">
-            <Button
-              type="button"
-              variant={assessmentMode === 'rapid' ? 'default' : 'outline'}
-              className={assessmentMode === 'rapid' ? 'bg-purple-600' : ''}
-              onClick={() => setAssessmentMode('rapid')}
-            >
-              Quick Scan
-            </Button>
-            <Button
-              type="button"
-              variant={assessmentMode === 'comprehensive' ? 'default' : 'outline'}
-              className={assessmentMode === 'comprehensive' ? 'bg-purple-600' : ''}
-              onClick={() => setAssessmentMode('comprehensive')}
-            >
-              Deep Review
-            </Button>
+    <AssessmentCard
+      title="System Profile & Company Information"
+      description="Tell us about your AI system and organization"
+      icon={<Settings className="h-5 w-5" />}
+      badge={<Badge variant="outline">Required</Badge>}
+    >
+      <div className="space-y-6">
+        <div className="p-4 bg-purple-50 rounded-xl border border-purple-100">
+          <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+            <div>
+              <h4 className="font-semibold text-purple-900">Assessment Mode</h4>
+              <p className="text-xs text-purple-700">
+                Quick Scan gives a fast high-level check. Deep Review covers full controls.
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => onModeChange("rapid")}
+                className={cn(
+                  "px-4 py-2 rounded-xl text-sm font-medium transition-all",
+                  assessmentMode === "rapid"
+                    ? "bg-purple-600 text-white"
+                    : "bg-white border border-purple-200 text-purple-700 hover:bg-purple-100"
+                )}
+              >
+                Quick Scan
+              </button>
+              <button
+                type="button"
+                onClick={() => onModeChange("comprehensive")}
+                className={cn(
+                  "px-4 py-2 rounded-xl text-sm font-medium transition-all",
+                  assessmentMode === "comprehensive"
+                    ? "bg-green-600 text-white"
+                    : "bg-white border border-green-200 text-green-700 hover:bg-green-100"
+                )}
+              >
+                Deep Review
+              </button>
+            </div>
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* System Name */}
           <div className="space-y-2">
-            <Label className="text-foreground">System name *</Label>
-            <Input
-              value={values.system_name}
-              onChange={(e) =>
-                setFieldValue("system_name", e.target.value)
-              }
-              placeholder="e.g., Fraud Detection Engine, Customer Chatbot"
-              className="rounded-xl"
+            <Label className="text-foreground">
+              System name <span className="text-red-500">*</span>
+            </Label>
+            <Controller
+              name="system_name"
+              control={control}
+              render={({ field }) => (
+                <Input
+                  {...field}
+                  placeholder="e.g., Fraud Detection Engine"
+                  className={cn("rounded-xl", errors.system_name && "border-red-500")}
+                />
+              )}
             />
-            {touched.system_name && typeof errors.system_name === "string" && (
-              <p className="text-sm text-red-500">
-                {errors.system_name}
-              </p>
+            {errors.system_name && (
+              <p className="text-sm text-red-500">{errors.system_name.message as string}</p>
             )}
           </div>
 
-          {/* Owner */}
           <div className="space-y-2">
             <Label className="text-foreground">Owner / Team</Label>
-            <Input
-              value={values.owner}
-              onChange={(e) =>
-                setFieldValue("owner", e.target.value)
-              }
-              placeholder="e.g., Risk Operations, Product Team"
-              className="rounded-xl"
+            <Controller
+              name="owner"
+              control={control}
+              render={({ field }) => (
+                <Input
+                  {...field}
+                  placeholder="e.g., Risk Operations, Product Team"
+                  className="rounded-xl"
+                />
+              )}
             />
           </div>
 
-          {/* Jurisdiction */}
           <div className="space-y-2">
             <Label className="text-foreground">Jurisdiction(s)</Label>
-            <Input
-              value={values.jurisdiction}
-              onChange={(e) =>
-                setFieldValue("jurisdiction", e.target.value)
-              }
-              placeholder="e.g., UK, EU, Global"
-              className="rounded-xl"
+            <Controller
+              name="jurisdiction"
+              control={control}
+              render={({ field }) => (
+                <Input
+                  {...field}
+                  placeholder="e.g., UK, EU, Global"
+                  className="rounded-xl"
+                />
+              )}
             />
           </div>
 
-          {/* Sector */}
           <div className="space-y-2">
-            <Label className="text-foreground">Sector / Industry *</Label>
-            <Select
-              value={values.sector}
-              onValueChange={(v) =>
-                setFieldValue("sector", v)
-              }
-            >
-              <SelectTrigger className="rounded-xl">
-                <SelectValue placeholder="Select sector" />
-              </SelectTrigger>
-              <SelectContent className="bg-white border shadow-xl z-50">
-                <SelectItem value="finance">Finance (FCA regulated)</SelectItem>
-                <SelectItem value="healthcare">Healthcare (MHRA regulated)</SelectItem>
-                <SelectItem value="telecoms">Telecommunications (Ofcom regulated)</SelectItem>
-                <SelectItem value="competition">Competition / Markets (CMA regulated)</SelectItem>
-                <SelectItem value="data_privacy">Data Privacy (ICO regulated)</SelectItem>
-                <SelectItem value="other">Other sector</SelectItem>
-              </SelectContent>
-            </Select>
-            {touched.sector && typeof errors.sector === "string" && (
-              <p className="text-sm text-red-500">
-                {errors.sector}
-              </p>
+            <Label className="text-foreground">
+              Sector / Industry <span className="text-red-500">*</span>
+            </Label>
+            <Controller
+              name="sector"
+              control={control}
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger
+                    className={cn("rounded-xl", errors.sector && "border-red-500")}
+                  >
+                    <SelectValue placeholder="Select sector" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white border shadow-xl z-50">
+                    <SelectItem value="finance">Finance (FCA regulated)</SelectItem>
+                    <SelectItem value="healthcare">Healthcare (MHRA regulated)</SelectItem>
+                    <SelectItem value="telecoms">Telecommunications (Ofcom)</SelectItem>
+                    <SelectItem value="competition">Competition / Markets (CMA)</SelectItem>
+                    <SelectItem value="data_privacy">Data Privacy (ICO regulated)</SelectItem>
+                    <SelectItem value="other">Other sector</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            />
+            {errors.sector && (
+              <p className="text-sm text-red-500">{errors.sector.message as string}</p>
             )}
           </div>
 
-          {/* System Status */}
           <div className="space-y-2">
             <Label className="text-foreground">System Status</Label>
-            <Select
-              value={values.system_status}
-              onValueChange={(v) =>
-                setFieldValue("system_status", v)
-              }
-            >
-              <SelectTrigger className="rounded-xl">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="bg-white border shadow-xl z-50">
-                <SelectItem value="envision">
-                  Envision – Planning and resource allocation
-                </SelectItem>
-                <SelectItem value="development">
-                  Development – Still being built
-                </SelectItem>
-                <SelectItem value="staging">
-                  Staging – Testing before launch
-                </SelectItem>
-                <SelectItem value="production">
-                  Production – Live and in use
-                </SelectItem>
-              </SelectContent>
-            </Select>
+            <Controller
+              name="system_status"
+              control={control}
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger className="rounded-xl">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white border shadow-xl z-50">
+                    <SelectItem value="envision">Envision - Planning</SelectItem>
+                    <SelectItem value="development">Development - Being built</SelectItem>
+                    <SelectItem value="staging">Staging - Testing</SelectItem>
+                    <SelectItem value="production">Production - Live</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            />
           </div>
 
-          {/* Business Use Case */}
           <div className="space-y-2">
-            <Label className="text-foreground">Business Purpose / Use Case</Label>
-            <Input
-              value={values.business_use_case}
-              onChange={(e) =>
-                setFieldValue("business_use_case", e.target.value)
-              }
-              placeholder="e.g., Automated credit scoring, Customer support"
-              className="rounded-xl"
+            <Label className="text-foreground">Business Purpose</Label>
+            <Controller
+              name="business_use_case"
+              control={control}
+              render={({ field }) => (
+                <Input
+                  {...field}
+                  placeholder="e.g., Automated credit scoring"
+                  className="rounded-xl"
+                />
+              )}
             />
           </div>
 
-          {/* Description */}
           <div className="space-y-2 md:col-span-2">
-            <Label className="text-foreground">System Description *</Label>
-            <Textarea
-              value={values.description}
-              onChange={(e) =>
-                setFieldValue("description", e.target.value)
-              }
-              placeholder="Provide a brief description of what your AI system does, how it works, and its main purpose..."
-              className="min-h-[100px] rounded-xl"
+            <Label className="text-foreground">
+              System Description <span className="text-red-500">*</span>
+            </Label>
+            <Controller
+              name="description"
+              control={control}
+              render={({ field }) => (
+                <Textarea
+                  {...field}
+                  placeholder="Describe what your AI system does and its main purpose..."
+                  className={cn("min-h-[100px] rounded-xl", errors.description && "border-red-500")}
+                />
+              )}
             />
-            {touched.description && typeof errors.description === "string" && (
-              <p className="text-sm text-red-500">
-                {errors.description}
-              </p>
+            {errors.description && (
+              <p className="text-sm text-red-500">{errors.description.message as string}</p>
             )}
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </AssessmentCard>
   );
 }

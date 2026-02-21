@@ -8,6 +8,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import { ToggleSwitchInline } from "@/components/ui/toggle-switch";
 import { useFormikContext } from "formik";
 
 type EvidenceContent = Record<string, string>;
@@ -25,7 +26,6 @@ export default function MasPage7OperationalPillars({
   handleEvidenceFileChange,
   evidenceContent,
 }: Props) {
-  // Handle SSR - Formik context not available during static generation
   let formikContext;
   try {
     formikContext = useFormikContext<any>();
@@ -50,7 +50,7 @@ export default function MasPage7OperationalPillars({
         </CardHeader>
         <CardContent className="space-y-3">
           {/* Third-Party & Vendor Management with Sub-questions */}
-          <div className="space-y-3 border border-border rounded-xl p-4 glass-panel">
+          <div className="space-y-3 border border-slate-200 rounded-xl p-4 bg-slate-50 hover:bg-slate-100 transition-colors">
             <div className="flex items-center justify-between">
               <div className="space-y-0.5 flex-1">
                 <Label className="text-base font-medium text-foreground">
@@ -64,39 +64,16 @@ export default function MasPage7OperationalPillars({
               <div className="ml-4 flex items-center gap-2">
                 <span
                   className={`text-xs font-bold px-2 py-1 rounded ${values.third_party_controls
-                    ? "text-blue-500 bg-emerald-300"
-                    : "text-red-500"
+                    ? "text-emerald-700 bg-emerald-100"
+                    : "text-slate-500 bg-slate-200"
                     }`}
                 >
                   {values.third_party_controls ? "YES" : "NO"}
                 </span>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={values.third_party_controls}
-                  onClick={() =>
-                    setFieldValue(
-                      "third_party_controls",
-                      !values.third_party_controls
-                    )
-                  }
-                  className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${values.third_party_controls
-                    ? "text-blue-500 bg-emerald-300"
-                    : "text-red-500"
-                    }`}
-                  style={{
-                    backgroundColor: values.third_party_controls
-                      ? "#10b981"
-                      : "#9ca3af",
-                  }}
-                >
-                  <span
-                    className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform ${values.third_party_controls
-                      ? "translate-x-5"
-                      : "translate-x-0"
-                      }`}
-                  />
-                </button>
+                <ToggleSwitchInline
+                  checked={values.third_party_controls}
+                  onChange={(v) => setFieldValue("third_party_controls", v)}
+                />
               </div>
             </div>
             {values.third_party_controls && (
@@ -443,7 +420,7 @@ export default function MasPage7OperationalPillars({
           </div>
 
           {/* Algorithm & Feature Selection with Sub-questions */}
-          <div className="space-y-3 border border-border rounded-xl p-4 glass-panel">
+          <div className="space-y-3 border border-slate-200 rounded-xl p-4 bg-slate-50 hover:bg-slate-100 transition-colors">
             <div className="flex items-center justify-between">
               <div className="space-y-0.5 flex-1">
                 <Label className="text-base font-medium text-foreground">
@@ -457,39 +434,16 @@ export default function MasPage7OperationalPillars({
               <div className="ml-4 flex items-center gap-2">
                 <span
                   className={`text-xs font-bold px-2 py-1 rounded ${values.algo_documented
-                    ? "text-blue-500 bg-emerald-300"
-                    : "text-red-500"
+                    ? "text-emerald-700 bg-emerald-100"
+                    : "text-slate-500 bg-slate-200"
                     }`}
                 >
                   {values.algo_documented ? "YES" : "NO"}
                 </span>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={values.algo_documented}
-                  onClick={() =>
-                    setFieldValue(
-                      "algo_documented",
-                      !values.algo_documented
-                    )
-                  }
-                  className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${values.algo_documented
-                    ? "text-blue-500 bg-emerald-300"
-                    : "text-red-500"
-                    }`}
-                  style={{
-                    backgroundColor: values.algo_documented
-                      ? "#10b981"
-                      : "#9ca3af",
-                  }}
-                >
-                  <span
-                    className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform ${values.algo_documented
-                      ? "translate-x-5"
-                      : "translate-x-0"
-                      }`}
-                  />
-                </button>
+                <ToggleSwitchInline
+                  checked={values.algo_documented}
+                  onChange={(v) => setFieldValue("algo_documented", v)}
+                />
               </div>
             </div>
             {values.algo_documented && (
@@ -741,7 +695,7 @@ export default function MasPage7OperationalPillars({
           </div>
 
           {/* NEW: A/B Testing */}
-          <div className="space-y-3 border border-border rounded-xl p-4 glass-panel">
+          <div className="space-y-3 border border-slate-200 rounded-xl p-4 bg-slate-50 hover:bg-slate-100 transition-colors">
             <div className="flex items-center justify-between">
               <div className="space-y-0.5 flex-1">
                 <Label className="text-base font-medium text-foreground">
@@ -754,39 +708,16 @@ export default function MasPage7OperationalPillars({
               <div className="ml-4 flex items-center gap-2">
                 <span
                   className={`text-xs font-bold px-2 py-1 rounded ${values.algo_ab_testing
-                    ? "text-blue-500 bg-emerald-300"
-                    : "text-red-500"
+                    ? "text-emerald-700 bg-emerald-100"
+                    : "text-slate-500 bg-slate-200"
                     }`}
                 >
                   {values.algo_ab_testing ? "YES" : "NO"}
                 </span>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={values.algo_ab_testing}
-                  onClick={() =>
-                    setFieldValue(
-                      "algo_ab_testing",
-                      !values.algo_ab_testing
-                    )
-                  }
-                  className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${values.algo_ab_testing
-                    ? "text-blue-500 bg-emerald-300"
-                    : "text-red-500"
-                    }`}
-                  style={{
-                    backgroundColor: values.algo_ab_testing
-                      ? "#10b981"
-                      : "#9ca3af",
-                  }}
-                >
-                  <span
-                    className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform ${values.algo_ab_testing
-                      ? "translate-x-5"
-                      : "translate-x-0"
-                      }`}
-                  />
-                </button>
+                <ToggleSwitchInline
+                  checked={values.algo_ab_testing}
+                  onChange={(v) => setFieldValue("algo_ab_testing", v)}
+                />
               </div>
             </div>
             {values.algo_ab_testing && (
@@ -847,7 +778,7 @@ export default function MasPage7OperationalPillars({
           </div>
 
           {/* Evaluation & Testing with Sub-questions */}
-          <div className="space-y-3 border border-border rounded-xl p-4 glass-panel">
+          <div className="space-y-3 border border-slate-200 rounded-xl p-4 bg-slate-50 hover:bg-slate-100 transition-colors">
             <div className="flex items-center justify-between">
               <div className="space-y-0.5 flex-1">
                 <Label className="text-base font-medium text-foreground">
@@ -861,39 +792,16 @@ export default function MasPage7OperationalPillars({
               <div className="ml-4 flex items-center gap-2">
                 <span
                   className={`text-xs font-bold px-2 py-1 rounded ${values.evaluation_testing
-                    ? "text-blue-500 bg-emerald-300"
-                    : "text-red-500"
+                    ? "text-emerald-700 bg-emerald-100"
+                    : "text-slate-500 bg-slate-200"
                     }`}
                 >
                   {values.evaluation_testing ? "YES" : "NO"}
                 </span>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={values.evaluation_testing}
-                  onClick={() =>
-                    setFieldValue(
-                      "evaluation_testing",
-                      !values.evaluation_testing
-                    )
-                  }
-                  className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${values.evaluation_testing
-                    ? "text-blue-500 bg-emerald-300"
-                    : "text-red-500"
-                    }`}
-                  style={{
-                    backgroundColor: values.evaluation_testing
-                      ? "#10b981"
-                      : "#9ca3af",
-                  }}
-                >
-                  <span
-                    className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform ${values.evaluation_testing
-                      ? "translate-x-5"
-                      : "translate-x-0"
-                      }`}
-                  />
-                </button>
+                <ToggleSwitchInline
+                  checked={values.evaluation_testing}
+                  onChange={(v) => setFieldValue("evaluation_testing", v)}
+                />
               </div>
             </div>
             {values.evaluation_testing && (
@@ -1062,7 +970,7 @@ export default function MasPage7OperationalPillars({
           </div>
 
           {/* NEW: Regression Testing */}
-          <div className="space-y-3 border border-border rounded-xl p-4 glass-panel">
+          <div className="space-y-3 border border-slate-200 rounded-xl p-4 bg-slate-50 hover:bg-slate-100 transition-colors">
             <div className="flex items-center justify-between">
               <div className="space-y-0.5 flex-1">
                 <Label className="text-base font-medium text-foreground">
@@ -1075,39 +983,16 @@ export default function MasPage7OperationalPillars({
               <div className="ml-4 flex items-center gap-2">
                 <span
                   className={`text-xs font-bold px-2 py-1 rounded ${values.evaluation_regression_testing
-                    ? "text-blue-500 bg-emerald-300"
-                    : "text-red-500"
+                    ? "text-emerald-700 bg-emerald-100"
+                    : "text-slate-500 bg-slate-200"
                     }`}
                 >
                   {values.evaluation_regression_testing ? "YES" : "NO"}
                 </span>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={values.evaluation_regression_testing}
-                  onClick={() =>
-                    setFieldValue(
-                      "evaluation_regression_testing",
-                      !values.evaluation_regression_testing
-                    )
-                  }
-                  className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${values.evaluation_regression_testing
-                    ? "text-blue-500 bg-emerald-300"
-                    : "text-red-500"
-                    }`}
-                  style={{
-                    backgroundColor: values.evaluation_regression_testing
-                      ? "#10b981"
-                      : "#9ca3af",
-                  }}
-                >
-                  <span
-                    className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform ${values.evaluation_regression_testing
-                      ? "translate-x-5"
-                      : "translate-x-0"
-                      }`}
-                  />
-                </button>
+                <ToggleSwitchInline
+                  checked={values.evaluation_regression_testing}
+                  onChange={(v) => setFieldValue("evaluation_regression_testing", v)}
+                />
               </div>
             </div>
             {values.evaluation_regression_testing && (
@@ -1142,7 +1027,7 @@ export default function MasPage7OperationalPillars({
           </div>
 
           {/* NEW: Stress Testing */}
-          <div className="space-y-3 border border-border rounded-xl p-4 glass-panel">
+          <div className="space-y-3 border border-slate-200 rounded-xl p-4 bg-slate-50 hover:bg-slate-100 transition-colors">
             <div className="flex items-center justify-between">
               <div className="space-y-0.5 flex-1">
                 <Label className="text-base font-medium text-foreground">
@@ -1155,39 +1040,16 @@ export default function MasPage7OperationalPillars({
               <div className="ml-4 flex items-center gap-2">
                 <span
                   className={`text-xs font-bold px-2 py-1 rounded ${values.evaluation_stress_testing
-                    ? "text-blue-500 bg-emerald-300"
-                    : "text-red-500"
+                    ? "text-emerald-700 bg-emerald-100"
+                    : "text-slate-500 bg-slate-200"
                     }`}
                 >
                   {values.evaluation_stress_testing ? "YES" : "NO"}
                 </span>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={values.evaluation_stress_testing}
-                  onClick={() =>
-                    setFieldValue(
-                      "evaluation_stress_testing",
-                      !values.evaluation_stress_testing
-                    )
-                  }
-                  className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${values.evaluation_stress_testing
-                    ? "text-blue-500 bg-emerald-300"
-                    : "text-red-500"
-                    }`}
-                  style={{
-                    backgroundColor: values.evaluation_stress_testing
-                      ? "#10b981"
-                      : "#9ca3af",
-                  }}
-                >
-                  <span
-                    className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform ${values.evaluation_stress_testing
-                      ? "translate-x-5"
-                      : "translate-x-0"
-                      }`}
-                  />
-                </button>
+                <ToggleSwitchInline
+                  checked={values.evaluation_stress_testing}
+                  onChange={(v) => setFieldValue("evaluation_stress_testing", v)}
+                />
               </div>
             </div>
             {values.evaluation_stress_testing && (

@@ -38,11 +38,10 @@ function SidebarItem({ href, label, icon, active }: ItemProps) {
   return (
     <Link
       href={href}
-      className={`flex h-10 w-full items-center gap-3 rounded-lg px-3 text-left text-[14px] font-medium transition-colors ${
-        active
+      className={`flex h-10 w-full items-center gap-3 rounded-lg px-3 text-left text-[14px] font-medium transition-colors ${active
           ? "bg-white text-[#0F172A] shadow-[0_1px_2px_rgba(15,23,42,0.06)]"
           : "text-[#5E6C85] hover:bg-white hover:text-[#0F172A]"
-      }`}
+        }`}
     >
       {icon}
       {label}
@@ -55,7 +54,7 @@ export default function Sidebar({ onLogout }: SidebarProps) {
   const router = useRouter();
 
   const isActive = (href: string) =>
-    pathname === href || pathname?.startsWith(`${href}/`);
+    pathname === href || !!pathname?.startsWith(`${href}/`);
 
   const handleLogout = async () => {
     if (onLogout) {
@@ -92,11 +91,10 @@ export default function Sidebar({ onLogout }: SidebarProps) {
       <div className="mb-7">
         <Link
           href="/dashboard"
-          className={`flex h-12 w-full items-center gap-3 rounded-xl border px-4 text-left text-[15px] font-medium transition-colors ${
-            isActive("/dashboard")
+          className={`flex h-12 w-full items-center gap-3 rounded-xl border px-4 text-left text-[15px] font-medium transition-colors ${isActive("/dashboard")
               ? "border-[#E2E8F0] bg-white text-[#0F172A] shadow-[0_1px_2px_rgba(15,23,42,0.06)]"
               : "border-transparent text-[#475569] hover:border-[#E2E8F0] hover:bg-white"
-          }`}
+            }`}
         >
           <LayoutDashboard className="h-[18px] w-[18px]" />
           Dashboard

@@ -8,6 +8,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { ToggleSwitchInline } from "@/components/ui/toggle-switch";
 import { useFormikContext } from "formik";
 
 type Props = {
@@ -34,32 +35,19 @@ export default function UkPage4AccountabilityGovernance({
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between p-4 rounded-xl border transition-colors bg-slate-50 border-slate-200 hover:bg-slate-100">
             <Label className="text-base font-semibold flex-1">Clear accountability framework</Label>
             <div className="ml-4 flex items-center gap-2">
               <span className={`text-xs font-bold px-2 py-1 rounded ${values.accountability_framework
-                ? "text-blue-500 bg-emerald-300"
-                : "text-red-500"
+                ? "text-emerald-700 bg-emerald-100"
+                : "text-slate-500 bg-slate-200"
                 }`}>
                 {values.accountability_framework ? "YES" : "NO"}
               </span>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={values.accountability_framework}
-                onClick={() =>
-                  setFieldValue(
-                    "accountability_framework",
-                    !values.accountability_framework
-                  )
-                }
-                className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${values.accountability_framework ? "bg-emerald-600 border-emerald-500" : "bg-gray-400 border-gray-500"
-                  }`}
-                style={{ backgroundColor: values.accountability_framework ? '#10b981' : '#9ca3af' }}
-              >
-                <span className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform ${values.accountability_framework ? "translate-x-5" : "translate-x-0"
-                  }`} />
-              </button>
+              <ToggleSwitchInline
+                checked={values.accountability_framework}
+                onChange={(v) => setFieldValue("accountability_framework", v)}
+              />
             </div>
           </div>
           {values.accountability_framework && (
@@ -137,32 +125,19 @@ export default function UkPage4AccountabilityGovernance({
         </div>
 
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between p-4 rounded-xl border transition-colors bg-slate-50 border-slate-200 hover:bg-slate-100">
             <Label className="text-base font-semibold flex-1">Human oversight mechanisms</Label>
             <div className="ml-4 flex items-center gap-2">
               <span className={`text-xs font-bold px-2 py-1 rounded ${values.human_oversight
-                ? "text-blue-500 bg-emerald-300"
-                : "text-red-500"
+                ? "text-emerald-700 bg-emerald-100"
+                : "text-slate-500 bg-slate-200"
                 }`}>
                 {values.human_oversight ? "YES" : "NO"}
               </span>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={values.human_oversight}
-                onClick={() =>
-                  setFieldValue(
-                    "human_oversight",
-                    !values.human_oversight
-                  )
-                }
-                className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${values.human_oversight ? "bg-emerald-600 border-emerald-500" : "bg-gray-400 border-gray-500"
-                  }`}
-                style={{ backgroundColor: values.human_oversight ? '#10b981' : '#9ca3af' }}
-              >
-                <span className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform ${values.human_oversight ? "translate-x-5" : "translate-x-0"
-                  }`} />
-              </button>
+              <ToggleSwitchInline
+                checked={values.human_oversight}
+                onChange={(v) => setFieldValue("human_oversight", v)}
+              />
               {touched.human_oversight &&
                 typeof errors.human_oversight === "string" && (
                   <p className="text-xs text-red-500 mt-1">
@@ -266,32 +241,19 @@ export default function UkPage4AccountabilityGovernance({
         </div>
 
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between p-4 rounded-xl border transition-colors bg-slate-50 border-slate-200 hover:bg-slate-100">
             <Label className="text-base font-semibold flex-1">Risk management processes</Label>
             <div className="ml-4 flex items-center gap-2">
               <span className={`text-xs font-bold px-2 py-1 rounded ${values.risk_management
-                ? "text-blue-500 bg-emerald-300"
-                : "text-red-500"
+                ? "text-emerald-700 bg-emerald-100"
+                : "text-slate-500 bg-slate-200"
                 }`}>
                 {values.risk_management ? "YES" : "NO"}
               </span>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={values.risk_management}
-                onClick={() =>
-                  setFieldValue(
-                    "risk_management",
-                    !values.risk_management
-                  )
-                }
-                className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${values.risk_management ? "bg-emerald-600 border-emerald-500" : "bg-gray-400 border-gray-500"
-                  }`}
-                style={{ backgroundColor: values.risk_management ? '#10b981' : '#9ca3af' }}
-              >
-                <span className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform ${values.risk_management ? "translate-x-5" : "translate-x-0"
-                  }`} />
-              </button>
+              <ToggleSwitchInline
+                checked={values.risk_management}
+                onChange={(v) => setFieldValue("risk_management", v)}
+              />
             </div>
           </div>
           {values.risk_management && (
@@ -369,32 +331,19 @@ export default function UkPage4AccountabilityGovernance({
         </div>
 
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between p-4 rounded-xl border transition-colors bg-slate-50 border-slate-200 hover:bg-slate-100">
             <Label className="text-base font-semibold flex-1">Governance structure and roles</Label>
             <div className="ml-4 flex items-center gap-2">
               <span className={`text-xs font-bold px-2 py-1 rounded ${values.governance_structure
-                ? "text-blue-500 bg-emerald-300"
-                : "text-red-500"
+                ? "text-emerald-700 bg-emerald-100"
+                : "text-slate-500 bg-slate-200"
                 }`}>
                 {values.governance_structure ? "YES" : "NO"}
               </span>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={values.governance_structure}
-                onClick={() =>
-                  setFieldValue(
-                    "governance_structure",
-                    !values.governance_structure
-                  )
-                }
-                className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${values.governance_structure ? "bg-emerald-600 border-emerald-500" : "bg-gray-400 border-gray-500"
-                  }`}
-                style={{ backgroundColor: values.governance_structure ? '#10b981' : '#9ca3af' }}
-              >
-                <span className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform ${values.governance_structure ? "translate-x-5" : "translate-x-0"
-                  }`} />
-              </button>
+              <ToggleSwitchInline
+                checked={values.governance_structure}
+                onChange={(v) => setFieldValue("governance_structure", v)}
+              />
             </div>
           </div>
           {values.governance_structure && (
@@ -444,32 +393,19 @@ export default function UkPage4AccountabilityGovernance({
         </div>
 
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between p-4 rounded-xl border transition-colors bg-slate-50 border-slate-200 hover:bg-slate-100">
             <Label className="text-base font-semibold flex-1">Audit trail and record-keeping</Label>
             <div className="ml-4 flex items-center gap-2">
               <span className={`text-xs font-bold px-2 py-1 rounded ${values.audit_trail
-                ? "text-blue-500 bg-emerald-300"
-                : "text-red-500"
+                ? "text-emerald-700 bg-emerald-100"
+                : "text-slate-500 bg-slate-200"
                 }`}>
                 {values.audit_trail ? "YES" : "NO"}
               </span>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={values.audit_trail}
-                onClick={() =>
-                  setFieldValue(
-                    "audit_trail",
-                    !values.audit_trail
-                  )
-                }
-                className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${values.audit_trail ? "bg-emerald-600 border-emerald-500" : "bg-gray-400 border-gray-500"
-                  }`}
-                style={{ backgroundColor: values.audit_trail ? '#10b981' : '#9ca3af' }}
-              >
-                <span className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform ${values.audit_trail ? "translate-x-5" : "translate-x-0"
-                  }`} />
-              </button>
+              <ToggleSwitchInline
+                checked={values.audit_trail}
+                onChange={(v) => setFieldValue("audit_trail", v)}
+              />
             </div>
           </div>
           {values.audit_trail && (
@@ -588,32 +524,19 @@ export default function UkPage4AccountabilityGovernance({
         </div>
 
         <div className="space-y-2">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between p-4 rounded-xl border transition-colors bg-slate-50 border-slate-200 hover:bg-slate-100">
             <Label>Do you have an ethics committee?</Label>
             <div className="ml-4 flex items-center gap-2">
               <span className={`text-xs font-bold px-2 py-1 rounded ${values.ethics_committee
-                ? "text-blue-500 bg-emerald-300"
-                : "text-red-500"
+                ? "text-emerald-700 bg-emerald-100"
+                : "text-slate-500 bg-slate-200"
                 }`}>
                 {values.ethics_committee ? "YES" : "NO"}
               </span>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={values.ethics_committee}
-                onClick={() =>
-                  setFieldValue(
-                    "ethics_committee",
-                    !values.ethics_committee
-                  )
-                }
-                className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${values.ethics_committee ? "bg-emerald-600 border-emerald-500" : "bg-gray-400 border-gray-500"
-                  }`}
-                style={{ backgroundColor: values.ethics_committee ? '#10b981' : '#9ca3af' }}
-              >
-                <span className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform ${values.ethics_committee ? "translate-x-5" : "translate-x-0"
-                  }`} />
-              </button>
+              <ToggleSwitchInline
+                checked={values.ethics_committee}
+                onChange={(v) => setFieldValue("ethics_committee", v)}
+              />
             </div>
           </div>
           {values.ethics_committee && (

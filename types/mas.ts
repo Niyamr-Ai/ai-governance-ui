@@ -52,4 +52,15 @@ export interface MasAssessmentResult {
   overall_risk_level: MasRiskLevel;
   overall_compliance_status: MasComplianceStatus;
   summary: string;
+  compliance_score?: number;
+  confidence_score?: number;
+  score_breakdown?: {
+    baseScore: number;
+    penaltiesApplied: { reason: string; amount: number; conditionMet: boolean }[];
+    evidenceBoost: number;
+    finalScore: number;
+    questionsAssessed: string[];
+    questionsSkipped: string[];
+    confidenceScore: number;
+  };
 }

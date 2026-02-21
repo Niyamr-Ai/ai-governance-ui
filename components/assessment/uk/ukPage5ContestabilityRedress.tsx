@@ -8,6 +8,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { ToggleSwitchInline } from "@/components/ui/toggle-switch";
 import { useFormikContext } from "formik";
 
 type Props = {
@@ -34,32 +35,19 @@ export default function UkPage5ContestabilityRedress({
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between p-4 rounded-xl border transition-colors bg-slate-50 border-slate-200 hover:bg-slate-100">
             <Label className="text-base font-semibold flex-1">Clear user rights and information</Label>
             <div className="ml-4 flex items-center gap-2">
               <span className={`text-xs font-bold px-2 py-1 rounded ${values.user_rights
-                ? "text-blue-500 bg-emerald-300"
-                : "text-red-500"
+                ? "text-emerald-700 bg-emerald-100"
+                : "text-slate-500 bg-slate-200"
                 }`}>
                 {values.user_rights ? "YES" : "NO"}
               </span>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={values.user_rights}
-                onClick={() =>
-                  setFieldValue(
-                    "user_rights",
-                    !values.user_rights
-                  )
-                }
-                className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${values.user_rights ? "bg-emerald-600 border-emerald-500" : "bg-gray-400 border-gray-500"
-                  }`}
-                style={{ backgroundColor: values.user_rights ? '#10b981' : '#9ca3af' }}
-              >
-                <span className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform ${values.user_rights ? "translate-x-5" : "translate-x-0"
-                  }`} />
-              </button>
+              <ToggleSwitchInline
+                checked={values.user_rights}
+                onChange={(v) => setFieldValue("user_rights", v)}
+              />
             </div>
           </div>
           {values.user_rights && (
@@ -140,32 +128,19 @@ export default function UkPage5ContestabilityRedress({
         </div>
 
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between p-4 rounded-xl border transition-colors bg-slate-50 border-slate-200 hover:bg-slate-100">
             <Label className="text-base font-semibold flex-1">Appeal or challenge mechanism</Label>
             <div className="ml-4 flex items-center gap-2">
               <span className={`text-xs font-bold px-2 py-1 rounded ${values.appeal_mechanism
-                ? "text-blue-500 bg-emerald-300"
-                : "text-red-500"
+                ? "text-emerald-700 bg-emerald-100"
+                : "text-slate-500 bg-slate-200"
                 }`}>
                 {values.appeal_mechanism ? "YES" : "NO"}
               </span>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={values.appeal_mechanism}
-                onClick={() =>
-                  setFieldValue(
-                    "appeal_mechanism",
-                    !values.appeal_mechanism
-                  )
-                }
-                className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${values.appeal_mechanism ? "bg-emerald-600 border-emerald-500" : "bg-gray-400 border-gray-500"
-                  }`}
-                style={{ backgroundColor: values.appeal_mechanism ? '#10b981' : '#9ca3af' }}
-              >
-                <span className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform ${values.appeal_mechanism ? "translate-x-5" : "translate-x-0"
-                  }`} />
-              </button>
+              <ToggleSwitchInline
+                checked={values.appeal_mechanism}
+                onChange={(v) => setFieldValue("appeal_mechanism", v)}
+              />
             </div>
           </div>
           {values.appeal_mechanism && (
@@ -263,32 +238,19 @@ export default function UkPage5ContestabilityRedress({
         </div>
 
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between p-4 rounded-xl border transition-colors bg-slate-50 border-slate-200 hover:bg-slate-100">
             <Label className="text-base font-semibold flex-1">Redress process for adverse outcomes</Label>
             <div className="ml-4 flex items-center gap-2">
               <span className={`text-xs font-bold px-2 py-1 rounded ${values.redress_process
-                ? "text-blue-500 bg-emerald-300"
-                : "text-red-500"
+                ? "text-emerald-700 bg-emerald-100"
+                : "text-slate-500 bg-slate-200"
                 }`}>
                 {values.redress_process ? "YES" : "NO"}
               </span>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={values.redress_process}
-                onClick={() =>
-                  setFieldValue(
-                    "redress_process",
-                    !values.redress_process
-                  )
-                }
-                className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${values.redress_process ? "bg-emerald-600 border-emerald-500" : "bg-gray-400 border-gray-500"
-                  }`}
-                style={{ backgroundColor: values.redress_process ? '#10b981' : '#9ca3af' }}
-              >
-                <span className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform ${values.redress_process ? "translate-x-5" : "translate-x-0"
-                  }`} />
-              </button>
+              <ToggleSwitchInline
+                checked={values.redress_process}
+                onChange={(v) => setFieldValue("redress_process", v)}
+              />
             </div>
           </div>
           {values.redress_process && (
@@ -389,33 +351,19 @@ export default function UkPage5ContestabilityRedress({
         </div>
 
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between p-4 rounded-xl border transition-colors bg-slate-50 border-slate-200 hover:bg-slate-100">
             <Label className="text-base font-semibold flex-1">Complaint handling procedures</Label>
             <div className="ml-4 flex items-center gap-2">
               <span className={`text-xs font-bold px-2 py-1 rounded ${values.complaint_handling
-                ? "text-blue-500 bg-emerald-300"
-                : "text-red-500"
+                ? "text-emerald-700 bg-emerald-100"
+                : "text-slate-500 bg-slate-200"
                 }`}>
                 {values.complaint_handling ? "YES" : "NO"}
               </span>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={values.complaint_handling}
-
-                onClick={() =>
-                  setFieldValue(
-                    "complaint_handling",
-                    !values.complaint_handling
-                  )
-                }
-                className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${values.complaint_handling ? "bg-emerald-600 border-emerald-500" : "bg-gray-400 border-gray-500"
-                  }`}
-                style={{ backgroundColor: values.complaint_handling ? '#10b981' : '#9ca3af' }}
-              >
-                <span className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform ${values.complaint_handling ? "translate-x-5" : "translate-x-0"
-                  }`} />
-              </button>
+              <ToggleSwitchInline
+                checked={values.complaint_handling}
+                onChange={(v) => setFieldValue("complaint_handling", v)}
+              />
             </div>
           </div>
           {values.complaint_handling && (

@@ -1,51 +1,107 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
+import Head from "next/head";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Loader2, Shield, CheckCircle2, XCircle, AlertTriangle } from "lucide-react";
-import type { UKAssessmentResult } from "@/types/uk";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
+  AlertTriangle,
+  CheckCircle2,
+  FileWarning,
+  Loader2,
+  XCircle,
+} from "lucide-react";
+
 import Sidebar from "@/components/sidebar";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import type { UKAssessmentResult, UKComplianceStatus, UKRiskLevel } from "@/types/uk";
 import { supabase } from "@/utils/supabase/client";
-import Head from 'next/head';
+import { backendFetch } from "@/utils/backend-fetch";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  PolarAngleAxis,
+  PolarGrid,
+  Radar,
+  RadarChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 
-async function backendFetch(
-  path: string,
-  options: RequestInit = {}
-) {
-  const { data } = await supabase.auth.getSession();
+type Severity = "critical" | "high" | "info";
 
-  const accessToken = data.session?.access_token;
+const PRINCIPLE_META = [
+  { key: "safety_and_security", title: "Safety, Security & Robustness", lawRef: "UK AI Principle 1" },
+  { key: "transparency", title: "Transparency & Explainability", lawRef: "UK AI Principle 2" },
+  { key: "fairness", title: "Fairness", lawRef: "UK AI Principle 3" },
+  { key: "governance", title: "Accountability & Governance", lawRef: "UK AI Principle 4" },
+  { key: "contestability", title: "Contestability & Redress", lawRef: "UK AI Principle 5" },
+] as const;
 
-  if (!accessToken) {
-    console.error('❌ No access token found in Supabase session');
-    throw new Error("User not authenticated");
+function riskClasses(level: UKRiskLevel) {
+  switch (level) {
+    case "Frontier / High-Impact Model":
+      return "bg-red-100 text-red-800 border-red-200";
+    case "High-Risk (Sector)":
+      return "bg-orange-100 text-orange-800 border-orange-200";
+    case "Medium-Risk":
+      return "bg-amber-100 text-amber-800 border-amber-200";
+    default:
+      return "bg-emerald-100 text-emerald-800 border-emerald-200";
   }
+}
 
-  console.log('✅ Frontend: Sending token (first 50 chars):', accessToken.substring(0, 50) + '...');
+function statusClasses(status: UKComplianceStatus) {
+  switch (status) {
+    case "Compliant":
+      return "bg-emerald-100 text-emerald-800 border-emerald-200";
+    case "Partially compliant":
+      return "bg-amber-100 text-amber-800 border-amber-200";
+    default:
+      return "bg-red-100 text-red-800 border-red-200";
+  }
+}
 
-  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+function warningClasses(severity: Severity) {
+  if (severity === "critical") return "bg-red-50 border-red-200 text-red-900";
+  if (severity === "high") return "bg-amber-50 border-amber-200 text-amber-900";
+  return "bg-blue-50 border-blue-200 text-blue-900";
+}
 
-  return fetch(
-    `${process.env.NEXT_PUBLIC_BACKEND_URL}${normalizedPath}`,
-    {
-      ...options,
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-    }
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function toReadable(text: string) {
+  return text
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function normalizeSummaryText(summary: string) {
+  return summary
+    .replace(/\bas indicated in Q\d+[a-z]?\b\.?/gi, "")
+    .replace(/\breferenced in Q\d+[a-z]?\b\.?/gi, "")
+    .replace(/\bQ\d+[a-z]?\b/gi, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
+function renderSummaryText(summary: string) {
+  const normalized = normalizeSummaryText(summary || "");
+  if (!normalized) return "";
+  const tokens = normalized.match(/\b[a-z]+_[a-z_]+\b/gi) || [];
+  if (tokens.length === 0) return normalized;
+  const unique = Array.from(new Set(tokens));
+  const tokenSet = new Set(unique.map((t) => t.toLowerCase()));
+  const regex = new RegExp(`(${unique.map((t) => escapeRegExp(t)).join("|")})`, "gi");
+  return normalized.split(regex).map((part, idx) =>
+    tokenSet.has(part.toLowerCase()) ? <strong key={`${part}-${idx}`}>{toReadable(part)}</strong> : part
   );
 }
 
@@ -59,13 +115,11 @@ export default function UKAssessmentDetailPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isMultiJurisdiction, setIsMultiJurisdiction] = useState(false);
 
-  // Check authentication status
   useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setIsLoggedIn(!!user);
-    };
-    checkAuth();
+    void (async () => {
+      const { data: auth } = await supabase.auth.getUser();
+      setIsLoggedIn(!!auth.user);
+    })();
   }, []);
 
   const handleLogout = async () => {
@@ -74,7 +128,7 @@ export default function UKAssessmentDetailPage() {
   };
 
   useEffect(() => {
-    const fetchAssessment = async () => {
+    const load = async () => {
       if (!id || id === "undefined") {
         setError("Invalid assessment ID");
         setLoading(false);
@@ -84,45 +138,36 @@ export default function UKAssessmentDetailPage() {
       try {
         const res = await backendFetch(`/api/uk-compliance/${id}`);
         if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          throw new Error(err.error || "Failed to load assessment");
+          const payload = await res.json().catch(() => ({}));
+          throw new Error(payload.error || "Failed to load assessment");
         }
         const body = await res.json();
         setData(body);
 
-        // Check if this is a multi-jurisdiction system
         if (body.system_id) {
-          try {
-            const { data: systemData, error: systemError } = await supabase
-              .from("ai_systems")
-              .select("data_processing_locations")
-              .eq("id", body.system_id)
-              .single();
+          const { data: systemData, error: systemError } = await supabase
+            .from("ai_systems")
+            .select("data_processing_locations")
+            .eq("id", body.system_id)
+            .single();
 
-            if (!systemError && systemData) {
-              const dataProcessingLocations = systemData.data_processing_locations || [];
-
-              // Check if system has multiple jurisdictions
-              const hasUK = dataProcessingLocations.includes("United Kingdom") || dataProcessingLocations.includes("UK");
-              const hasEU = dataProcessingLocations.includes("European Union") ||
-                dataProcessingLocations.includes("EU") ||
-                dataProcessingLocations.some((loc: string) =>
-                  ["Austria", "Belgium", "Bulgaria", "Croatia", "Cyprus", "Czechia",
-                    "Denmark", "Estonia", "Finland", "France", "Germany", "Greece",
-                    "Hungary", "Ireland", "Italy", "Latvia", "Lithuania", "Luxembourg",
-                    "Malta", "Netherlands", "Poland", "Portugal", "Romania", "Slovakia",
-                    "Slovenia", "Spain", "Sweden"].some(c => c.toLowerCase() === loc.toLowerCase())
-                );
-              const hasSingapore = dataProcessingLocations.includes("Singapore");
-
-              // Multi-jurisdiction if UK + (EU or Singapore)
-              const isMulti = hasUK && (hasEU || hasSingapore);
-              setIsMultiJurisdiction(isMulti);
-            }
-          } catch (err) {
-            console.error("Error checking multi-jurisdiction status:", err);
-            // If we can't check, default to false (don't show button)
-            setIsMultiJurisdiction(false);
+          if (!systemError && systemData) {
+            const locations = systemData.data_processing_locations || [];
+            const hasUK = locations.includes("United Kingdom") || locations.includes("UK");
+            const hasEU =
+              locations.includes("European Union") ||
+              locations.includes("EU") ||
+              locations.some((loc: string) =>
+                [
+                  "Austria", "Belgium", "Bulgaria", "Croatia", "Cyprus", "Czechia",
+                  "Denmark", "Estonia", "Finland", "France", "Germany", "Greece",
+                  "Hungary", "Ireland", "Italy", "Latvia", "Lithuania", "Luxembourg",
+                  "Malta", "Netherlands", "Poland", "Portugal", "Romania", "Slovakia",
+                  "Slovenia", "Spain", "Sweden",
+                ].some((c) => c.toLowerCase() === loc.toLowerCase())
+              );
+            const hasSingapore = locations.includes("Singapore");
+            setIsMultiJurisdiction(hasUK && (hasEU || hasSingapore));
           }
         }
       } catch (err: any) {
@@ -131,16 +176,112 @@ export default function UKAssessmentDetailPage() {
         setLoading(false);
       }
     };
-    fetchAssessment();
+    void load();
   }, [id]);
+
+  const quickChecks = useMemo(() => {
+    if (!data) return [];
+    return [
+      { label: "Robustness testing defined", passed: data.raw_answers?.robustness_testing === true },
+      { label: "Human oversight defined", passed: data.raw_answers?.human_oversight === true },
+      {
+        label: "Accountability framework defined",
+        passed: data.raw_answers?.accountability_framework === true,
+      },
+    ];
+  }, [data]);
+
+  const failureRows = useMemo(() => {
+    if (!data) return [];
+    const principleFailures = PRINCIPLE_META.flatMap((meta) => {
+      const status = data[meta.key];
+      if (!status || status.meetsPrinciple) return [];
+      return (status.missing || []).map((reason) => ({
+        law: meta.lawRef,
+        area: meta.title,
+        why: reason,
+      }));
+    });
+
+    const sectorFailures = (data.sector_regulation?.gaps || []).map((gap) => ({
+      law: "Sector Regulator Requirements",
+      area: data.sector_regulation?.sector || "Sector Controls",
+      why: gap,
+    }));
+
+    return [...principleFailures, ...sectorFailures];
+  }, [data]);
+
+  const principleVisual = useMemo(() => {
+    if (!data) return { met: 0, unmet: 0, missingTotal: 0 };
+    const rows = PRINCIPLE_META.map((meta) => data[meta.key]);
+    const met = rows.filter((row) => row?.meetsPrinciple).length;
+    const unmet = rows.length - met;
+    const missingTotal = rows.reduce((sum, row) => sum + (row?.missing?.length || 0), 0);
+    return { met, unmet, missingTotal };
+  }, [data]);
+
+  const warning = useMemo(() => {
+    if (!data) return null;
+    if (data.overall_assessment === "Non-compliant") {
+      return {
+        severity: "critical" as Severity,
+        title: "Critical Compliance Failure",
+        description: "This assessment is non-compliant and requires remediation before deployment or continued use.",
+      };
+    }
+    if (data.assessment_mode === "rapid") {
+      return {
+        severity: "high" as Severity,
+        title: "Quick Scan Result (Provisional)",
+        description: data.warning || "Rapid mode covers core indicators only. Run Deep Review for full control validation.",
+      };
+    }
+    return {
+      severity: "info" as Severity,
+      title: "Assessment Loaded",
+      description: "Review principle-level gaps and remediation actions below.",
+    };
+  }, [data]);
+
+  const ukRadarData = useMemo(() => {
+    if (!data) return [];
+    return PRINCIPLE_META.map((meta) => {
+      const principle = data[meta.key];
+      const missingCount = principle?.missing?.length || 0;
+      const score = principle?.meetsPrinciple ? 100 : Math.max(10, 100 - missingCount * 25);
+      return { axis: meta.title.replace(" & ", "/"), score };
+    });
+  }, [data]);
+
+  const rootCauseData = useMemo(() => {
+    const buckets = [
+      { name: "Safety/Testing", test: /safety|robust|test|security/i, value: 0 },
+      { name: "Transparency", test: /transparency|disclosure|explain/i, value: 0 },
+      { name: "Fairness/Bias", test: /fair|bias|discrimin/i, value: 0 },
+      { name: "Governance", test: /governance|accountab|oversight|owner/i, value: 0 },
+      { name: "Redress", test: /contest|appeal|redress|challenge/i, value: 0 },
+    ];
+    failureRows.forEach((row) => {
+      const hit = buckets.find((b) => b.test.test(`${row.area} ${row.why}`));
+      if (hit) {
+        hit.value += 1;
+      } else {
+        buckets[3].value += 1;
+      }
+    });
+    return buckets;
+  }, [failureRows]);
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
+      <div className="min-h-screen bg-slate-50">
         <Sidebar onLogout={handleLogout} />
-        <div className={`text-center ${isLoggedIn ? 'lg:pl-72' : ''}`}>
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
-          <p className="text-foreground text-lg font-medium">Loading assessment...</p>
+        <div className={`flex items-center justify-center h-[70vh] ${isLoggedIn ? "lg:pl-72" : ""}`}>
+          <div className="text-center">
+            <Loader2 className="mx-auto h-8 w-8 animate-spin text-blue-600" />
+            <p className="mt-3 text-slate-700">Loading assessment...</p>
+          </div>
         </div>
       </div>
     );
@@ -148,373 +289,302 @@ export default function UKAssessmentDetailPage() {
 
   if (error || !data) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
+      <div className="min-h-screen bg-slate-50">
         <Sidebar onLogout={handleLogout} />
-        <div className={`container mx-auto max-w-4xl py-12 px-4 text-center ${isLoggedIn ? 'lg:pl-72' : ''}`}>
-          <Card className="glass-panel border-red-200 shadow-elevated">
-            <CardContent className="pt-6">
-              <Alert variant="destructive" className="bg-red-50 border-red-200">
-                <AlertDescription className="text-red-700 font-semibold">
-                  {error || "Assessment not found"}
-                </AlertDescription>
-              </Alert>
-              <div className="flex gap-3 mt-4">
-                <Button
-                  variant="outline"
-                  className="border-gray-300 bg-white text-gray-900 hover:bg-gray-100 hover:text-gray-900 rounded-xl"
-                  onClick={() => router.push("/dashboard")}
-                >
-                  Back to Dashboard
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+        <div className={`mx-auto max-w-4xl px-4 py-16 ${isLoggedIn ? "lg:pl-72" : ""}`}>
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Unable to open assessment</AlertTitle>
+            <AlertDescription>{error || "Assessment not found"}</AlertDescription>
+          </Alert>
+          <Button className="mt-4" variant="outline" onClick={() => router.push("/dashboard")}>
+            Back to Dashboard
+          </Button>
         </div>
       </div>
     );
   }
 
-  const getRiskLevelColor = (level: string) => {
-    switch (level) {
-      case "Frontier / High-Impact Model":
-        return "bg-red-50 text-red-700 border-red-200";
-      case "High-Risk (Sector)":
-        return "bg-amber-50 text-amber-700 border-amber-200";
-      case "Medium-Risk":
-        return "bg-amber-50 text-amber-700 border-amber-200";
-      case "Low-Risk":
-        return "bg-emerald-50 text-emerald-700 border-emerald-200";
-      default:
-        return "bg-gray-50 text-gray-700 border-gray-200";
-    }
-  };
-
-  const getAssessmentColor = (status: string) => {
-    switch (status) {
-      case "Compliant":
-        return "bg-emerald-50 text-emerald-700 border-emerald-200";
-      case "Partially compliant":
-        return "bg-amber-50 text-amber-700 border-amber-200";
-      case "Non-compliant":
-        return "bg-red-50 text-red-700 border-red-200";
-      default:
-        return "bg-gray-50 text-gray-700 border-gray-200";
-    }
-  };
-
-  // Utility function to capitalize gap strings properly
-  const capitalizeGap = (gap: string): string => {
-    return gap
-      .replace(/_/g, ' ') // Replace underscores with spaces
-      .split(' ')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-      .join(' ');
-  };
-
-  // Utility function to capitalize sector name
-  const capitalizeSector = (sector: string): string => {
-    return sector
-      .split(' ')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-      .join(' ');
-  };
-
-  const isRapidMode = data.assessment_mode === "rapid";
-  const rapidChecks = [
-    {
-      label: "Robustness testing defined",
-      passed: data.raw_answers?.robustness_testing === true,
-    },
-    {
-      label: "Human oversight defined",
-      passed: data.raw_answers?.human_oversight === true,
-    },
-    {
-      label: "Accountability statement provided",
-      passed: typeof data.raw_answers?.accountability_roles === "string" && data.raw_answers.accountability_roles.trim().length >= 25,
-    },
-  ];
-
-  const PrincipleCard = ({
-    title,
-    status,
-    missing,
-  }: {
-    title: string;
-    status: { meetsPrinciple: boolean; missing: string[] };
-    missing: string[];
-  }) => (
-    <Card className="glass-panel border-border/50 shadow-elevated">
-      <CardHeader className="bg-secondary/30">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-lg font-bold text-foreground">{title}</CardTitle>
-          {status.meetsPrinciple ? (
-            <CheckCircle2 className="h-6 w-6 text-emerald-600" />
-          ) : (
-            <XCircle className="h-6 w-6 text-red-600" />
-          )}
-        </div>
-      </CardHeader>
-      <CardContent className="bg-secondary/20">
-        {status.meetsPrinciple ? (
-          <p className="text-emerald-700 font-semibold">Principle is met</p>
-        ) : (
-          <div>
-            <p className="text-red-700 font-semibold mb-2">Principle not fully met</p>
-            {missing.length > 0 && (
-              <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
-                {missing.map((item, idx) => (
-                  <li key={idx} className="text-foreground">{capitalizeGap(item)}</li>
-                ))}
-              </ul>
-            )}
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
+  const metPrinciples = PRINCIPLE_META.filter((meta) => data[meta.key]?.meetsPrinciple).length;
+  const percentage = Math.round((metPrinciples / PRINCIPLE_META.length) * 100);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-slate-50">
       <Head>
         <title>UK Assessment Detail</title>
-        <meta name="description" content="View detailed UK AI regulatory framework assessment results." />
+        <meta name="description" content="UK AI Regulatory Framework assessment result." />
       </Head>
+
       <Sidebar onLogout={handleLogout} />
-      <div className={`container mx-auto max-w-6xl py-10 px-4 space-y-8 ${isLoggedIn ? 'lg:pl-72 pt-24' : ''}`}>
-        <div className="flex items-center justify-between">
+
+      <main className={`mx-auto max-w-7xl space-y-6 px-4 py-8 ${isLoggedIn ? "lg:pl-72" : ""}`}>
+        <header className="flex flex-wrap items-start justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <div>
-            <h1 className="text-3xl font-bold text-foreground mb-2 flex items-center gap-2">
-              <Shield className="h-8 w-8 text-primary" />
-              UK AI Regulatory Framework Assessment
-            </h1>
-            <p className="text-muted-foreground font-medium">
+            <h1 className="text-2xl font-bold text-slate-900">UK AI Regulatory Framework Assessment</h1>
+            <p className="mt-1 text-sm text-slate-600">
               Assessment ID: {id} • {new Date(data.created_at).toLocaleDateString()}
             </p>
           </div>
-          <div className="flex gap-3">
-            <div className="flex gap-3">
-              {data.system_id && isMultiJurisdiction && (
-                <Button
-                  variant="default"
-                  className="bg-primary text-white hover:bg-primary/90"
-                  onClick={() => router.push(`/compliance/multi/${data.system_id}`)}
-                >
-                  Back to Multi-Jurisdiction Results
-                </Button>
-              )}
-              <Button
-                variant="outline"
-                className="border-gray-300 bg-white text-gray-900 hover:bg-gray-100 hover:text-gray-900"
-                onClick={() => router.push("/dashboard")}
-              >
-                Back to Dashboard
-              </Button>
-            </div>
+          <div className="flex flex-wrap gap-2">
+            {data.system_id && isMultiJurisdiction && (
+              <Button onClick={() => router.push(`/compliance/multi/${data.system_id}`)}>Back to Multi-Jurisdiction</Button>
+            )}
+            <Button variant="outline" onClick={() => router.push("/dashboard")}>
+              Back to Dashboard
+            </Button>
           </div>
-        </div>
+        </header>
 
-        {/* Risk Level and Overall Assessment */}
-        {isRapidMode && (
-          <Alert className="bg-amber-50 border-amber-200">
-            <AlertTriangle className="h-5 w-5 text-amber-700" />
-            <AlertTitle className="text-amber-800 font-bold">Quick Scan Result</AlertTitle>
-            <AlertDescription className="text-amber-700">
-              {data.warning || "Rapid mode covers core indicators only. Run comprehensive mode for full control coverage."}
-            </AlertDescription>
+        {warning && (
+          <Alert className={warningClasses(warning.severity)}>
+            <FileWarning className="h-4 w-4" />
+            <AlertTitle>{warning.title}</AlertTitle>
+            <AlertDescription>{warning.description}</AlertDescription>
           </Alert>
         )}
 
-        {isRapidMode && (
-          <Card className="glass-panel border-border/50 shadow-elevated">
-            <CardHeader className="bg-secondary/30">
-              <CardTitle className="text-xl font-bold text-foreground">Quick Scan Explainability</CardTitle>
-              <CardDescription className="text-muted-foreground">How this rapid result was determined</CardDescription>
+        <section className="grid grid-cols-1 gap-4 md:grid-cols-4">
+          <Card className="border-slate-200">
+            <CardHeader className="pb-2">
+              <CardDescription>Compliance Score</CardDescription>
+              <CardTitle className="text-xl">{data.compliance_score ?? percentage}%</CardTitle>
+              {data.confidence_score && data.confidence_score < 100 && (
+                <p className="text-xs text-amber-600">{data.confidence_score}% confident</p>
+              )}
             </CardHeader>
-            <CardContent className="bg-secondary/20 space-y-2">
-              {rapidChecks.map((check) => (
-                <div key={check.label} className="flex items-center justify-between rounded-lg border border-border/40 px-3 py-2 bg-white/60">
-                  <span className="text-sm font-medium text-foreground">{check.label}</span>
-                  <Badge className={check.passed ? "bg-emerald-100 text-emerald-700 border-emerald-200" : "bg-amber-100 text-amber-700 border-amber-200"}>
+          </Card>
+          <Card className="border-slate-200">
+            <CardHeader className="pb-2">
+              <CardDescription>Assessment Mode</CardDescription>
+              <CardTitle className="text-xl capitalize">{data.assessment_mode || "comprehensive"}</CardTitle>
+            </CardHeader>
+          </Card>
+          <Card className="border-slate-200">
+            <CardHeader className="pb-2">
+              <CardDescription>Risk Level</CardDescription>
+              <Badge className={riskClasses(data.risk_level)} variant="outline">
+                {data.risk_level}
+              </Badge>
+            </CardHeader>
+          </Card>
+          <Card className="border-slate-200">
+            <CardHeader className="pb-2">
+              <CardDescription>Overall Assessment</CardDescription>
+              <Badge className={statusClasses(data.overall_assessment)} variant="outline">
+                {data.overall_assessment}
+              </Badge>
+            </CardHeader>
+          </Card>
+        </section>
+
+        <Card className="border-slate-200">
+          <CardHeader>
+            <CardTitle>Executive Summary</CardTitle>
+            <CardDescription>High-level UK compliance interpretation</CardDescription>
+          </CardHeader>
+          <CardContent className="text-sm text-slate-700">
+            <ul className="space-y-1">
+              <li>
+                <strong>Risk Level:</strong> {data.risk_level}
+              </li>
+              <li>
+                <strong>Overall Assessment:</strong> {data.overall_assessment}
+              </li>
+              <li>
+                <strong>Principles Met:</strong> {metPrinciples}/{PRINCIPLE_META.length}
+                {data.assessment_mode === "rapid" ? " (assessed in Quick Scan)" : ""}
+              </li>
+              {data.assessment_mode === "rapid" && (
+                <li>
+                  <strong>Not Evaluated in Quick Scan:</strong>{" "}
+                  {Math.max(0, PRINCIPLE_META.length - quickChecks.length)} principle(s)
+                </li>
+              )}
+              <li>
+                <strong>Sector Context:</strong> {data.sector_regulation?.sector || "General"}
+              </li>
+              <li>
+                <strong>Sector-Specific Gaps:</strong> {data.sector_regulation?.gaps?.length || 0}
+              </li>
+              {data.assessment_mode === "rapid" && (
+                <li>
+                  <strong>Mode Note:</strong> Provisional quick-scan output. Run Deep Review for full principle-level
+                  evidence and regulatory reasoning.
+                </li>
+              )}
+            </ul>
+          </CardContent>
+        </Card>
+
+        <Card className="border-slate-200">
+          <CardHeader>
+            <CardTitle>Assessment Summary</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="whitespace-pre-wrap text-sm leading-6 text-slate-700">{renderSummaryText(data.summary)}</p>
+          </CardContent>
+        </Card>
+
+        {data.assessment_mode === "rapid" && (
+          <Card className="border-slate-200">
+            <CardHeader>
+              <CardTitle>Quick Scan Explainability</CardTitle>
+              <CardDescription>What was checked in rapid mode</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {quickChecks.map((check) => (
+                <div key={check.label} className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2">
+                  <p className="text-sm font-medium text-slate-800">{check.label}</p>
+                  <Badge className={check.passed ? "bg-emerald-100 text-emerald-800 border-emerald-200" : "bg-amber-100 text-amber-800 border-amber-200"}>
                     {check.passed ? "Met" : "Not met"}
                   </Badge>
                 </div>
               ))}
-              <p className="text-xs text-muted-foreground pt-1">
-                This is a rapid screen. Use Deep Review for full control-by-control validation.
-              </p>
             </CardContent>
           </Card>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Card className="glass-panel border-border/50 shadow-elevated">
-            <CardHeader className="bg-secondary/30">
-              <CardTitle className="text-xl font-bold text-foreground">Risk Level</CardTitle>
-            </CardHeader>
-            <CardContent className="bg-secondary/20">
-              <Badge className={getRiskLevelColor(data.risk_level)} variant="outline">
-                {data.risk_level}
-              </Badge>
-            </CardContent>
-          </Card>
-          <Card className="glass-panel border-border/50 shadow-elevated">
-            <CardHeader className="bg-secondary/30">
-              <CardTitle className="text-xl font-bold text-foreground">Overall Assessment</CardTitle>
-            </CardHeader>
-            <CardContent className="bg-secondary/20">
-              <Badge className={getAssessmentColor(data.overall_assessment)} variant="outline">
-                {data.overall_assessment}
-              </Badge>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* UK AI Principles Compliance Progress */}
-        {(() => {
-          const principles = [
-            data.safety_and_security,
-            data.transparency,
-            data.fairness,
-            data.governance,
-            data.contestability,
-          ];
-          const metCount = principles.filter(p => p?.meetsPrinciple).length;
-          const totalPrinciples = principles.length;
-          const compliancePercentage = (metCount / totalPrinciples) * 100;
-
-          return (
-            <Card className="glass-panel border-border/50 shadow-elevated">
-              <CardHeader className="bg-secondary/30">
-                <CardTitle className="text-xl font-bold text-foreground">UK AI Principles Compliance</CardTitle>
-                <CardDescription className="text-muted-foreground font-medium">
-                  {metCount} of {totalPrinciples} principles met
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="bg-secondary/20 space-y-4">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-semibold text-muted-foreground">Overall Compliance</span>
-                    <span className="text-lg font-bold text-foreground">{Math.round(compliancePercentage)}%</span>
-                  </div>
-                  <div className="relative h-4 w-full overflow-hidden rounded-full bg-secondary/50">
-                    <div
-                      className="h-full bg-gradient-to-r from-primary to-emerald-500 transition-all duration-500 ease-out"
-                      style={{ width: `${compliancePercentage}%` }}
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-2 pt-2">
-                  <div className="text-center">
-                    <div className={`text-2xl font-bold ${data.safety_and_security?.meetsPrinciple ? 'text-emerald-600' : 'text-red-600'}`}>
-                      {data.safety_and_security?.meetsPrinciple ? '✓' : '✗'}
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">Safety</p>
-                  </div>
-                  <div className="text-center">
-                    <div className={`text-2xl font-bold ${data.transparency?.meetsPrinciple ? 'text-emerald-600' : 'text-red-600'}`}>
-                      {data.transparency?.meetsPrinciple ? '✓' : '✗'}
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">Transparency</p>
-                  </div>
-                  <div className="text-center">
-                    <div className={`text-2xl font-bold ${data.fairness?.meetsPrinciple ? 'text-emerald-600' : 'text-red-600'}`}>
-                      {data.fairness?.meetsPrinciple ? '✓' : '✗'}
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">Fairness</p>
-                  </div>
-                  <div className="text-center">
-                    <div className={`text-2xl font-bold ${data.governance?.meetsPrinciple ? 'text-emerald-600' : 'text-red-600'}`}>
-                      {data.governance?.meetsPrinciple ? '✓' : '✗'}
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">Governance</p>
-                  </div>
-                  <div className="text-center">
-                    <div className={`text-2xl font-bold ${data.contestability?.meetsPrinciple ? 'text-emerald-600' : 'text-red-600'}`}>
-                      {data.contestability?.meetsPrinciple ? '✓' : '✗'}
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">Contestability</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })()}
-
-        {/* UK AI Principles */}
-        <div>
-          <h2 className="text-2xl font-bold text-foreground mb-4">UK AI Principles Assessment</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <PrincipleCard
-              title="1. Safety, Security & Robustness"
-              status={data.safety_and_security}
-              missing={data.safety_and_security.missing}
-            />
-            <PrincipleCard
-              title="2. Transparency & Explainability"
-              status={data.transparency}
-              missing={data.transparency.missing}
-            />
-            <PrincipleCard
-              title="3. Fairness"
-              status={data.fairness}
-              missing={data.fairness.missing}
-            />
-            <PrincipleCard
-              title="4. Accountability & Governance"
-              status={data.governance}
-              missing={data.governance.missing}
-            />
-            <PrincipleCard
-              title="5. Contestability & Redress"
-              status={data.contestability}
-              missing={data.contestability.missing}
-            />
-          </div>
-        </div>
-
-        {/* Sector Regulation */}
-        {data.sector_regulation.sector && (
-          <Card className="glass-panel border-border/50 shadow-elevated">
-            <CardHeader className="bg-secondary/30">
-              <CardTitle className="text-xl font-bold text-foreground">Sector-Specific Regulation</CardTitle>
-              <CardDescription className="text-muted-foreground font-medium">Sector: {capitalizeSector(data.sector_regulation.sector)}</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4 bg-secondary/20">
-              {data.sector_regulation.requiredControls.length > 0 && (
-                <div>
-                  <h3 className="font-bold text-foreground mb-2">Required Controls:</h3>
-                  <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
-                    {data.sector_regulation.requiredControls.map((control, idx) => (
-                      <li key={idx} className="text-foreground">{capitalizeGap(control)}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              {data.sector_regulation.gaps.length > 0 && (
-                <div>
-                  <h3 className="font-bold text-red-700 mb-2">Gaps Identified:</h3>
-                  <ul className="list-disc list-inside space-y-1 text-sm text-red-600">
-                    {data.sector_regulation.gaps.map((gap, idx) => (
-                      <li key={idx} className="text-red-700">{capitalizeGap(gap)}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Summary */}
-        <Card className="glass-panel border-border/50 shadow-elevated">
-          <CardHeader className="bg-secondary/30">
-            <CardTitle className="text-2xl font-bold text-foreground">Assessment Summary</CardTitle>
+        <Card className="border-slate-200">
+          <CardHeader>
+            <CardTitle>UK Principles Compliance</CardTitle>
+            <CardDescription>
+              {metPrinciples} of {PRINCIPLE_META.length} principles met ({percentage}%)
+            </CardDescription>
           </CardHeader>
-          <CardContent className="bg-secondary/20">
-            <p className="text-foreground whitespace-pre-wrap leading-relaxed text-base font-medium">{data.summary}</p>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-3 gap-3">
+              <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3">
+                <p className="text-xs text-emerald-700">Met</p>
+                <p className="text-lg font-semibold text-emerald-800">{principleVisual.met}</p>
+              </div>
+              <div className="rounded-lg border border-red-200 bg-red-50 p-3">
+                <p className="text-xs text-red-700">Unmet</p>
+                <p className="text-lg font-semibold text-red-800">{principleVisual.unmet}</p>
+              </div>
+              <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
+                <p className="text-xs text-amber-700">Missing Controls</p>
+                <p className="text-lg font-semibold text-amber-800">{principleVisual.missingTotal}</p>
+              </div>
+            </div>
+            <div>
+              <div className="mb-1 flex items-center justify-between text-sm">
+                <span className="text-slate-600">Compliance Completion</span>
+                <span className="font-semibold text-slate-900">{percentage}%</span>
+              </div>
+              <div className="h-2 rounded-full bg-slate-200">
+                <div className="h-2 rounded-full bg-blue-600" style={{ width: `${percentage}%` }} />
+              </div>
+            </div>
           </CardContent>
         </Card>
-      </div>
+
+        <Card className="border-slate-200">
+          <CardHeader>
+            <CardTitle>UK Principle Maturity Radar</CardTitle>
+            <CardDescription>Relative maturity by UK principle (0-100)</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[260px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <RadarChart data={ukRadarData}>
+                  <PolarGrid />
+                  <PolarAngleAxis dataKey="axis" tick={{ fill: "#475569", fontSize: 11 }} />
+                  <Tooltip />
+                  <Radar dataKey="score" stroke="#2563eb" fill="#3b82f6" fillOpacity={0.35} />
+                </RadarChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-slate-200">
+          <CardHeader>
+            <CardTitle>UK Root-Cause Distribution</CardTitle>
+            <CardDescription>Where most failures are concentrated</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[240px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={rootCauseData} margin={{ top: 12, right: 12, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                  <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#475569" }} />
+                  <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: "#475569" }} />
+                  <Tooltip />
+                  <Bar dataKey="value" fill="#dc2626" radius={[6, 6, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-slate-200">
+          <CardHeader>
+            <CardTitle>UK Principle Detail</CardTitle>
+            <CardDescription>Per-principle findings and reasons</CardDescription>
+          </CardHeader>
+          <CardContent className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            {PRINCIPLE_META.map((meta) => {
+              const principle = data[meta.key];
+              const met = principle?.meetsPrinciple;
+              const missingItems = (principle?.missing || []).filter((m) => (m || "").trim().length > 0);
+              return (
+                <div key={meta.key} className={`rounded-xl border p-4 ${met ? "border-emerald-200 bg-emerald-50/50" : "border-red-200 bg-red-50/50"}`}>
+                  <div className="mb-2 flex items-center justify-between">
+                    <p className="font-semibold text-slate-900">{meta.title}</p>
+                    {met ? <CheckCircle2 className="h-5 w-5 text-emerald-600" /> : <XCircle className="h-5 w-5 text-red-600" />}
+                  </div>
+                  {!met && missingItems.length > 0 && (
+                    <ul className="space-y-1 text-sm text-slate-700">
+                      {missingItems.map((item, idx) => (
+                        <li key={idx}>- {item}</li>
+                      ))}
+                    </ul>
+                  )}
+                  {!met && missingItems.length === 0 && (
+                    <p className="text-sm text-slate-700">
+                      This principle is marked as failed, but detailed gap text is unavailable in the current result.
+                      Use Deep Review to generate full reason-level findings.
+                    </p>
+                  )}
+                  {met && <p className="text-sm text-emerald-700">Principle requirements met.</p>}
+                </div>
+              );
+            })}
+          </CardContent>
+        </Card>
+
+        <Card className="border-slate-200">
+          <CardHeader>
+            <CardTitle>Why It Failed (Law/Control Level)</CardTitle>
+            <CardDescription>Direct mapping of failed outcomes to UK principle or sector requirement</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {failureRows.length === 0 ? (
+              <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
+                No failed principle or sector requirement detected in this assessment.
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {failureRows.map((row, index) => (
+                  <div key={`${row.law}-${index}`} className="grid grid-cols-1 gap-2 rounded-lg border border-slate-200 p-3 md:grid-cols-[1.1fr_1fr_2fr]">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{row.law}</p>
+                    <p className="text-sm font-semibold text-slate-800">{row.area}</p>
+                    <p className="text-sm text-slate-700">{row.why}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {data.assessment_mode === "rapid" && data.system_id && (
+          <div className="flex justify-end">
+            <Button onClick={() => router.push(`/assessment/uk/${data.system_id}?mode=comprehensive`)}>
+              Run Deep Review
+            </Button>
+          </div>
+        )}
+      </main>
     </div>
   );
 }

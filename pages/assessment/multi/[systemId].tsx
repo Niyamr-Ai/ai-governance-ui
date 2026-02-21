@@ -1,836 +1,668 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/router";
-import { Formik } from "formik";
-import * as Yup from "yup";
+import Head from "next/head";
+import { Shield, ArrowRight, CheckCircle2, Circle, Loader2, Zap, Globe, Lock, ArrowLeft } from "lucide-react";
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Shield, CheckCircle2, Circle } from "lucide-react";
-import Sidebar from "@/components/sidebar";
 import { supabase } from "@/utils/supabase/client";
 import { backendFetch } from "@/utils/backend-fetch";
-import Head from 'next/head';
+import Sidebar from "@/components/sidebar";
 
-// Common questions state (shared across all jurisdictions)
-const commonInitialState = {
-  system_name: "",
-  description: "",
-  owner: "",
-  jurisdiction: "",
-  sector: "",
-  system_status: "envision",
-  business_use_case: "",
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/utils/shared-utils";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+const COMMON_QUESTIONS = [
+  { id: "q1", title: "What does your AI system do?", type: "textarea", required: true },
+  { id: "q2", title: "Who is accountable for this AI system?", type: "text", required: true },
+  { id: "q3", title: "Does your system process personal data?", type: "radio", options: ["Yes", "No"], required: true },
+  { id: "q4", title: "Does your system make automated decisions affecting individuals?", type: "radio", options: ["Yes", "No"], required: true },
+  { id: "q5", title: "Have you conducted risk assessments for this AI system?", type: "radio", options: ["Yes", "No", "In Progress"], required: true },
+];
+
+const JURISDICTION_ORDER = ["UK", "EU", "MAS"] as const;
+
+const jurisdictionLabels = {
+  UK: { name: "UK AI Act", flag: "🇬🇧", path: "/assessment/uk" },
+  EU: { name: "EU AI Act", flag: "🇪🇺", path: "/assessment/eu" },
+  MAS: { name: "MAS FEAT", flag: "🇸🇬", path: "/assessment/mas" },
 };
 
-// Common questions validation schema
-const commonValidationSchema = Yup.object({
-  system_name: Yup.string().required("System name is required"),
-  description: Yup.string().required("Description is required"),
-  sector: Yup.string().required("Sector is required"),
-});
-
-type JurisdictionStatus = {
-  id: "UK" | "EU" | "MAS";
-  name: string;
-  completed: boolean;
-  assessmentId?: string;
-};
+type Step = "common" | "jurisdiction-forms" | "submitting";
 
 export default function MultiJurisdictionAssessmentPage() {
   const router = useRouter();
-  const { systemId } = router.query;
-  const modeParam = router.query.mode;
-  const requestedMode = Array.isArray(modeParam) ? modeParam[0] : modeParam;
-  const assessmentMode = requestedMode === "rapid" || requestedMode === "comprehensive"
-    ? requestedMode
-    : "comprehensive";
+  const { systemId, mode: modeParam, step: stepParam, completed: completedParam } = router.query;
 
-  const [currentStep, setCurrentStep] = useState<"common" | "jurisdiction">("common");
+  const [assessmentMode, setAssessmentMode] = useState<"rapid" | "comprehensive">("rapid");
   const [selectedJurisdictions, setSelectedJurisdictions] = useState<("UK" | "EU" | "MAS")[]>([]);
+  const [currentStep, setCurrentStep] = useState<Step>("common");
   const [currentJurisdictionIndex, setCurrentJurisdictionIndex] = useState(0);
-  const [jurisdictionStatuses, setJurisdictionStatuses] = useState<JurisdictionStatus[]>([]);
-  const [commonQuestionsCompleted, setCommonQuestionsCompleted] = useState(false);
-  const [isRedirecting, setIsRedirecting] = useState(false);
-  const [commonValues, setCommonValues] = useState<typeof commonInitialState | null>(null);
+  const [completedJurisdictions, setCompletedJurisdictions] = useState<("UK" | "EU" | "MAS")[]>([]);
+
+  const [systemName, setSystemName] = useState("");
+  const [companyName, setCompanyName] = useState("");
+  const [sector, setSector] = useState("");
+  const [description, setDescription] = useState("");
+  const [businessUseCase, setBusinessUseCase] = useState("");
+  const [systemStatus, setSystemStatus] = useState("envision");
+
+  const [commonAnswers, setCommonAnswers] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const hasNavigatedRef = useRef(false);
 
-  // Handle completion query parameters
   useEffect(() => {
-    if (!systemId || !router.isReady || jurisdictionStatuses.length === 0) {
-      if (systemId && router.isReady && jurisdictionStatuses.length === 0) {
-        console.log(`⏳ [MULTI-ASSESSMENT] Waiting for jurisdiction statuses to be initialized`);
-      }
-      return;
-    }
+    const checkAuth = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setIsLoggedIn(!!user);
+    };
+    checkAuth();
+  }, []);
 
-    const { completed, assessmentId } = router.query;
-    console.log(`\n${'='.repeat(80)}`);
-    console.log(`🔄 [MULTI-ASSESSMENT] Checking completion query params`);
-    console.log(`   System ID: ${systemId}`);
-    console.log(`   Completed: ${completed}`);
-    console.log(`   Assessment ID: ${assessmentId}`);
-    console.log(`   Current jurisdictions: ${jurisdictionStatuses.map(s => `${s.id}(${s.completed ? '✓' : '○'})`).join(', ')}`);
-    console.log(`${'='.repeat(80)}\n`);
-
-    if (completed && assessmentId && typeof completed === "string" && typeof assessmentId === "string") {
-      // Mark the completed jurisdiction as done
-      const jurisdictionId = completed as "UK" | "EU" | "MAS";
-      console.log(`\n${'='.repeat(80)}`);
-      console.log(`✅ [MULTI-ASSESSMENT] Marking jurisdiction as completed`);
-      console.log(`   Jurisdiction: ${jurisdictionId}`);
-      console.log(`   Assessment ID: ${assessmentId}`);
-      console.log(`${'='.repeat(80)}\n`);
-
-      setJurisdictionStatuses((prev) => {
-        const updated = prev.map((status) =>
-          status.id === jurisdictionId
-            ? { ...status, completed: true, assessmentId }
-            : status
-        );
-
-        console.log(`📊 [MULTI-ASSESSMENT] Updated statuses:`, updated.map(s => `${s.id}: ${s.completed ? 'Completed ✓' : 'Pending ○'}`));
-
-        // Check if all are completed
-        const allDone = updated.every((s) => s.completed);
-        if (allDone) {
-          console.log(`\n${'='.repeat(80)}`);
-          console.log(`🎉 [MULTI-ASSESSMENT] All jurisdictions completed!`);
-          console.log(`   Redirecting to results page immediately...`);
-          console.log(`${'='.repeat(80)}\n`);
-          setIsRedirecting(true);
-          // Redirect immediately without delay
-          router.push(`/compliance/multi/${systemId}`);
-        } else {
-          // Move to next incomplete jurisdiction
-          const currentIndex = updated.findIndex((s) => s.id === jurisdictionId);
-          const nextIncompleteIndex = updated.findIndex((s, idx) => idx > currentIndex && !s.completed);
-          if (nextIncompleteIndex !== -1) {
-            console.log(`\n${'='.repeat(80)}`);
-            console.log(`➡️  [MULTI-ASSESSMENT] Moving to next jurisdiction`);
-            console.log(`   Current index: ${currentIndex} (${jurisdictionId})`);
-            console.log(`   Next index: ${nextIncompleteIndex} (${updated[nextIncompleteIndex].id})`);
-            console.log(`${'='.repeat(80)}\n`);
-            setCurrentJurisdictionIndex(nextIncompleteIndex);
-            setCurrentStep("jurisdiction"); // Switch to jurisdiction step
-          } else {
-            // Check if there's any incomplete jurisdiction before current one
-            const firstIncompleteIndex = updated.findIndex((s) => !s.completed);
-            if (firstIncompleteIndex !== -1) {
-              console.log(`\n${'='.repeat(80)}`);
-              console.log(`➡️  [MULTI-ASSESSMENT] Moving to first incomplete jurisdiction`);
-              console.log(`   Index: ${firstIncompleteIndex} (${updated[firstIncompleteIndex].id})`);
-              console.log(`${'='.repeat(80)}\n`);
-              setCurrentJurisdictionIndex(firstIncompleteIndex);
-              setCurrentStep("jurisdiction"); // Switch to jurisdiction step
-            } else {
-              console.log(`⚠️  [MULTI-ASSESSMENT] No next incomplete jurisdiction found - all should be completed`);
-              // Double-check: if we can't find incomplete, redirect to results
-              setTimeout(() => {
-                router.push(`/compliance/multi/${systemId}`);
-              }, 2000);
-            }
-          }
-        }
-
-        return updated;
-      });
-
-      // Clear query params
-      router.replace(`/assessment/multi/${systemId}?mode=${assessmentMode}`, undefined, { shallow: true });
-    }
-  }, [router.isReady, router.query, systemId, jurisdictionStatuses.length]);
-
-  // Load system data and determine selected jurisdictions
   useEffect(() => {
-    if (!systemId) {
-      console.warn(`⚠️  [MULTI-ASSESSMENT] No systemId provided`);
-      return;
+    if (modeParam === "rapid" || modeParam === "comprehensive") {
+      setAssessmentMode(modeParam);
     }
+  }, [modeParam]);
 
-    console.log(`\n${'='.repeat(80)}`);
-    console.log(`🔄 [MULTI-ASSESSMENT] Loading system data`);
-    console.log(`   System ID: ${systemId}`);
-    console.log(`${'='.repeat(80)}\n`);
+  useEffect(() => {
+    if (completedParam && typeof completedParam === "string") {
+      const completed = completedParam.split(",").filter(Boolean) as ("UK" | "EU" | "MAS")[];
+      console.log("[Multi] Setting completed jurisdictions:", completed);
+      setCompletedJurisdictions(completed);
+    }
+    if (stepParam === "jurisdiction-forms") {
+      console.log("[Multi] Setting step to jurisdiction-forms");
+      setCurrentStep("jurisdiction-forms");
+    }
+  }, [stepParam, completedParam]);
+
+  useEffect(() => {
+    if (!systemId || !router.isReady) return;
 
     const loadSystem = async () => {
       try {
         const { data, error } = await supabase
           .from("ai_systems")
           .select("*")
-          .eq("id", systemId)
+          .eq("id", systemId as string)
           .single();
 
-        if (error) {
-          console.error(`❌ [MULTI-ASSESSMENT] Error loading system:`, error);
-          throw error;
-        }
+        if (error) throw error;
 
-        console.log(`✅ [MULTI-ASSESSMENT] System data loaded:`, {
-          system_name: data?.system_name,
-          data_processing_locations: data?.data_processing_locations,
-        });
+        setSystemName(data.system_name || "");
+        setCompanyName(data.company_name || "");
+        setSector(data.sector || "");
+        setDescription(data.description || "");
+        setBusinessUseCase(data.business_use_case || "");
+        setSystemStatus(data.system_status || "envision");
 
-        // Determine which jurisdictions are selected based on data_processing_locations
         const jurisdictions: ("UK" | "EU" | "MAS")[] = [];
-        const dataProcessingLocations = data.data_processing_locations || [];
+        const locations = data.data_processing_locations || [];
 
-        if (dataProcessingLocations.includes("United Kingdom") || dataProcessingLocations.includes("UK")) {
+        if (locations.includes("UK") || locations.includes("United Kingdom")) {
           jurisdictions.push("UK");
         }
-        if (dataProcessingLocations.includes("European Union") || dataProcessingLocations.includes("EU") ||
-          dataProcessingLocations.some((loc: string) =>
-            ["Austria", "Belgium", "Bulgaria", "Croatia", "Cyprus", "Czechia",
-              "Denmark", "Estonia", "Finland", "France", "Germany", "Greece",
-              "Hungary", "Ireland", "Italy", "Latvia", "Lithuania", "Luxembourg",
-              "Malta", "Netherlands", "Poland", "Portugal", "Romania", "Slovakia",
-              "Slovenia", "Spain", "Sweden"].some(c => c.toLowerCase() === loc.toLowerCase())
-          )) {
+        if (locations.includes("EU") || locations.includes("European Union")) {
           jurisdictions.push("EU");
         }
-        if (dataProcessingLocations.includes("Singapore")) {
+        if (locations.includes("Singapore")) {
           jurisdictions.push("MAS");
         }
 
         if (jurisdictions.length === 0) {
-          console.error(`❌ [MULTI-ASSESSMENT] No valid jurisdictions found`);
           setError("No valid jurisdictions found. Please go back and select data processing locations.");
-          setIsLoading(false);
-          return;
+        } else {
+          setSelectedJurisdictions(jurisdictions);
         }
 
-        console.log(`✅ [MULTI-ASSESSMENT] Jurisdictions identified:`, jurisdictions);
-        setSelectedJurisdictions(jurisdictions);
-
-        // Check for existing assessments in database
-        console.log(`\n${'='.repeat(80)}`);
-        console.log(`🔍 [MULTI-ASSESSMENT] Checking for existing assessments`);
-        console.log(`   System ID: ${systemId}`);
-        console.log(`${'='.repeat(80)}\n`);
-
-        const assessmentChecks = await Promise.all([
-          // Check UK assessment
-          jurisdictions.includes("UK")
-            ? supabase
-              .from("uk_ai_assessments")
-              .select("id")
-              .eq("system_id", systemId)
-              .maybeSingle()
-            : Promise.resolve({ data: null, error: null }),
-          // Check EU assessment
-          jurisdictions.includes("EU")
-            ? supabase
-              .from("eu_ai_act_check_results")
-              .select("id")
-              .eq("system_id", systemId)
-              .maybeSingle()
-            : Promise.resolve({ data: null, error: null }),
-          // Check MAS assessment
-          jurisdictions.includes("MAS")
-            ? supabase
-              .from("mas_ai_risk_assessments")
-              .select("id")
-              .eq("system_id", systemId)
-              .maybeSingle()
-            : Promise.resolve({ data: null, error: null }),
-        ]);
-
-        const [ukAssessment, euAssessment, masAssessment] = assessmentChecks;
-
-        console.log(`📊 [MULTI-ASSESSMENT] Assessment check results:`);
-        console.log(`   UK: ${ukAssessment.data ? `Found (${ukAssessment.data.id})` : "Not found"}`);
-        console.log(`   EU: ${euAssessment.data ? `Found (${euAssessment.data.id})` : "Not found"}`);
-        console.log(`   MAS: ${masAssessment.data ? `Found (${masAssessment.data.id})` : "Not found"}`);
-        console.log(`${'='.repeat(80)}\n`);
-
-        // Initialize jurisdiction statuses with completion status from database
-        const statuses: JurisdictionStatus[] = jurisdictions.map((id) => {
-          let assessmentId: string | undefined;
-          let completed = false;
-
-          if (id === "UK" && ukAssessment.data) {
-            completed = true;
-            assessmentId = ukAssessment.data.id;
-          } else if (id === "EU" && euAssessment.data) {
-            completed = true;
-            assessmentId = euAssessment.data.id;
-          } else if (id === "MAS" && masAssessment.data) {
-            completed = true;
-            assessmentId = masAssessment.data.id;
-          }
-
-          return {
-            id,
-            name: id === "UK" ? "United Kingdom" : id === "EU" ? "European Union" : "Singapore (MAS)",
-            completed,
-            assessmentId,
-          };
-        });
-        setJurisdictionStatuses(statuses);
-
-        // Load common values from database
-        const jurisdiction = data.data_processing_locations?.includes("United Kingdom")
-          ? "United Kingdom"
-          : data.data_processing_locations?.includes("Singapore")
-            ? "Singapore"
-            : data.data_processing_locations?.includes("European Union") || data.data_processing_locations?.some((loc: string) =>
-              ["Austria", "Belgium", "Bulgaria", "Croatia", "Cyprus", "Czechia",
-                "Denmark", "Estonia", "Finland", "France", "Germany", "Greece",
-                "Hungary", "Ireland", "Italy", "Latvia", "Lithuania", "Luxembourg",
-                "Malta", "Netherlands", "Poland", "Portugal", "Romania", "Slovakia",
-                "Slovenia", "Spain", "Sweden"].some(c => c.toLowerCase() === loc.toLowerCase())
-            )
-              ? "European Union"
-              : data.country || "";
-
-        setCommonValues({
-          system_name: data.system_name ?? "",
-          description: data.description ?? "",
-          owner: data.company_name ?? "",
-          jurisdiction: jurisdiction,
-          sector: data.sector ?? "",
-          system_status: data.system_status ?? "envision",
-          business_use_case: data.business_use_case ?? "",
-        });
-
-        // Check if common questions have been filled (all required fields present)
-        const hasCommonData = data.system_name && data.description && data.sector;
-        if (hasCommonData) {
-          setCommonQuestionsCompleted(true);
-          console.log(`✅ [MULTI-ASSESSMENT] Common questions already completed`);
-        }
-
-        // Check query params for completed assessments (in case user is returning after completing one)
-        const { completed, assessmentId } = router.query;
-        let finalStatuses = statuses;
-
-        if (completed && typeof completed === "string" && assessmentId) {
-          const jurisdictionId = completed as "UK" | "EU" | "MAS";
-          console.log(`\n${'='.repeat(80)}`);
-          console.log(`🔄 [MULTI-ASSESSMENT] Detected completed jurisdiction in query params during load`);
-          console.log(`   Jurisdiction: ${jurisdictionId}`);
-          console.log(`${'='.repeat(80)}\n`);
-
-          // Update statuses to mark this jurisdiction as completed (override database check if needed)
-          finalStatuses = statuses.map((status) =>
-            status.id === jurisdictionId
-              ? { ...status, completed: true, assessmentId: assessmentId as string }
-              : status
-          );
-        }
-
-        setJurisdictionStatuses(finalStatuses);
-
-        // Determine which step to show
-        const allCompleted = finalStatuses.every((s) => s.completed);
-        if (allCompleted && hasCommonData) {
-          // All done - redirect to results immediately
-          console.log(`🎉 [MULTI-ASSESSMENT] All jurisdictions completed during load - redirecting immediately`);
-          setIsRedirecting(true);
-          router.push(`/compliance/multi/${systemId}`);
-          return; // Exit early to prevent rendering
-        } else if (hasCommonData) {
-          // Common questions done, find first incomplete jurisdiction
-          const firstIncompleteIndex = finalStatuses.findIndex((s) => !s.completed);
-          if (firstIncompleteIndex !== -1) {
-            setCurrentStep("jurisdiction");
-            setCurrentJurisdictionIndex(firstIncompleteIndex);
-            console.log(`➡️  [MULTI-ASSESSMENT] Showing jurisdiction step: ${finalStatuses[firstIncompleteIndex].name}`);
-          }
-        }
-
-        console.log(`✅ [MULTI-ASSESSMENT] System initialization complete`);
         setIsLoading(false);
       } catch (err: any) {
-        console.error(`\n${'='.repeat(80)}`);
-        console.error(`❌ [MULTI-ASSESSMENT] Critical error loading system`);
-        console.error(`   Error:`, err);
-        console.error(`   Message: ${err.message}`);
-        console.error(`   Stack: ${err.stack}`);
-        console.error(`${'='.repeat(80)}\n`);
+        console.error("Error loading system:", err);
         setError("Failed to load assessment data.");
         setIsLoading(false);
       }
     };
 
     loadSystem();
-  }, [systemId]);
+  }, [systemId, router.isReady]);
 
-  // Handle common questions submission
-  const handleCommonSubmit = async (values: typeof commonInitialState) => {
-    if (!systemId) {
-      console.error(`❌ [MULTI-ASSESSMENT] Cannot submit: no systemId`);
-      return;
-    }
-
-    console.log(`\n${'='.repeat(80)}`);
-    console.log(`💾 [MULTI-ASSESSMENT] Submitting common questions`);
-    console.log(`   System ID: ${systemId}`);
-    console.log(`   Values:`, {
-      system_name: values.system_name,
-      sector: values.sector,
-      description: values.description?.substring(0, 50) + '...',
+  // Auto-navigate to next jurisdiction form when in jurisdiction-forms step
+  useEffect(() => {
+    console.log("[Multi] Auto-nav check:", {
+      currentStep,
+      isLoading,
+      isSubmitting,
+      selectedJurisdictions,
+      completedJurisdictions,
+      hasNavigated: hasNavigatedRef.current
     });
-    console.log(`${'='.repeat(80)}\n`);
 
-    setIsSubmitting(true);
+    if (currentStep !== "jurisdiction-forms" || isLoading || isSubmitting || selectedJurisdictions.length === 0) return;
+
+    const remaining = selectedJurisdictions.filter((j) => !completedJurisdictions.includes(j));
+    console.log("[Multi] Remaining jurisdictions:", remaining);
+
+    if (remaining.length > 0 && !hasNavigatedRef.current) {
+      // Navigate to next jurisdiction form, passing completed jurisdictions
+      const nextJurisdiction = remaining[0];
+      const path = jurisdictionLabels[nextJurisdiction].path;
+      const completedParam = completedJurisdictions.join(",");
+
+      console.log("[Multi] Navigating to:", `${path}/${systemId}?mode=${assessmentMode}&multi=true&common=${systemId}&completed=${completedParam}`);
+
+      hasNavigatedRef.current = true;
+
+      const timer = setTimeout(() => {
+        router.push(`${path}/${systemId}?mode=${assessmentMode}&multi=true&common=${systemId}&completed=${completedParam}`);
+      }, 200);
+
+      return () => clearTimeout(timer);
+    } else if (remaining.length === 0 && completedJurisdictions.length === selectedJurisdictions.length && completedJurisdictions.length > 0) {
+      // All jurisdictions complete - submit final results
+      console.log("[Multi] All jurisdictions complete, submitting final...");
+      handleSubmitFinal();
+    }
+  }, [currentStep, completedJurisdictions, selectedJurisdictions, isLoading, isSubmitting, assessmentMode, systemId]);
+
+  // Reset navigation flag when step changes
+  useEffect(() => {
+    hasNavigatedRef.current = false;
+  }, [currentStep]);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push("/");
+  };
+
+  const handleAnswerChange = (questionId: string, value: string) => {
+    setCommonAnswers((prev) => ({ ...prev, [questionId]: value }));
+  };
+
+  const isFormValid = useMemo(() => {
+    if (!systemName.trim() || !sector.trim() || !description.trim()) return false;
+    return COMMON_QUESTIONS.filter((q) => q.required).every(
+      (q) => commonAnswers[q.id] && commonAnswers[q.id].trim() !== ""
+    );
+  }, [systemName, sector, description, commonAnswers]);
+
+  const handleSubmitFinal = async () => {
     setError(null);
+    setIsSubmitting(true);
 
     try {
-      // Update the system record with common values
-      const { error: updateError } = await supabase
+      // All individual jurisdiction forms have been submitted
+      // Now update the ai_systems status and redirect to results
+      await supabase
         .from("ai_systems")
-        .update({
-          system_name: values.system_name,
-          description: values.description,
-          sector: values.sector,
-          system_status: values.system_status,
-          business_use_case: values.business_use_case,
-        })
-        .eq("id", systemId);
+        .update({ status: "completed" })
+        .eq("id", systemId as string);
 
-      if (updateError) {
-        console.error(`❌ [MULTI-ASSESSMENT] Error updating system:`, updateError);
-        throw updateError;
-      }
+      // Clear the stored common data
+      localStorage.removeItem(`multi_${systemId}_common`);
 
-      console.log(`✅ [MULTI-ASSESSMENT] Common questions saved successfully`);
-      console.log(`➡️  [MULTI-ASSESSMENT] Moving to jurisdiction step`);
-
-      // Move to first jurisdiction
-      setCommonQuestionsCompleted(true);
-      setCurrentStep("jurisdiction");
-      setCurrentJurisdictionIndex(0);
+      // Redirect to multi-jurisdiction results page
+      router.push(`/compliance/multi/${systemId}`);
     } catch (err: any) {
-      console.error(`\n${'='.repeat(80)}`);
-      console.error(`❌ [MULTI-ASSESSMENT] Error submitting common questions`);
-      console.error(`   Error:`, err);
-      console.error(`   Message: ${err.message}`);
-      console.error(`${'='.repeat(80)}\n`);
-      setError("Failed to save common information. Please try again.");
+      console.error("Final submission error:", err);
+      setError(err.message || "Failed to complete assessment");
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Handle jurisdiction completion
-  const handleJurisdictionComplete = (jurisdictionId: "UK" | "EU" | "MAS", assessmentId?: string) => {
-    setJurisdictionStatuses((prev) => {
-      const updated = prev.map((status) =>
-        status.id === jurisdictionId
-          ? { ...status, completed: true, assessmentId }
-          : status
-      );
+  const handleProceedToJurisdictions = async () => {
+    if (!isFormValid) {
+      setError("Please fill in all required fields.");
+      return;
+    }
 
-      // Check if all are completed
-      const allDone = updated.every((s) => s.completed);
-      if (allDone) {
-        // Small delay before redirecting to results
-        setTimeout(() => {
-          router.push(`/compliance/multi/${systemId}`);
-        }, 2000);
-      } else {
-        // Move to next incomplete jurisdiction
-        const currentIndex = updated.findIndex((s) => s.id === jurisdictionId);
-        const nextIncompleteIndex = updated.findIndex((s, idx) => idx > currentIndex && !s.completed);
-        if (nextIncompleteIndex !== -1) {
-          setCurrentJurisdictionIndex(nextIncompleteIndex);
-        }
-      }
+    await supabase
+      .from("ai_systems")
+      .update({
+        system_name: systemName.trim(),
+        company_name: companyName.trim(),
+        sector: sector.trim(),
+        description: description.trim(),
+        business_use_case: businessUseCase.trim(),
+        system_status: systemStatus,
+      })
+      .eq("id", systemId as string);
 
-      return updated;
-    });
+    // Store common answers in localStorage for jurisdiction forms to access
+    localStorage.setItem(`multi_${systemId}_common`, JSON.stringify({
+      commonAnswers,
+      systemName,
+      companyName,
+      sector,
+      description,
+      businessUseCase,
+      assessmentMode,
+    }));
+
+    // Ensure common answers are mapped for all jurisdictions
+    const firstJurisdiction = selectedJurisdictions[0];
+    const path = jurisdictionLabels[firstJurisdiction].path;
+    router.push(`${path}/${systemId}?mode=${assessmentMode}&multi=true&common=${systemId}`);
   };
 
-  if (isLoading || isRedirecting) {
+  const handleSubmitRapid = async () => {
+    setError(null);
+    setIsSubmitting(true);
+    setCurrentStep("submitting");
+
+    try {
+      const response = await backendFetch("/api/multi-jurisdiction-scan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          system_id: systemId,
+          jurisdictions: selectedJurisdictions,
+          assessment_mode: "rapid",
+          common_answers: commonAnswers,
+          system_name: systemName,
+          company_name: companyName,
+          sector,
+          description,
+          business_use_case: businessUseCase,
+        }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to run assessment");
+      }
+
+      const result = await response.json();
+      router.push(`/compliance/multi/${systemId}`);
+    } catch (err: any) {
+      console.error("Submission error:", err);
+      setError(err.message || "Failed to submit assessment. Please try again.");
+      setCurrentStep("common");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const getRemainingJurisdictions = () => {
+    return selectedJurisdictions.filter((j) => !completedJurisdictions.includes(j));
+  };
+
+  const handleContinueFromJurisdiction = (jurisdiction: "UK" | "EU" | "MAS") => {
+    const newCompleted = [...completedJurisdictions, jurisdiction];
+    setCompletedJurisdictions(newCompleted);
+
+    const remaining = selectedJurisdictions.filter((j) => !newCompleted.includes(j));
+
+    if (remaining.length === 0) {
+      // All jurisdictions complete - submit
+      router.push(`/assessment/multi/${systemId}?step=submit&completed=${newCompleted.join(",")}`);
+    } else {
+      // Navigate to next jurisdiction
+      const nextJurisdiction = remaining[0];
+      const path = jurisdictionLabels[nextJurisdiction].path;
+      router.push(`${path}/${systemId}?mode=${assessmentMode}&multi=true&common=${systemId}&prev=${jurisdiction}`);
+    }
+  };
+
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-white">
         <Head>
-          <title>{isRedirecting ? "Redirecting..." : "Loading Assessment"} | AI Governance</title>
-          <meta name="description" content="Loading multi-jurisdiction compliance assessment..." />
+          <title>Loading Assessment | AI Governance</title>
         </Head>
-        <Sidebar />
-        <div className="lg:pl-72 pt-24 p-8 flex items-center justify-center min-h-[400px]">
+        {isLoggedIn && <Sidebar onLogout={handleLogout} />}
+        <div className={cn("flex items-center justify-center min-h-[400px]", isLoggedIn && "lg:pl-72 pt-24")}>
           <div className="text-center">
-            <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
-            <p className="text-xl text-muted-foreground">
-              {isRedirecting ? "Redirecting to results..." : "Loading assessment..."}
-            </p>
+            <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto mb-4" />
+            <p className="text-muted-foreground">Loading assessment...</p>
           </div>
         </div>
       </div>
     );
   }
 
-  if (error && !commonValues) {
+  // Progress indicator for comprehensive mode
+  const renderProgress = () => {
+    if (assessmentMode !== "comprehensive") return null;
+
+    const steps = ["Common Questions", ...selectedJurisdictions.map((j) => jurisdictionLabels[j].name)];
+
     return (
-      <div className="min-h-screen bg-white">
-        <Head>
-          <title>Error - Multi-Jurisdiction Assessment</title>
-        </Head>
-        <Sidebar />
-        <div className="lg:pl-72 pt-24 p-8">
-          <Card className="glass-panel shadow-elevated max-w-2xl mx-auto">
-            <CardHeader>
-              <CardTitle className="text-foreground">Error</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Alert variant="destructive">
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-              <Button
-                onClick={() => router.push("/assessment")}
-                className="mt-4"
-                variant="outline"
-              >
-                Go Back to Intro
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
+      <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-2">
+        {steps.map((step, idx) => {
+          const isCompleted = idx === 0
+            ? currentStep !== "common" || completedJurisdictions.length > 0
+            : completedJurisdictions.includes(selectedJurisdictions[idx - 1]);
+          const isCurrent = idx === 0
+            ? currentStep === "common"
+            : currentStep === "jurisdiction-forms" && !completedJurisdictions.includes(selectedJurisdictions[idx - 1]) && completedJurisdictions.length === idx - 1;
+
+          return (
+            <div key={idx} className="flex items-center gap-2">
+              <div className={cn(
+                "flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap",
+                isCompleted ? "bg-emerald-100 text-emerald-700" : isCurrent ? "bg-primary/10 text-primary" : "bg-slate-100 text-slate-500"
+              )}>
+                {isCompleted ? <CheckCircle2 className="h-4 w-4" /> : <Circle className="h-4 w-4" />}
+                {step}
+              </div>
+              {idx < steps.length - 1 && <ArrowRight className="h-4 w-4 text-slate-300" />}
+            </div>
+          );
+        })}
       </div>
     );
-  }
-
-  const currentJurisdiction = selectedJurisdictions[currentJurisdictionIndex];
-  const allCompleted = jurisdictionStatuses.every((s) => s.completed);
+  };
 
   return (
     <div className="min-h-screen bg-white">
       <Head>
-        <title>Multi-Jurisdiction Assessment</title>
-        <meta name="description" content="Complete AI compliance assessments across multiple jurisdictions." />
+        <title>Multi-Jurisdiction Assessment | AI Governance</title>
       </Head>
-      <Sidebar />
-      <div className="lg:pl-72 pt-24 p-8">
-        <div className="container mx-auto max-w-5xl">
-          {/* Progress Tracker */}
-          <Card className="glass-panel shadow-elevated mb-6">
-            <CardHeader>
-              <CardTitle className="text-foreground flex items-center gap-2">
-                <Shield className="h-5 w-5 text-primary" />
-                Multi-Jurisdiction Assessment Progress
+      {isLoggedIn && <Sidebar onLogout={handleLogout} />}
+
+      <div className={cn("px-4 lg:px-8 py-6", isLoggedIn && "lg:pl-72 pt-24")}>
+        <div className="max-w-5xl mx-auto">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+              <Shield className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-foreground">Multi-Jurisdiction Assessment</h1>
+              <p className="text-sm text-muted-foreground">
+                {assessmentMode === "comprehensive"
+                  ? "Complete common questions, then each jurisdiction form"
+                  : "Quick scan across all selected frameworks"}
+              </p>
+            </div>
+          </div>
+
+          {renderProgress()}
+
+          <Card className="glass-panel border-border/50 mb-4">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Globe className="h-4 w-4 text-primary" />
+                Selected Jurisdictions
               </CardTitle>
-              <CardDescription className="text-muted-foreground">
-                Complete common questions first, then proceed through each jurisdiction
-              </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {/* Common Questions Status */}
-                <div className="flex items-center gap-3 p-3 rounded-lg bg-secondary/20">
-                  {commonQuestionsCompleted ? (
-                    <CheckCircle2 className="h-5 w-5 text-green-500" />
-                  ) : (
-                    <Circle className="h-5 w-5 text-muted-foreground" />
-                  )}
-                  <div className="flex-1">
-                    <p className={`font-medium ${commonQuestionsCompleted ? "text-green-500" : "text-foreground"}`}>
-                      Common Questions
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      System profile information shared across all jurisdictions
-                    </p>
-                  </div>
-                  {commonQuestionsCompleted && (
-                    <span className="text-xs text-green-500 font-medium">Completed</span>
-                  )}
-                </div>
-
-                {/* Jurisdiction Statuses */}
-                {jurisdictionStatuses.map((status, index) => (
-                  <div
-                    key={status.id}
-                    className={`flex items-center gap-3 p-3 rounded-lg ${index === currentJurisdictionIndex && currentStep === "jurisdiction"
-                      ? "bg-primary/20 border-2 border-primary"
-                      : status.completed
-                        ? "bg-green-500/10"
-                        : "bg-secondary/20"
-                      }`}
-                  >
-                    {status.completed ? (
-                      <CheckCircle2 className="h-5 w-5 text-green-500" />
-                    ) : (
-                      <Circle className="h-5 w-5 text-muted-foreground" />
-                    )}
-                    <div className="flex-1">
-                      <p
-                        className={`font-medium ${status.completed
-                          ? "text-green-500"
-                          : index === currentJurisdictionIndex && currentStep === "jurisdiction"
-                            ? "text-primary"
-                            : "text-foreground"
-                          }`}
-                      >
-                        {status.name} Assessment
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {status.completed
-                          ? "Assessment completed"
-                          : index === currentJurisdictionIndex && currentStep === "jurisdiction"
-                            ? "In progress..."
-                            : "Pending"}
-                      </p>
+              <div className="flex flex-wrap gap-3">
+                {selectedJurisdictions.map((j) => {
+                  const isCompleted = completedJurisdictions.includes(j);
+                  return (
+                    <div
+                      key={j}
+                      className={cn(
+                        "flex items-center gap-2 px-4 py-2 rounded-xl border transition-colors",
+                        isCompleted
+                          ? "bg-emerald-50 border-emerald-200"
+                          : "bg-primary/10 border-primary/20"
+                      )}
+                    >
+                      <span className="text-lg">{jurisdictionLabels[j].flag}</span>
+                      <span className="font-medium text-sm">{jurisdictionLabels[j].name}</span>
+                      {isCompleted ? (
+                        <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                      ) : (
+                        <Circle className="h-4 w-4 text-slate-400" />
+                      )}
                     </div>
-                    {status.completed && (
-                      <span className="text-xs text-green-500 font-medium">Completed</span>
-                    )}
-                    {index === currentJurisdictionIndex && currentStep === "jurisdiction" && !status.completed && (
-                      <span className="text-xs text-primary font-medium">Current</span>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </CardContent>
           </Card>
 
-          {/* Common Questions Form */}
-          {currentStep === "common" && commonValues && (
-            <Card className="glass-panel shadow-elevated">
-              <CardHeader>
-                <CardTitle className="text-foreground">Common Questions</CardTitle>
-                <CardDescription className="text-muted-foreground">
-                  These questions are shared across all selected jurisdictions: {selectedJurisdictions.join(", ")}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Formik
-                  initialValues={commonValues}
-                  validationSchema={commonValidationSchema}
-                  enableReinitialize
-                  onSubmit={handleCommonSubmit}
-                >
-                  {({ handleSubmit, values, setFieldValue, errors, touched }) => (
-                    <form onSubmit={handleSubmit} className="space-y-6">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label className="text-foreground">System name *</Label>
-                          <Input
-                            value={values.system_name}
-                            onChange={(e) => setFieldValue("system_name", e.target.value)}
-                            placeholder="e.g., Fraud Detection Engine"
-                            className="rounded-xl"
-                          />
-                          {touched.system_name && errors.system_name && (
-                            <p className="text-sm text-red-500">{errors.system_name}</p>
-                          )}
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label className="text-foreground">Sector *</Label>
-                          <Input
-                            value={values.sector}
-                            onChange={(e) => setFieldValue("sector", e.target.value)}
-                            placeholder="e.g., Financial Services, Healthcare"
-                            className="rounded-xl"
-                          />
-                          {touched.sector && errors.sector && (
-                            <p className="text-sm text-red-500">{errors.sector}</p>
-                          )}
-                        </div>
-
-                        <div className="space-y-2 md:col-span-2">
-                          <Label className="text-foreground">Description *</Label>
-                          <Textarea
-                            value={values.description}
-                            onChange={(e) => setFieldValue("description", e.target.value)}
-                            placeholder="Describe your AI system"
-                            className="rounded-xl min-h-[100px]"
-                          />
-                          {touched.description && errors.description && (
-                            <p className="text-sm text-red-500">{errors.description}</p>
-                          )}
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label className="text-foreground">Owner / Company</Label>
-                          <Input
-                            value={values.owner}
-                            onChange={(e) => setFieldValue("owner", e.target.value)}
-                            placeholder="e.g., Risk Operations Team"
-                            className="rounded-xl"
-                          />
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label className="text-foreground">System Status</Label>
-                          <Select
-                            value={values.system_status}
-                            onValueChange={(v) => setFieldValue("system_status", v)}
-                          >
-                            <SelectTrigger className="rounded-xl">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent className="bg-white border border-border shadow-lg">
-                              <SelectItem value="envision">Envision</SelectItem>
-                              <SelectItem value="develop">Develop</SelectItem>
-                              <SelectItem value="deploy">Deploy</SelectItem>
-                              <SelectItem value="operate">Operate</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        <div className="space-y-2 md:col-span-2">
-                          <Label className="text-foreground">Business Use Case</Label>
-                          <Textarea
-                            value={values.business_use_case}
-                            onChange={(e) => setFieldValue("business_use_case", e.target.value)}
-                            placeholder="Describe how your company uses this AI system"
-                            className="rounded-xl min-h-[80px]"
-                          />
-                        </div>
-                      </div>
-
-                      {error && (
-                        <Alert variant="destructive" className="rounded-xl">
-                          <AlertDescription>{error}</AlertDescription>
-                        </Alert>
-                      )}
-
-                      <div className="flex justify-end gap-3">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => router.push("/assessment")}
-                          className="rounded-xl"
-                        >
-                          Cancel
-                        </Button>
-                        <Button
-                          type="submit"
-                          variant="hero"
-                          className="rounded-xl"
-                          disabled={isSubmitting}
-                        >
-                          {isSubmitting ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Saving...
-                            </>
-                          ) : (() => {
-                            // Find the first incomplete jurisdiction
-                            const nextIncomplete = jurisdictionStatuses.find(s => !s.completed);
-                            return nextIncomplete
-                              ? `Continue to ${nextIncomplete.name} Assessment`
-                              : "Continue to Assessment";
-                          })()}
-                        </Button>
-                      </div>
-                    </form>
-                  )}
-                </Formik>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Jurisdiction-Specific Forms */}
-          {currentStep === "jurisdiction" && currentJurisdiction && !allCompleted && (
-            <div className="space-y-4">
-              <Card className="glass-panel shadow-elevated">
-                <CardHeader>
-                  <CardTitle className="text-foreground">
-                    {jurisdictionStatuses[currentJurisdictionIndex]?.name} Assessment
+          <form onSubmit={(e) => { e.preventDefault(); handleProceedToJurisdictions(); }} className="space-y-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <Card className="glass-panel border-border/50">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Lock className="h-4 w-4 text-primary" />
+                    System Details
                   </CardTitle>
-                  <CardDescription className="text-muted-foreground">
-                    Complete the {jurisdictionStatuses[currentJurisdictionIndex]?.name} compliance assessment
-                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-sm">
+                      System Name <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      value={systemName}
+                      onChange={(e) => setSystemName(e.target.value)}
+                      placeholder="e.g., Fraud Detection Engine"
+                      className="rounded-lg h-9"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-sm">
+                        Sector <span className="text-red-500">*</span>
+                      </Label>
+                      <Input
+                        value={sector}
+                        onChange={(e) => setSector(e.target.value)}
+                        placeholder="e.g., Finance"
+                        className="rounded-lg h-9"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-sm">Status</Label>
+                      <Select value={systemStatus} onValueChange={setSystemStatus}>
+                        <SelectTrigger className="rounded-lg h-9">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-white border shadow-lg z-50">
+                          <SelectItem value="envision">Planning</SelectItem>
+                          <SelectItem value="development">Development</SelectItem>
+                          <SelectItem value="staging">Testing</SelectItem>
+                          <SelectItem value="production">Production</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-sm">Organization / Team</Label>
+                    <Input
+                      value={companyName}
+                      onChange={(e) => setCompanyName(e.target.value)}
+                      placeholder="e.g., Risk Operations"
+                      className="rounded-lg h-9"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="glass-panel border-border/50">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Zap className="h-4 w-4 text-primary" />
+                    Assessment Mode
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-center py-8">
-                    <p className="text-muted-foreground mb-4">
-                      {jurisdictionStatuses[currentJurisdictionIndex]?.completed
-                        ? `${jurisdictionStatuses[currentJurisdictionIndex]?.name} assessment completed!`
-                        : `Click below to start the ${jurisdictionStatuses[currentJurisdictionIndex]?.name} assessment form`}
-                    </p>
-                    {!jurisdictionStatuses[currentJurisdictionIndex]?.completed && (
-                      <Button
-                        onClick={() => {
-                          console.log(`\n${'='.repeat(80)}`);
-                          console.log(`🖱️  [MULTI-ASSESSMENT] Button clicked to navigate to jurisdiction form`);
-                          console.log(`   Current jurisdiction: ${currentJurisdiction}`);
-                          console.log(`   System ID: ${systemId}`);
-                          console.log(`${'='.repeat(80)}\n`);
+                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setAssessmentMode("rapid")}
+                      className={cn(
+                        "flex-1 p-3 rounded-xl border-2 text-left transition-all",
+                        assessmentMode === "rapid"
+                          ? "border-primary bg-primary/5"
+                          : "border-border/50 hover:border-primary/30"
+                      )}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-medium text-foreground text-sm">Quick Scan</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">Fast high-level risk check across all jurisdictions</p>
+                    </button>
 
-                          if (currentJurisdiction === "UK") {
-                            const url = `/assessment/uk/${systemId}?mode=${assessmentMode}`;
-                            console.log(`➡️  [MULTI-ASSESSMENT] Navigating to: ${url}`);
-                            router.push(url);
-                          } else if (currentJurisdiction === "MAS") {
-                            const url = `/assessment/mas/${systemId}?mode=${assessmentMode}`;
-                            console.log(`➡️  [MULTI-ASSESSMENT] Navigating to: ${url}`);
-                            router.push(url);
-                          } else {
-                            const url = `/assessment/eu/${systemId}?mode=${assessmentMode}`;
-                            console.log(`➡️  [MULTI-ASSESSMENT] Navigating to EU form: ${url}`);
-                            console.log(`   System ID being passed: ${systemId}`);
-                            router.push(url);
-                          }
-                        }}
-                        variant="hero"
-                        className="rounded-xl"
-                      >
-                        Go to {jurisdictionStatuses[currentJurisdictionIndex]?.name} Assessment
-                      </Button>
-                    )}
-                    {jurisdictionStatuses[currentJurisdictionIndex]?.completed && currentJurisdictionIndex < selectedJurisdictions.length - 1 && (
-                      <Button
-                        onClick={() => {
-                          const nextIndex = currentJurisdictionIndex + 1;
-                          setCurrentJurisdictionIndex(nextIndex);
-                        }}
-                        variant="hero"
-                        className="rounded-xl mt-4"
-                      >
-                        Continue to {jurisdictionStatuses[currentJurisdictionIndex + 1]?.name} Assessment
-                      </Button>
-                    )}
+                    <button
+                      type="button"
+                      onClick={() => setAssessmentMode("comprehensive")}
+                      className={cn(
+                        "flex-1 p-3 rounded-xl border-2 text-left transition-all",
+                        assessmentMode === "comprehensive"
+                          ? "border-emerald-500 bg-emerald-50"
+                          : "border-border/50 hover:border-emerald-500/30"
+                      )}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-medium text-foreground text-sm">Deep Review</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">Full compliance analysis with jurisdiction-specific forms</p>
+                    </button>
+                  </div>
+
+                  {assessmentMode === "comprehensive" && (
+                    <Alert className="mt-3 bg-blue-50 border-blue-200">
+                      <AlertDescription className="text-blue-800 text-xs">
+                        Deep Review will guide you through each jurisdiction's full form after common questions.
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
+                  <div className="space-y-1.5 mt-3">
+                    <Label className="text-sm">
+                      Description <span className="text-red-500">*</span>
+                    </Label>
+                    <Textarea
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      placeholder="Describe your AI system..."
+                      className="min-h-[60px] rounded-lg"
+                    />
                   </div>
                 </CardContent>
               </Card>
             </div>
-          )}
 
-          {/* All Completed Screen */}
-          {allCompleted && (
-            <Card className="glass-panel shadow-elevated">
-              <CardHeader>
-                <CardTitle className="text-foreground flex items-center gap-2">
-                  <CheckCircle2 className="h-6 w-6 text-green-500" />
-                  All Assessments Completed!
-                </CardTitle>
+            <Card className="glass-panel border-border/50">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Common Assessment Questions</CardTitle>
+                <CardDescription className="text-xs">
+                  These answers apply to all selected jurisdictions
+                </CardDescription>
               </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground mb-4">
-                  You have successfully completed all selected jurisdiction assessments.
-                </p>
-                <Button
-                  onClick={() => router.push(`/compliance/multi/${systemId}`)}
-                  variant="hero"
-                  className="rounded-xl"
-                >
-                  View All Results
-                </Button>
+              <CardContent className="space-y-4">
+                {COMMON_QUESTIONS.map((q) => (
+                  <div key={q.id} className="space-y-1.5">
+                    <Label className="text-sm">
+                      {q.title}
+                      {q.required && <span className="text-red-500 ml-1">*</span>}
+                    </Label>
+                    {q.type === "textarea" && (
+                      <Textarea
+                        value={commonAnswers[q.id] || ""}
+                        onChange={(e) => handleAnswerChange(q.id, e.target.value)}
+                        placeholder="Enter your answer..."
+                        className="min-h-[60px] rounded-lg"
+                      />
+                    )}
+                    {q.type === "text" && (
+                      <Input
+                        value={commonAnswers[q.id] || ""}
+                        onChange={(e) => handleAnswerChange(q.id, e.target.value)}
+                        placeholder="Enter your answer..."
+                        className="rounded-lg h-9"
+                      />
+                    )}
+                    {q.type === "radio" && (
+                      <div className="flex gap-2 mt-1">
+                        {q.options?.map((opt) => (
+                          <button
+                            key={opt}
+                            type="button"
+                            onClick={() => handleAnswerChange(q.id, opt)}
+                            className={cn(
+                              "px-4 py-2 rounded-lg border-2 text-sm font-medium transition-all",
+                              commonAnswers[q.id] === opt
+                                ? "border-primary bg-primary/10 text-primary"
+                                : "border-border/50 hover:border-primary/30"
+                            )}
+                          >
+                            {opt}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+
+                <div className="space-y-1.5">
+                  <Label className="text-sm">Business Use Case</Label>
+                  <Textarea
+                    value={businessUseCase}
+                    onChange={(e) => setBusinessUseCase(e.target.value)}
+                    placeholder="How is this AI system used in your business?"
+                    className="min-h-[60px] rounded-lg"
+                  />
+                </div>
               </CardContent>
             </Card>
-          )}
+
+            {error && (
+              <Alert className="bg-red-50 border-red-200">
+                <AlertDescription className="text-red-800 text-sm">{error}</AlertDescription>
+              </Alert>
+            )}
+
+            <div className="flex items-center justify-between pt-2 pb-4">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => router.push("/assessment")}
+                className="rounded-lg"
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Cancel
+              </Button>
+
+              <Button
+                type="submit"
+                disabled={isSubmitting || !isFormValid}
+                className="rounded-lg bg-[#3B82F6] hover:bg-[#2563EB] text-white px-6"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Processing...
+                  </>
+                ) : assessmentMode === "rapid" ? (
+                  <>
+                    Run Quick Scan ({selectedJurisdictions.length} jurisdictions)
+                    <ArrowRight className="h-4 w-4 ml-2" />
+                  </>
+                ) : (
+                  <>
+                    Continue to Jurisdiction Forms
+                    <ArrowRight className="h-4 w-4 ml-2" />
+                  </>
+                )}
+              </Button>
+            </div>
+          </form>
         </div>
       </div>
     </div>
   );
 }
-
-

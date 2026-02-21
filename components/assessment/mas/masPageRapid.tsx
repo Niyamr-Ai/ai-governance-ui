@@ -27,11 +27,11 @@ export default function MasPageRapid({ currentPage }: { currentPage: number }) {
             <CardContent className="space-y-6">
                 {/* Governance */}
                 <div className="space-y-4">
-                    <h3 className="text-lg font-medium text-blue-900">Governance & Accountability</h3>
-                    <div className="flex items-center justify-between p-4 bg-blue-50/50 rounded-xl border border-blue-100">
+                    <h3 className="text-lg font-medium text-slate-800">Governance & Accountability</h3>
+                    <div className="flex items-center justify-between p-4 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 transition-colors">
                         <div className="space-y-0.5">
-                            <Label>Documented Governance</Label>
-                            <p className="text-xs text-muted-foreground">Does a formal governance framework exist for this AI system?</p>
+                            <Label className="text-slate-700">Documented Governance</Label>
+                            <p className="text-xs text-slate-500">Does a formal governance framework exist for this AI system?</p>
                         </div>
                         <Switch
                             checked={values.governance_policy}
@@ -42,14 +42,14 @@ export default function MasPageRapid({ currentPage }: { currentPage: number }) {
 
                 {/* Risk Classification */}
                 <div className="space-y-4">
-                    <h3 className="text-lg font-medium text-blue-900">Risk Portfolio</h3>
-                    <div className="flex items-center justify-between p-4 bg-blue-50/50 rounded-xl border border-blue-100">
+                    <h3 className="text-lg font-medium text-slate-800">Risk Portfolio</h3>
+                    <div className="flex items-center justify-between p-4 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 transition-colors">
                         <div className="space-y-0.5">
-                            <Label>Critical Risk Category</Label>
-                            <p className="text-xs text-muted-foreground">Is the system classified as high-risk under MAS criteria?</p>
+                            <Label className="text-slate-700">Critical Risk Category</Label>
+                            <p className="text-xs text-slate-500">Is the system classified as high-risk under MAS criteria?</p>
                         </div>
                         <Switch
-                            checked={values.inventory_recorded} // Using as proxy
+                            checked={values.inventory_recorded}
                             onCheckedChange={(v) => setFieldValue("inventory_recorded", v)}
                         />
                     </div>
@@ -57,11 +57,11 @@ export default function MasPageRapid({ currentPage }: { currentPage: number }) {
 
                 {/* Operational */}
                 <div className="space-y-4">
-                    <h3 className="text-lg font-medium text-blue-900">Operational Controls</h3>
-                    <div className="flex items-center justify-between p-4 bg-blue-50/50 rounded-xl border border-blue-100">
+                    <h3 className="text-lg font-medium text-slate-800">Operational Controls</h3>
+                    <div className="flex items-center justify-between p-4 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 transition-colors">
                         <div className="space-y-0.5">
-                            <Label>Human Oversight</Label>
-                            <p className="text-xs text-muted-foreground">Is there active human monitoring of model outputs?</p>
+                            <Label className="text-slate-700">Human Oversight</Label>
+                            <p className="text-xs text-slate-500">Is there active human monitoring of model outputs?</p>
                         </div>
                         <Switch
                             checked={values.human_oversight}
@@ -71,12 +71,12 @@ export default function MasPageRapid({ currentPage }: { currentPage: number }) {
                 </div>
 
                 <div className="space-y-2">
-                    <Label className="text-foreground font-medium">Risk Mitigation Strategy</Label>
+                    <Label className="text-slate-700 font-medium">Risk Mitigation Strategy</Label>
                     <Textarea
                         value={values.governance_framework}
                         onChange={(e) => setFieldValue("governance_framework", e.target.value)}
                         placeholder="Briefly describe the primary measures used to control AI risks..."
-                        className="rounded-xl min-h-[100px]"
+                        className="rounded-xl min-h-[100px] border-slate-200 focus:border-emerald-500 focus:ring-emerald-500"
                     />
                 </div>
             </CardContent>

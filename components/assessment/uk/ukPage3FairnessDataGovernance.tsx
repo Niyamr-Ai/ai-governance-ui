@@ -8,6 +8,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { ToggleSwitchInline } from "@/components/ui/toggle-switch";
 import { useFormikContext } from "formik";
 import EvidenceUpload from "@/pages/assessment/shared/evidenceUpload";
 
@@ -35,32 +36,19 @@ export default function UkPage3FairnessDataGovernance({
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between p-4 rounded-xl border transition-colors bg-slate-50 border-slate-200 hover:bg-slate-100">
             <Label className="text-base font-semibold flex-1">Bias testing and assessment</Label>
             <div className="ml-4 flex items-center gap-2">
               <span className={`text-xs font-bold px-2 py-1 rounded ${values.bias_testing
-                ? "text-blue-500 bg-emerald-300"
-                : "text-red-500"
+                ? "text-emerald-700 bg-emerald-100"
+                : "text-slate-500 bg-slate-200"
                 }`}>
                 {values.bias_testing ? "YES" : "NO"}
               </span>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={values.bias_testing}
-                onClick={() =>
-                  setFieldValue(
-                    "bias_testing",
-                    !values.bias_testing
-                  )
-                }
-                className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${values.bias_testing ? "bg-emerald-600 border-emerald-500" : "bg-gray-400 border-gray-500"
-                  }`}
-                style={{ backgroundColor: values.bias_testing ? '#10b981' : '#9ca3af' }}
-              >
-                <span className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform ${values.bias_testing ? "translate-x-5" : "translate-x-0"
-                  }`} />
-              </button>
+              <ToggleSwitchInline
+                checked={values.bias_testing}
+                onChange={(v) => setFieldValue("bias_testing", v)}
+              />
             </div>
           </div>
           {values.bias_testing && (
@@ -150,32 +138,19 @@ export default function UkPage3FairnessDataGovernance({
         </div>
 
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between p-4 rounded-xl border transition-colors bg-slate-50 border-slate-200 hover:bg-slate-100">
             <Label className="text-base font-semibold flex-1">Discriminatory risk mitigation</Label>
             <div className="ml-4 flex items-center gap-2">
               <span className={`text-xs font-bold px-2 py-1 rounded ${values.discrimination_mitigation
-                ? "text-blue-500 bg-emerald-300"
-                : "text-red-500"
+                ? "text-emerald-700 bg-emerald-100"
+                : "text-slate-500 bg-slate-200"
                 }`}>
                 {values.discrimination_mitigation ? "YES" : "NO"}
               </span>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={values.discrimination_mitigation}
-                onClick={() =>
-                  setFieldValue(
-                    "discrimination_mitigation",
-                    !values.discrimination_mitigation
-                  )
-                }
-                className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${values.discrimination_mitigation ? "bg-emerald-600 border-emerald-500" : "bg-gray-400 border-gray-500"
-                  }`}
-                style={{ backgroundColor: values.discrimination_mitigation ? '#10b981' : '#9ca3af' }}
-              >
-                <span className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform ${values.discrimination_mitigation ? "translate-x-5" : "translate-x-0"
-                  }`} />
-              </button>
+              <ToggleSwitchInline
+                checked={values.discrimination_mitigation}
+                onChange={(v) => setFieldValue("discrimination_mitigation", v)}
+              />
             </div>
           </div>
           {values.discrimination_mitigation && (
@@ -205,32 +180,19 @@ export default function UkPage3FairnessDataGovernance({
         </div>
 
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between p-4 rounded-xl border transition-colors bg-slate-50 border-slate-200 hover:bg-slate-100">
             <Label className="text-base font-semibold flex-1">Data quality and representativeness checks</Label>
             <div className="ml-4 flex items-center gap-2">
               <span className={`text-xs font-bold px-2 py-1 rounded ${values.data_quality
-                ? "text-blue-500 bg-emerald-300"
-                : "text-red-500"
+                ? "text-emerald-700 bg-emerald-100"
+                : "text-slate-500 bg-slate-200"
                 }`}>
                 {values.data_quality ? "YES" : "NO"}
               </span>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={values.data_quality}
-                onClick={() =>
-                  setFieldValue(
-                    "data_quality",
-                    !values.data_quality
-                  )
-                }
-                className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${values.data_quality ? "bg-emerald-600 border-emerald-500" : "bg-gray-400 border-gray-500"
-                  }`}
-                style={{ backgroundColor: values.data_quality ? '#10b981' : '#9ca3af' }}
-              >
-                <span className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform ${values.data_quality ? "translate-x-5" : "translate-x-0"
-                  }`} />
-              </button>
+              <ToggleSwitchInline
+                checked={values.data_quality}
+                onChange={(v) => setFieldValue("data_quality", v)}
+              />
             </div>
           </div>
           {values.data_quality && (
@@ -280,32 +242,19 @@ export default function UkPage3FairnessDataGovernance({
         </div>
 
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between p-4 rounded-xl border transition-colors bg-slate-50 border-slate-200 hover:bg-slate-100">
             <Label className="text-base font-semibold flex-1">Ongoing fairness monitoring</Label>
             <div className="ml-4 flex items-center gap-2">
               <span className={`text-xs font-bold px-2 py-1 rounded ${values.fairness_monitoring
-                ? "text-blue-500 bg-emerald-300"
-                : "text-red-500"
+                ? "text-emerald-700 bg-emerald-100"
+                : "text-slate-500 bg-slate-200"
                 }`}>
                 {values.fairness_monitoring ? "YES" : "NO"}
               </span>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={values.fairness_monitoring}
-                onClick={() =>
-                  setFieldValue(
-                    "fairness_monitoring",
-                    !values.fairness_monitoring
-                  )
-                }
-                className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${values.fairness_monitoring ? "bg-emerald-600 border-emerald-500" : "bg-gray-400 border-gray-500"
-                  }`}
-                style={{ backgroundColor: values.fairness_monitoring ? '#10b981' : '#9ca3af' }}
-              >
-                <span className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform ${values.fairness_monitoring ? "translate-x-5" : "translate-x-0"
-                  }`} />
-              </button>
+              <ToggleSwitchInline
+                checked={values.fairness_monitoring}
+                onChange={(v) => setFieldValue("fairness_monitoring", v)}
+              />
             </div>
           </div>
           {values.fairness_monitoring && (
@@ -355,32 +304,19 @@ export default function UkPage3FairnessDataGovernance({
         </div>
 
         <div className="space-y-2">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between p-4 rounded-xl border transition-colors bg-slate-50 border-slate-200 hover:bg-slate-100">
             <Label>Does your system handle personal data?</Label>
             <div className="ml-4 flex items-center gap-2">
               <span className={`text-xs font-bold px-2 py-1 rounded ${values.personal_data_handling
-                ? "text-blue-500 bg-emerald-300"
-                : "text-red-500"
+                ? "text-emerald-700 bg-emerald-100"
+                : "text-slate-500 bg-slate-200"
                 }`}>
                 {values.personal_data_handling ? "YES" : "NO"}
               </span>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={values.personal_data_handling}
-                onClick={() =>
-                  setFieldValue(
-                    "personal_data_handling",
-                    !values.personal_data_handling
-                  )
-                }
-                className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${values.personal_data_handling ? "bg-emerald-600 border-emerald-500" : "bg-gray-400 border-gray-500"
-                  }`}
-                style={{ backgroundColor: values.personal_data_handling ? '#10b981' : '#9ca3af' }}
-              >
-                <span className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform ${values.personal_data_handling ? "translate-x-5" : "translate-x-0"
-                  }`} />
-              </button>
+              <ToggleSwitchInline
+                checked={values.personal_data_handling}
+                onChange={(v) => setFieldValue("personal_data_handling", v)}
+              />
             </div>
           </div>
           {values.personal_data_handling && (

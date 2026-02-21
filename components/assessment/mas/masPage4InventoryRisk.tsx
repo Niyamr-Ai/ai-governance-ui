@@ -8,6 +8,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import { ToggleSwitchInline } from "@/components/ui/toggle-switch";
 import { useFormikContext } from "formik";
 
 type EvidenceContent = Record<string, string>;
@@ -37,7 +38,6 @@ export default function MasPage4InventoryRisk({
   handleEvidenceFileChange,
   evidenceContent,
 }: Props) {
-  // Handle SSR - Formik context not available during static generation
   let formikContext;
   try {
     formikContext = useFormikContext<any>();
@@ -65,7 +65,7 @@ export default function MasPage4InventoryRisk({
 
       <CardContent className="space-y-4">
         {/* System Inventory & Risk Classification */}
-        <div className="space-y-3 border border-border rounded-xl p-4 glass-panel">
+        <div className="space-y-3 border border-slate-200 rounded-xl p-4 bg-slate-50 hover:bg-slate-100 transition-colors">
           <div className="flex items-center justify-between">
             <div className="flex-1 space-y-1">
               <Label className="text-base font-medium text-foreground">
@@ -79,30 +79,17 @@ export default function MasPage4InventoryRisk({
             <div className="ml-4 flex items-center gap-2">
               <span
                 className={`text-xs font-bold px-2 py-1 rounded ${isRecorded
-                  ? "text-blue-500 bg-emerald-300"
-                  : "text-red-500"
+                  ? "text-emerald-700 bg-emerald-100"
+                  : "text-slate-500 bg-slate-200"
                   }`}
               >
                 {isRecorded ? "YES" : "NO"}
               </span>
 
-              <button
-                type="button"
-                role="switch"
-                aria-checked={isRecorded}
-                onClick={() =>
-                  setFieldValue("inventory_recorded", !isRecorded)
-                }
-                className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${isRecorded
-                  ? "text-blue-500 bg-emerald-300"
-                  : "text-red-500"
-                  }`}
-              >
-                <span
-                  className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform ${isRecorded ? "translate-x-5" : "translate-x-0"
-                    }`}
-                />
-              </button>
+              <ToggleSwitchInline
+                checked={isRecorded}
+                onChange={(v) => setFieldValue("inventory_recorded", v)}
+              />
             </div>
           </div>
 

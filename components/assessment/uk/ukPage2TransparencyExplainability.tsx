@@ -8,6 +8,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { ToggleSwitchInline } from "@/components/ui/toggle-switch";
 import { useFormikContext } from "formik";
 
 type Props = {
@@ -35,32 +36,19 @@ export default function UkPage2TransparencyExplainability({
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between p-4 rounded-xl border transition-colors bg-slate-50 border-slate-200 hover:bg-slate-100">
             <Label className="text-base font-semibold flex-1">Clear disclosure to users that AI is being used</Label>
             <div className="ml-4 flex items-center gap-2">
               <span className={`text-xs font-bold px-2 py-1 rounded ${values.user_disclosure
-                  ? "text-blue-500 bg-emerald-300"
-                  : "text-red-500"
+                  ? "text-emerald-700 bg-emerald-100"
+                  : "text-slate-500 bg-slate-200"
                 }`}>
                 {values.user_disclosure ? "YES" : "NO"}
               </span>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={values.user_disclosure}
-                onClick={() =>
-                  setFieldValue(
-                    "user_disclosure",
-                    !Boolean(values.user_disclosure)
-                  )
-                }                
-                className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${values.user_disclosure ? "bg-emerald-600 border-emerald-500" : "bg-gray-400 border-gray-500"
-                  }`}
-                style={{ backgroundColor: values.user_disclosure ? '#10b981' : '#9ca3af' }}
-              >
-                <span className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform ${values.user_disclosure ? "translate-x-5" : "translate-x-0"
-                  }`} />
-              </button>
+              <ToggleSwitchInline
+                checked={values.user_disclosure}
+                onChange={(v) => setFieldValue("user_disclosure", v)}
+              />
             </div>
           </div>
           {values.user_disclosure && (
@@ -158,32 +146,19 @@ export default function UkPage2TransparencyExplainability({
         </div>
 
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between p-4 rounded-xl border transition-colors bg-slate-50 border-slate-200 hover:bg-slate-100">
             <Label className="text-base font-semibold flex-1">Explainability mechanisms for decisions</Label>
             <div className="ml-4 flex items-center gap-2">
               <span className={`text-xs font-bold px-2 py-1 rounded ${values.explainability
-                  ? "text-blue-500 bg-emerald-300"
-                  : "text-red-500"
+                  ? "text-emerald-700 bg-emerald-100"
+                  : "text-slate-500 bg-slate-200"
                 }`}>
                 {values.explainability ? "YES" : "NO"}
               </span>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={values.explainability}
-                onClick={() =>
-                  setFieldValue(
-                    "explainability",
-                    !Boolean(values.explainability)
-                  )
-                }
-                className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${values.explainability ? "bg-emerald-600 border-emerald-500" : "bg-gray-400 border-gray-500"
-                  }`}
-                style={{ backgroundColor: values.explainability ? '#10b981' : '#9ca3af' }}
-              >
-                <span className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform ${values.explainability ? "translate-x-5" : "translate-x-0"
-                  }`} />
-              </button>
+              <ToggleSwitchInline
+                checked={values.explainability}
+                onChange={(v) => setFieldValue("explainability", v)}
+              />
             </div>
           </div>
           {values.explainability && (
@@ -283,32 +258,19 @@ export default function UkPage2TransparencyExplainability({
         </div>
 
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between p-4 rounded-xl border transition-colors bg-slate-50 border-slate-200 hover:bg-slate-100">
             <Label className="text-base font-semibold flex-1">Documentation of system capabilities and limitations</Label>
             <div className="ml-4 flex items-center gap-2">
               <span className={`text-xs font-bold px-2 py-1 rounded ${values.documentation
-                  ? "text-blue-500 bg-emerald-300"
-                  : "text-red-500"
+                  ? "text-emerald-700 bg-emerald-100"
+                  : "text-slate-500 bg-slate-200"
                 }`}>
                 {values.documentation ? "YES" : "NO"}
               </span>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={values.documentation}
-                onClick={() =>
-                  setFieldValue(
-                    "documentation",
-                    !Boolean(values.documentation)
-                  )
-                }                
-                className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${values.documentation ? "bg-emerald-600 border-emerald-500" : "bg-gray-400 border-gray-500"
-                  }`}
-                style={{ backgroundColor: values.documentation ? '#10b981' : '#9ca3af' }}
-              >
-                <span className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform ${values.documentation ? "translate-x-5" : "translate-x-0"
-                  }`} />
-              </button>
+              <ToggleSwitchInline
+                checked={values.documentation}
+                onChange={(v) => setFieldValue("documentation", v)}
+              />
             </div>
           </div>
           {values.documentation && (
@@ -378,32 +340,19 @@ export default function UkPage2TransparencyExplainability({
         </div>
 
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between p-4 rounded-xl border transition-colors bg-slate-50 border-slate-200 hover:bg-slate-100">
             <Label className="text-base font-semibold flex-1">Transparency reports or public documentation</Label>
             <div className="ml-4 flex items-center gap-2">
               <span className={`text-xs font-bold px-2 py-1 rounded ${values.transparency_reports
-                  ? "text-blue-500 bg-emerald-300"
-                  : "text-red-500"
+                  ? "text-emerald-700 bg-emerald-100"
+                  : "text-slate-500 bg-slate-200"
                 }`}>
                 {values.transparency_reports ? "YES" : "NO"}
               </span>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={values.transparency_reports}
-                onClick={() =>
-                  setFieldValue(
-                    "transparency_reports",
-                    !Boolean(values.transparency_reports)
-                  )
-                } 
-                className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${values.transparency_reports ? "bg-emerald-600 border-emerald-500" : "bg-gray-400 border-gray-500"
-                  }`}
-                style={{ backgroundColor: values.transparency_reports ? '#10b981' : '#9ca3af' }}
-              >
-                <span className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform ${values.transparency_reports ? "translate-x-5" : "translate-x-0"
-                  }`} />
-              </button>
+              <ToggleSwitchInline
+                checked={values.transparency_reports}
+                onChange={(v) => setFieldValue("transparency_reports", v)}
+              />
             </div>
           </div>
           {values.transparency_reports && (

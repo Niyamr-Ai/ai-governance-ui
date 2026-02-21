@@ -8,6 +8,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { ToggleSwitchInline } from "@/components/ui/toggle-switch";
 import { useFormikContext } from "formik";
 import EvidenceUpload from "@/pages/assessment/shared/evidenceUpload";
 
@@ -16,7 +17,6 @@ type Props = {
   handleEvidenceFileChange: (key: string, file: File | null) => void;
   evidenceContent: Record<string, string>;
 };
-
 
 export default function UkPage1SafetySecurityRobustness({
   ukCurrentPage,
@@ -36,102 +36,55 @@ export default function UkPage1SafetySecurityRobustness({
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Robustness Testing */}
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between p-4 rounded-xl border transition-colors bg-slate-50 border-slate-200 hover:bg-slate-100">
             <Label className="text-base font-semibold flex-1">Robustness testing and validation</Label>
             <div className="ml-4 flex items-center gap-2">
-              <span className={`text-xs font-bold px-2 py-1 rounded ${values.robustness_testing
-                ? "text-blue-500 bg-emerald-300"
-                : "text-red-500"
-                }`}>
+              <span className={`text-xs font-bold px-2 py-1 rounded transition-colors ${
+                values.robustness_testing ? "text-emerald-700 bg-emerald-100" : "text-slate-500 bg-slate-200"
+              }`}>
                 {values.robustness_testing ? "YES" : "NO"}
               </span>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={values.robustness_testing}
-                onClick={() =>
-                  setFieldValue(
-                    "robustness_testing",
-                    !values.robustness_testing
-                  )
-                }
-                className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${values.robustness_testing ? "bg-emerald-600 border-emerald-500" : "bg-gray-400 border-gray-500"
-                  }`}
-                style={{ backgroundColor: values.robustness_testing ? '#10b981' : '#9ca3af' }}
-              >
-                <span className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform ${values.robustness_testing ? "translate-x-5" : "translate-x-0"
-                  }`} />
-              </button>
+              <ToggleSwitchInline
+                checked={values.robustness_testing}
+                onChange={(v) => setFieldValue("robustness_testing", v)}
+              />
             </div>
           </div>
           {values.robustness_testing && (
             <div className="ml-8 space-y-3">
-              {Object.keys(errors).some(
-                (key) => key.startsWith("robustness_") && touched[key]
-              ) && (
-                  <div className="rounded-md border border-red-500 bg-red-50 p-3">
-                    <p className="text-sm font-medium text-red-700">
-                      Please complete all required robustness testing details.
-                    </p>
-                  </div>
-                )}
-
-
+              {Object.keys(errors).some((key) => key.startsWith("robustness_") && touched[key]) && (
+                <div className="rounded-md border border-red-500 bg-red-50 p-3">
+                  <p className="text-sm font-medium text-red-700">Please complete all required robustness testing details.</p>
+                </div>
+              )}
               <div className="space-y-2">
                 <Label>What testing methods do you use?</Label>
                 <Textarea
                   value={values.robustness_testing_methods || ""}
-                  onChange={(e) =>
-                    setFieldValue(
-                      "robustness_testing_methods",
-                      e.target.value
-                    )
-                  }
+                  onChange={(e) => setFieldValue("robustness_testing_methods", e.target.value)}
                   placeholder="e.g., Unit tests, integration tests, stress tests"
-                  className={`rounded-xl ${errors.robustness_testing_methods && touched.robustness_testing_methods
-                    ? "border-red-500 focus:ring-red-500"
-                    : ""
-                    }`}
+                  className={`rounded-xl ${errors.robustness_testing_methods && touched.robustness_testing_methods ? "border-red-500 focus:ring-red-500" : ""}`}
                 />
-                {touched.robustness_testing_methods &&
-                  typeof errors.robustness_testing_methods === "string" && (
-                    <p className="text-xs text-red-500 mt-1">
-                      {errors.robustness_testing_methods}
-                    </p>
-                  )}
-
-
+                {touched.robustness_testing_methods && typeof errors.robustness_testing_methods === "string" && (
+                  <p className="text-xs text-red-500 mt-1">{errors.robustness_testing_methods}</p>
+                )}
               </div>
-
-
               <div className="space-y-2">
-                <Label className="text-sm font-medium text-foreground">
-                  How frequently do you conduct robustness testing?
-                </Label>
+                <Label className="text-sm font-medium text-foreground">How frequently do you conduct robustness testing?</Label>
                 <Textarea
                   value={values.robustness_testing_frequency_text || ""}
-                  onChange={(e) =>
-                    setFieldValue("robustness_testing_frequency_text", e.target.value)
-                  }
+                  onChange={(e) => setFieldValue("robustness_testing_frequency_text", e.target.value)}
                   placeholder="e.g., Monthly, Quarterly, Before each release, Continuously"
-                  className={`rounded-xl min-h-[80px] ${errors.robustness_testing_frequency_text && touched.robustness_testing_frequency_text
-                    ? "border-red-500 focus:ring-red-500"
-                    : ""
-                    }`}
+                  className={`rounded-xl min-h-[80px] ${errors.robustness_testing_frequency_text && touched.robustness_testing_frequency_text ? "border-red-500 focus:ring-red-500" : ""}`}
                 />
-                {touched.robustness_testing_frequency_text &&
-                  typeof errors.robustness_testing_frequency_text === "string" && (
-                    <p className="text-xs text-red-500 mt-1">
-                      {errors.robustness_testing_frequency_text}
-                    </p>
-                  )}
+                {touched.robustness_testing_frequency_text && typeof errors.robustness_testing_frequency_text === "string" && (
+                  <p className="text-xs text-red-500 mt-1">{errors.robustness_testing_frequency_text}</p>
+                )}
               </div>
-
               <div className="space-y-2">
-                <Label className="text-sm font-medium text-foreground">
-                  Upload robustness testing frequency document (Optional)
-                </Label>
+                <Label className="text-sm font-medium text-foreground">Upload robustness testing frequency document (Optional)</Label>
                 <div className="relative flex items-center gap-3">
                   <EvidenceUpload
                     label="Upload robustness testing frequency document"
@@ -139,59 +92,24 @@ export default function UkPage1SafetySecurityRobustness({
                     value={values.robustness_testing_frequency}
                     onFileSelect={(file) => {
                       handleEvidenceFileChange("uk_robustness_testing_frequency", file);
-                      setFieldValue(
-                        "robustness_testing_frequency",
-                        file ? file.name : ""
-                      );
+                      setFieldValue("robustness_testing_frequency", file ? file.name : "");
                     }}
                   />
-
-                  {touched.robustness_testing_frequency &&
-                    typeof errors.robustness_testing_frequency === "string" && (
-                      <p className="text-xs text-red-500 mt-1">
-                        {errors.robustness_testing_frequency}
-                      </p>
-                    )}
-
-
-
-
-
                   {evidenceContent.uk_robustness_testing_frequency ? (
-                    <span className="text-xs text-emerald-400">
-                      ✓ File processed ({evidenceContent.uk_robustness_testing_frequency.length} chars)
-                    </span>
+                    <span className="text-xs text-emerald-400">✓ File processed ({evidenceContent.uk_robustness_testing_frequency.length} chars)</span>
                   ) : (
-                    <span className="text-xs text-muted-foreground">
-                      PDF, DOC, DOCX, TXT
-                    </span>
+                    <span className="text-xs text-muted-foreground">PDF, DOC, DOCX, TXT</span>
                   )}
-
                 </div>
               </div>
-
               <div className="space-y-2">
                 <Label>Test results summary</Label>
                 <Textarea
                   value={values.robustness_test_results || ""}
-                  onChange={(e) =>
-                    setFieldValue(
-                      "robustness_test_results",
-                      e.target.value
-                    )
-                  }
+                  onChange={(e) => setFieldValue("robustness_test_results", e.target.value)}
                   placeholder="Brief summary of test results"
-                  className={`rounded-xl ${errors.robustness_test_results && touched.robustness_test_results
-                    ? "border-red-500 focus:ring-red-500"
-                    : ""
-                    }`}
+                  className={`rounded-xl ${errors.robustness_test_results && touched.robustness_test_results ? "border-red-500 focus:ring-red-500" : ""}`}
                 />
-                {touched.robustness_test_results &&
-                  typeof errors.robustness_test_results === "string" && (
-                    <p className="text-xs text-red-500 mt-1">
-                      {errors.robustness_test_results}
-                    </p>
-                  )}
               </div>
               <div className="space-y-2">
                 <EvidenceUpload
@@ -200,57 +118,31 @@ export default function UkPage1SafetySecurityRobustness({
                   value={values.robustness_test_evidence}
                   onFileSelect={(file) => {
                     handleEvidenceFileChange("uk_robustness_evidence", file);
-                    setFieldValue(
-                      "robustness_test_evidence",
-                      file ? file.name : null
-                    );
+                    setFieldValue("robustness_test_evidence", file ? file.name : null);
                   }}
                 />
-
-                {touched.robustness_test_evidence &&
-                  typeof errors.robustness_test_evidence === "string" && (
-                    <p className="text-xs text-red-500 mt-1">
-                      {errors.robustness_test_evidence}
-                    </p>
-                  )}
-
                 {evidenceContent.uk_robustness_evidence && (
-                  <p className="text-xs text-emerald-400 mt-1">
-                    ✓ File processed ({evidenceContent.uk_robustness_evidence.length} characters extracted via OCR)
-                  </p>
+                  <p className="text-xs text-emerald-400 mt-1">✓ File processed ({evidenceContent.uk_robustness_evidence.length} characters extracted)</p>
                 )}
               </div>
             </div>
           )}
         </div>
 
+        {/* Red Teaming */}
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between p-4 rounded-xl border transition-colors bg-slate-50 border-slate-200 hover:bg-slate-100">
             <Label className="text-base font-semibold flex-1">Red-teaming or adversarial testing</Label>
             <div className="ml-4 flex items-center gap-2">
-              <span className={`text-xs font-bold px-2 py-1 rounded ${values.red_teaming
-                ? "text-blue-500 bg-emerald-300"
-                : "text-red-500"
-                }`}>
+              <span className={`text-xs font-bold px-2 py-1 rounded transition-colors ${
+                values.red_teaming ? "text-emerald-700 bg-emerald-100" : "text-slate-500 bg-slate-200"
+              }`}>
                 {values.red_teaming ? "YES" : "NO"}
               </span>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={values.red_teaming}
-                onClick={() =>
-                  setFieldValue(
-                    "red_teaming",
-                    !values.red_teaming
-                  )
-                }
-                className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${values.red_teaming ? "bg-emerald-600 border-emerald-500" : "bg-gray-400 border-gray-500"
-                  }`}
-                style={{ backgroundColor: values.red_teaming ? '#10b981' : '#9ca3af' }}
-              >
-                <span className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform ${values.red_teaming ? "translate-x-5" : "translate-x-0"
-                  }`} />
-              </button>
+              <ToggleSwitchInline
+                checked={values.red_teaming}
+                onChange={(v) => setFieldValue("red_teaming", v)}
+              />
             </div>
           </div>
           {values.red_teaming && (
@@ -259,132 +151,61 @@ export default function UkPage1SafetySecurityRobustness({
                 <Label>Who conducts red-teaming?</Label>
                 <Input
                   value={values.red_teaming_who || ""}
-                  onChange={(e) =>
-                    setFieldValue(
-                      "red_teaming_who",
-                      e.target.value
-                    )
-                  }
+                  onChange={(e) => setFieldValue("red_teaming_who", e.target.value)}
                   placeholder="e.g., Internal security team, external consultants"
-                  className={`rounded-xl ${errors.red_teaming_who && touched.red_teaming_who
-                    ? "border-red-500 focus:ring-red-500"
-                    : ""
-                    }`}
+                  className={`rounded-xl ${errors.red_teaming_who && touched.red_teaming_who ? "border-red-500 focus:ring-red-500" : ""}`}
                 />
-                {touched.red_teaming_who &&
-                  typeof errors.red_teaming_who === "string" && (
-                    <p className="text-xs text-red-500 mt-1">
-                      {errors.red_teaming_who}
-                    </p>
-                  )}
               </div>
               <div className="space-y-2">
                 <Label>Methodology used</Label>
                 <Textarea
                   value={values.red_teaming_methodology || ""}
-                  onChange={(e) =>
-                    setFieldValue(
-                      "red_teaming_methodology",
-                      e.target.value
-                    )
-                  }
+                  onChange={(e) => setFieldValue("red_teaming_methodology", e.target.value)}
                   placeholder="Describe your red-teaming approach"
-                  className={`rounded-xl ${errors.red_teaming_methodology && touched.red_teaming_methodology
-                    ? "border-red-500 focus:ring-red-500"
-                    : ""
-                    }`}
+                  className={`rounded-xl ${errors.red_teaming_methodology && touched.red_teaming_methodology ? "border-red-500 focus:ring-red-500" : ""}`}
                 />
-                {touched.red_teaming_methodology &&
-                  typeof errors.red_teaming_methodology === "string" && (
-                    <p className="text-xs text-red-500 mt-1">
-                      {errors.red_teaming_methodology}
-                    </p>
-                  )}
               </div>
               <div className="space-y-2">
                 <Label>Key findings</Label>
                 <Textarea
                   value={values.red_teaming_findings || ""}
-                  onChange={(e) =>
-                    setFieldValue(
-                      "red_teaming_findings",
-                      e.target.value
-                    )
-                  }
+                  onChange={(e) => setFieldValue("red_teaming_findings", e.target.value)}
                   placeholder="Summary of findings and actions taken"
-                  className={`rounded-xl ${errors.red_teaming_findings && touched.red_teaming_findings
-                    ? "border-red-500 focus:ring-red-500"
-                    : ""
-                    }`}
+                  className={`rounded-xl ${errors.red_teaming_findings && touched.red_teaming_findings ? "border-red-500 focus:ring-red-500" : ""}`}
                 />
-                {touched.red_teaming_findings &&
-                  typeof errors.red_teaming_findings === "string" && (
-                    <p className="text-xs text-red-500 mt-1">
-                      {errors.red_teaming_findings}
-                    </p>
-                  )}
               </div>
               <div className="space-y-2">
-
-
-
                 <EvidenceUpload
                   label="Upload red-teaming reports or test results"
                   accept=".pdf,.png,.jpg,.jpeg,.txt"
                   value={values.red_teaming_evidence}
                   onFileSelect={(file) => {
                     handleEvidenceFileChange("uk_red_teaming_evidence", file);
-                    setFieldValue(
-                      "red_teaming_evidence",
-                      file ? file.name : null
-                    );
+                    setFieldValue("red_teaming_evidence", file ? file.name : null);
                   }}
                 />
-
-                {touched.red_teaming_evidence &&
-                  typeof errors.red_teaming_evidence === "string" && (
-                    <p className="text-xs text-red-500 mt-1">
-                      {errors.red_teaming_evidence}
-                    </p>
-                  )}
-
                 {evidenceContent.uk_red_teaming_evidence && (
-                  <p className="text-xs text-emerald-400 mt-1">
-                    ✓ File processed ({evidenceContent.uk_red_teaming_evidence.length} characters extracted via OCR)
-                  </p>
+                  <p className="text-xs text-emerald-400 mt-1">✓ File processed ({evidenceContent.uk_red_teaming_evidence.length} characters extracted)</p>
                 )}
               </div>
             </div>
           )}
         </div>
 
+        {/* Misuse Prevention */}
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between p-4 rounded-xl border transition-colors bg-slate-50 border-slate-200 hover:bg-slate-100">
             <Label className="text-base font-semibold flex-1">Misuse prevention measures</Label>
             <div className="ml-4 flex items-center gap-2">
-              <span className={`text-xs font-bold px-2 py-1 rounded ${values.misuse_prevention
-                ? "text-blue-500 bg-emerald-300"
-                : "text-red-500"
-                }`}>
+              <span className={`text-xs font-bold px-2 py-1 rounded transition-colors ${
+                values.misuse_prevention ? "text-emerald-700 bg-emerald-100" : "text-slate-500 bg-slate-200"
+              }`}>
                 {values.misuse_prevention ? "YES" : "NO"}
               </span>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={values.misuse_prevention}
-                onClick={() =>
-                  setFieldValue(
-                    "misuse_prevention",
-                    !values.misuse_prevention
-                  )
-                }
-                className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${values.misuse_prevention ? "bg-emerald-600 border-emerald-500" : "bg-gray-400 border-gray-500"
-                  }`}
-                style={{ backgroundColor: values.misuse_prevention ? '#10b981' : '#9ca3af' }}
-              >
-                <span className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform ${values.misuse_prevention ? "translate-x-5" : "translate-x-0"
-                  }`} />
-              </button>
+              <ToggleSwitchInline
+                checked={values.misuse_prevention}
+                onChange={(v) => setFieldValue("misuse_prevention", v)}
+              />
             </div>
           </div>
           {values.misuse_prevention && (
@@ -393,79 +214,38 @@ export default function UkPage1SafetySecurityRobustness({
                 <Label>What specific measures are in place?</Label>
                 <Textarea
                   value={values.misuse_prevention_measures || ""}
-                  onChange={(e) =>
-                    setFieldValue(
-                      "misuse_prevention_measures",
-                      e.target.value
-                    )
-                  }
+                  onChange={(e) => setFieldValue("misuse_prevention_measures", e.target.value)}
                   placeholder="e.g., Access controls, usage monitoring, rate limiting"
-                  className={`rounded-xl ${errors.misuse_prevention_measures && touched.misuse_prevention_measures
-                    ? "border-red-500 focus:ring-red-500"
-                    : ""
-                    }`}
+                  className={`rounded-xl ${errors.misuse_prevention_measures && touched.misuse_prevention_measures ? "border-red-500 focus:ring-red-500" : ""}`}
                 />
-                {touched.misuse_prevention_measures &&
-                  typeof errors.misuse_prevention_measures === "string" && (
-                    <p className="text-xs text-red-500 mt-1">
-                      {errors.misuse_prevention_measures}
-                    </p>
-                  )}
               </div>
               <div className="space-y-2">
                 <Label>How do you monitor for misuse?</Label>
                 <Textarea
                   value={values.misuse_monitoring || ""}
-                  onChange={(e) =>
-                    setFieldValue(
-                      "misuse_monitoring",
-                      e.target.value
-                    )
-                  }
+                  onChange={(e) => setFieldValue("misuse_monitoring", e.target.value)}
                   placeholder="Describe monitoring processes"
-                  className={`rounded-xl ${errors.misuse_monitoring && touched.misuse_monitoring
-                    ? "border-red-500 focus:ring-red-500"
-                    : ""
-                    }`}
+                  className={`rounded-xl ${errors.misuse_monitoring && touched.misuse_monitoring ? "border-red-500 focus:ring-red-500" : ""}`}
                 />
-                {touched.misuse_monitoring &&
-                  typeof errors.misuse_monitoring === "string" && (
-                    <p className="text-xs text-red-500 mt-1">
-                      {errors.misuse_monitoring}
-                    </p>
-                  )}
               </div>
             </div>
           )}
         </div>
 
+        {/* Cybersecurity */}
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between p-4 rounded-xl border transition-colors bg-slate-50 border-slate-200 hover:bg-slate-100">
             <Label className="text-base font-semibold flex-1">Cybersecurity controls and monitoring</Label>
             <div className="ml-4 flex items-center gap-2">
-              <span className={`text-xs font-bold px-2 py-1 rounded ${values.cybersecurity
-                ? "text-blue-500 bg-emerald-300"
-                : "text-red-500"
-                }`}>
+              <span className={`text-xs font-bold px-2 py-1 rounded transition-colors ${
+                values.cybersecurity ? "text-emerald-700 bg-emerald-100" : "text-slate-500 bg-slate-200"
+              }`}>
                 {values.cybersecurity ? "YES" : "NO"}
               </span>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={values.cybersecurity}
-                onClick={() =>
-                  setFieldValue(
-                    "cybersecurity",
-                    !values.cybersecurity
-                  )
-                }
-                className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${values.cybersecurity ? "bg-emerald-600 border-emerald-500" : "bg-gray-400 border-gray-500"
-                  }`}
-                style={{ backgroundColor: values.cybersecurity ? '#10b981' : '#9ca3af' }}
-              >
-                <span className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform ${values.cybersecurity ? "translate-x-5" : "translate-x-0"
-                  }`} />
-              </button>
+              <ToggleSwitchInline
+                checked={values.cybersecurity}
+                onChange={(v) => setFieldValue("cybersecurity", v)}
+              />
             </div>
           </div>
           {values.cybersecurity && (
@@ -474,70 +254,28 @@ export default function UkPage1SafetySecurityRobustness({
                 <Label>What cybersecurity controls are implemented?</Label>
                 <Textarea
                   value={values.cybersecurity_controls || ""}
-                  onChange={(e) =>
-                    setFieldValue(
-                      "cybersecurity_controls",
-                      e.target.value
-                    )
-                  }
+                  onChange={(e) => setFieldValue("cybersecurity_controls", e.target.value)}
                   placeholder="e.g., Encryption, authentication, network security"
-                  className={`rounded-xl ${errors.cybersecurity_controls && touched.cybersecurity_controls
-                    ? "border-red-500 focus:ring-red-500"
-                    : ""
-                    }`}
+                  className={`rounded-xl ${errors.cybersecurity_controls && touched.cybersecurity_controls ? "border-red-500 focus:ring-red-500" : ""}`}
                 />
-                {touched.cybersecurity_controls &&
-                  typeof errors.cybersecurity_controls === "string" && (
-                    <p className="text-xs text-red-500 mt-1">
-                      {errors.cybersecurity_controls}
-                    </p>
-                  )}
               </div>
               <div className="space-y-2">
                 <Label>Incident response plan</Label>
                 <Textarea
                   value={values.cybersecurity_incident_response || ""}
-                  onChange={(e) =>
-                    setFieldValue(
-                      "cybersecurity_incident_response",
-                      e.target.value
-                    )
-                  }
+                  onChange={(e) => setFieldValue("cybersecurity_incident_response", e.target.value)}
                   placeholder="Describe your incident response procedures"
-                  className={`rounded-xl ${errors.cybersecurity_incident_response && touched.cybersecurity_incident_response
-                    ? "border-red-500 focus:ring-red-500"
-                    : ""
-                    }`}
+                  className={`rounded-xl ${errors.cybersecurity_incident_response && touched.cybersecurity_incident_response ? "border-red-500 focus:ring-red-500" : ""}`}
                 />
-                {touched.cybersecurity_incident_response &&
-                  typeof errors.cybersecurity_incident_response === "string" && (
-                    <p className="text-xs text-red-500 mt-1">
-                      {errors.cybersecurity_incident_response}
-                    </p>
-                  )}
               </div>
               <div className="space-y-2">
                 <Label>Monitoring approach</Label>
                 <Textarea
                   value={values.cybersecurity_monitoring || ""}
-                  onChange={(e) =>
-                    setFieldValue(
-                      "cybersecurity_monitoring",
-                      e.target.value
-                    )
-                  }
+                  onChange={(e) => setFieldValue("cybersecurity_monitoring", e.target.value)}
                   placeholder="How do you monitor for security threats?"
-                  className={`rounded-xl ${errors.cybersecurity_monitoring && touched.cybersecurity_monitoring
-                    ? "border-red-500 focus:ring-red-500"
-                    : ""
-                    }`}
+                  className={`rounded-xl ${errors.cybersecurity_monitoring && touched.cybersecurity_monitoring ? "border-red-500 focus:ring-red-500" : ""}`}
                 />
-                {touched.cybersecurity_monitoring &&
-                  typeof errors.cybersecurity_monitoring === "string" && (
-                    <p className="text-xs text-red-500 mt-1">
-                      {errors.cybersecurity_monitoring}
-                    </p>
-                  )}
               </div>
               <div className="space-y-2">
                 <EvidenceUpload
@@ -546,57 +284,31 @@ export default function UkPage1SafetySecurityRobustness({
                   value={values.cybersecurity_evidence}
                   onFileSelect={(file) => {
                     handleEvidenceFileChange("uk_cybersecurity_evidence", file);
-                    setFieldValue(
-                      "cybersecurity_evidence",
-                      file ? file.name : null
-                    );
+                    setFieldValue("cybersecurity_evidence", file ? file.name : null);
                   }}
                 />
-
-                {touched.cybersecurity_evidence &&
-                  typeof errors.cybersecurity_evidence === "string" && (
-                    <p className="text-xs text-red-500 mt-1">
-                      {errors.cybersecurity_evidence}
-                    </p>
-                  )}
-
                 {evidenceContent.uk_cybersecurity_evidence && (
-                  <p className="text-xs text-emerald-400 mt-1">
-                    ✓ File processed ({evidenceContent.uk_cybersecurity_evidence.length} characters extracted via OCR)
-                  </p>
+                  <p className="text-xs text-emerald-400 mt-1">✓ File processed ({evidenceContent.uk_cybersecurity_evidence.length} characters extracted)</p>
                 )}
               </div>
             </div>
           )}
         </div>
 
+        {/* Safety Testing */}
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between p-4 rounded-xl border transition-colors bg-slate-50 border-slate-200 hover:bg-slate-100">
             <Label className="text-base font-semibold flex-1">Safety testing protocols</Label>
             <div className="ml-4 flex items-center gap-2">
-              <span className={`text-xs font-bold px-2 py-1 rounded ${values.safety_testing
-                ? "text-blue-500 bg-emerald-300"
-                : "text-red-500"
-                }`}>
+              <span className={`text-xs font-bold px-2 py-1 rounded transition-colors ${
+                values.safety_testing ? "text-emerald-700 bg-emerald-100" : "text-slate-500 bg-slate-200"
+              }`}>
                 {values.safety_testing ? "YES" : "NO"}
               </span>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={values.safety_testing}
-                onClick={() =>
-                  setFieldValue(
-                    "safety_testing",
-                    !values.safety_testing
-                  )
-                }
-                className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${values.safety_testing ? "bg-emerald-600 border-emerald-500" : "bg-gray-400 border-gray-500"
-                  }`}
-                style={{ backgroundColor: values.safety_testing ? '#10b981' : '#9ca3af' }}
-              >
-                <span className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform ${values.safety_testing ? "translate-x-5" : "translate-x-0"
-                  }`} />
-              </button>
+              <ToggleSwitchInline
+                checked={values.safety_testing}
+                onChange={(v) => setFieldValue("safety_testing", v)}
+              />
             </div>
           </div>
           {values.safety_testing && (
@@ -605,77 +317,32 @@ export default function UkPage1SafetySecurityRobustness({
                 <Label>What safety testing protocols do you use?</Label>
                 <Textarea
                   value={values.safety_testing_protocols || ""}
-                  onChange={(e) =>
-                    setFieldValue(
-                      "safety_testing_protocols",
-                      e.target.value
-                    )
-                  }
+                  onChange={(e) => setFieldValue("safety_testing_protocols", e.target.value)}
                   placeholder="Describe your safety testing approach"
-                  className={`rounded-xl ${errors.safety_testing_protocols && touched.safety_testing_protocols
-                    ? "border-red-500 focus:ring-red-500"
-                    : ""
-                    }`}
+                  className={`rounded-xl ${errors.safety_testing_protocols && touched.safety_testing_protocols ? "border-red-500 focus:ring-red-500" : ""}`}
                 />
-                {touched.safety_testing_protocols &&
-                  typeof errors.safety_testing_protocols === "string" && (
-                    <p className="text-xs text-red-500 mt-1">
-                      {errors.safety_testing_protocols}
-                    </p>
-                  )}
               </div>
               <div className="space-y-2">
                 <Label>Validation methods</Label>
                 <Textarea
                   value={values.safety_validation_methods || ""}
-                  onChange={(e) =>
-                    setFieldValue(
-                      "safety_validation_methods",
-                      e.target.value
-                    )
-                  }
+                  onChange={(e) => setFieldValue("safety_validation_methods", e.target.value)}
                   placeholder="How do you validate safety?"
-                  className={`rounded-xl ${errors.safety_validation_methods && touched.safety_validation_methods
-                    ? "border-red-500 focus:ring-red-500"
-                    : ""
-                    }`}
+                  className={`rounded-xl ${errors.safety_validation_methods && touched.safety_validation_methods ? "border-red-500 focus:ring-red-500" : ""}`}
                 />
-                {touched.safety_validation_methods &&
-                  typeof errors.safety_validation_methods === "string" && (
-                    <p className="text-xs text-red-500 mt-1">
-                      {errors.safety_validation_methods}
-                    </p>
-                  )}
               </div>
               <div className="space-y-2">
-
-
-
-
                 <EvidenceUpload
                   label="Upload safety testing reports or documentation"
                   accept=".pdf,.png,.jpg,.jpeg,.txt"
                   value={values.safety_testing_evidence}
                   onFileSelect={(file) => {
                     handleEvidenceFileChange("uk_safety_testing_evidence", file);
-                    setFieldValue(
-                      "safety_testing_evidence",
-                      file ? file.name : null
-                    );
+                    setFieldValue("safety_testing_evidence", file ? file.name : null);
                   }}
                 />
-
-                {touched.safety_testing_evidence &&
-                  typeof errors.safety_testing_evidence === "string" && (
-                    <p className="text-xs text-red-500 mt-1">
-                      {errors.safety_testing_evidence}
-                    </p>
-                  )}
-
                 {evidenceContent.uk_safety_testing_evidence && (
-                  <p className="text-xs text-emerald-400 mt-1">
-                    ✓ File processed ({evidenceContent.uk_safety_testing_evidence.length} characters extracted via OCR)
-                  </p>
+                  <p className="text-xs text-emerald-400 mt-1">✓ File processed ({evidenceContent.uk_safety_testing_evidence.length} characters extracted)</p>
                 )}
               </div>
             </div>

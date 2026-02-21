@@ -8,6 +8,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import { ToggleSwitchInline } from "@/components/ui/toggle-switch";
 import { useFormikContext } from "formik";
 
 type EvidenceContent = Record<string, string>;
@@ -25,12 +26,10 @@ export default function MasPage6TechnicalPillars({
   handleEvidenceFileChange,
   evidenceContent,
 }: Props) {
-  // Handle SSR - Formik context not available during static generation
   let formikContext;
   try {
     formikContext = useFormikContext<any>();
   } catch (error) {
-    // During static generation, Formik context is not available
     return null;
   }
   
@@ -49,7 +48,7 @@ export default function MasPage6TechnicalPillars({
       </CardHeader>
       <CardContent className="space-y-3">
         {/* Transparency & Explainability with Sub-questions */}
-        <div className="space-y-3 border border-border rounded-xl p-4 glass-panel">
+        <div className="space-y-3 border border-slate-200 rounded-xl p-4 bg-slate-50 hover:bg-slate-100 transition-colors">
           <div className="flex items-center justify-between">
             <div className="space-y-0.5 flex-1">
               <Label className="text-base font-medium text-foreground">Transparency & Explainability</Label>
@@ -57,23 +56,15 @@ export default function MasPage6TechnicalPillars({
             </div>
             <div className="ml-4 flex items-center gap-2">
               <span className={`text-xs font-bold px-2 py-1 rounded ${values.transparency_docs
-                ? "text-blue-500 bg-emerald-300"
-                : "text-red-500"
+                ? "text-emerald-700 bg-emerald-100"
+                : "text-slate-500 bg-slate-200"
                 }`}>
                 {values.transparency_docs ? "YES" : "NO"}
               </span>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={values.transparency_docs}
-                onClick={() => setFieldValue("transparency_docs", !values.transparency_docs)}
-                className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${values.transparency_docs ? "bg-emerald-600 border-emerald-500" : "bg-gray-400 border-gray-500"
-                  }`}
-                style={{ backgroundColor: values.transparency_docs ? '#10b981' : '#9ca3af' }}
-              >
-                <span className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform ${values.transparency_docs ? "translate-x-5" : "translate-x-0"
-                  }`} />
-              </button>
+              <ToggleSwitchInline
+                checked={values.transparency_docs}
+                onChange={(v) => setFieldValue("transparency_docs", v)}
+              />
             </div>
           </div>
           {values.transparency_docs && (
@@ -167,7 +158,7 @@ export default function MasPage6TechnicalPillars({
         </div>
 
         {/* NEW: Model Cards */}
-        <div className="space-y-3 border border-border rounded-xl p-4 glass-panel">
+        <div className="space-y-3 border border-slate-200 rounded-xl p-4 bg-slate-50 hover:bg-slate-100 transition-colors">
           <div className="flex items-center justify-between">
             <div className="space-y-0.5 flex-1">
               <Label className="text-base font-medium text-foreground">Model Cards</Label>
@@ -175,23 +166,15 @@ export default function MasPage6TechnicalPillars({
             </div>
             <div className="ml-4 flex items-center gap-2">
               <span className={`text-xs font-bold px-2 py-1 rounded ${values.transparency_model_cards
-                ? "text-blue-500 bg-emerald-300"
-                : "text-red-500"
+                ? "text-emerald-700 bg-emerald-100"
+                : "text-slate-500 bg-slate-200"
                 }`}>
                 {values.transparency_model_cards ? "YES" : "NO"}
               </span>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={values.transparency_model_cards}
-                onClick={() => setFieldValue("transparency_model_cards", !values.transparency_model_cards)}
-                className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${values.transparency_model_cards ? "bg-emerald-600 border-emerald-500" : "bg-gray-400 border-gray-500"
-                  }`}
-                style={{ backgroundColor: values.transparency_model_cards ? '#10b981' : '#9ca3af' }}
-              >
-                <span className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform ${values.transparency_model_cards ? "translate-x-5" : "translate-x-0"
-                  }`} />
-              </button>
+              <ToggleSwitchInline
+                checked={values.transparency_model_cards}
+                onChange={(v) => setFieldValue("transparency_model_cards", v)}
+              />
             </div>
           </div>
           {values.transparency_model_cards && (
@@ -334,7 +317,7 @@ export default function MasPage6TechnicalPillars({
         </div>
 
         {/* Fairness & Bias Testing with Sub-questions */}
-        <div className="space-y-3 border border-border rounded-xl p-4 glass-panel">
+        <div className="space-y-3 border border-slate-200 rounded-xl p-4 bg-slate-50 hover:bg-slate-100 transition-colors">
           <div className="flex items-center justify-between">
             <div className="space-y-0.5 flex-1">
               <Label className="text-base font-medium text-foreground">Fairness & Bias Testing</Label>
@@ -342,23 +325,15 @@ export default function MasPage6TechnicalPillars({
             </div>
             <div className="ml-4 flex items-center gap-2">
               <span className={`text-xs font-bold px-2 py-1 rounded ${values.fairness_testing
-                ? "text-blue-500 bg-emerald-300"
-                : "text-red-500"
+                ? "text-emerald-700 bg-emerald-100"
+                : "text-slate-500 bg-slate-200"
                 }`}>
                 {values.fairness_testing ? "YES" : "NO"}
               </span>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={values.fairness_testing}
-                onClick={() => setFieldValue("fairness_testing", !values.fairness_testing)}
-                className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${values.fairness_testing ? "bg-emerald-600 border-emerald-500" : "bg-gray-400 border-gray-500"
-                  }`}
-                style={{ backgroundColor: values.fairness_testing ? '#10b981' : '#9ca3af' }}
-              >
-                <span className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform ${values.fairness_testing ? "translate-x-5" : "translate-x-0"
-                  }`} />
-              </button>
+              <ToggleSwitchInline
+                checked={values.fairness_testing}
+                onChange={(v) => setFieldValue("fairness_testing", v)}
+              />
             </div>
           </div>
           {values.fairness_testing && (
@@ -589,7 +564,7 @@ export default function MasPage6TechnicalPillars({
         </div>
 
         {/* NEW: External Validation */}
-        <div className="space-y-3 border border-border rounded-xl p-4 glass-panel">
+        <div className="space-y-3 border border-slate-200 rounded-xl p-4 bg-slate-50 hover:bg-slate-100 transition-colors">
           <div className="flex items-center justify-between">
             <div className="space-y-0.5 flex-1">
               <Label className="text-base font-medium text-foreground">External Validation</Label>
@@ -597,23 +572,15 @@ export default function MasPage6TechnicalPillars({
             </div>
             <div className="ml-4 flex items-center gap-2">
               <span className={`text-xs font-bold px-2 py-1 rounded ${values.fairness_external_validation
-                ? "text-blue-500 bg-emerald-300"
-                : "text-red-500"
+                ? "text-emerald-700 bg-emerald-100"
+                : "text-slate-500 bg-slate-200"
                 }`}>
                 {values.fairness_external_validation ? "YES" : "NO"}
               </span>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={values.fairness_external_validation}
-                onClick={() => setFieldValue("fairness_external_validation", !values.fairness_external_validation)}
-                className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${values.fairness_external_validation ? "bg-emerald-600 border-emerald-500" : "bg-gray-400 border-gray-500"
-                  } ${errors.fairness_external_validation && touched.fairness_external_validation ? "border-red-500 ring-2 ring-red-500" : ""}`}
-                style={{ backgroundColor: values.fairness_external_validation ? '#10b981' : '#9ca3af' }}
-              >
-                <span className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform ${values.fairness_external_validation ? "translate-x-5" : "translate-x-0"
-                  }`} />
-              </button>
+              <ToggleSwitchInline
+                checked={values.fairness_external_validation}
+                onChange={(v) => setFieldValue("fairness_external_validation", v)}
+              />
             </div>
           </div>
           {values.fairness_external_validation && (
@@ -641,7 +608,7 @@ export default function MasPage6TechnicalPillars({
         </div>
 
         {/* Human Oversight with Sub-questions */}
-        <div className="space-y-3 border border-border rounded-xl p-4 glass-panel">
+        <div className="space-y-3 border border-slate-200 rounded-xl p-4 bg-slate-50 hover:bg-slate-100 transition-colors">
           <div className="flex items-center justify-between">
             <div className="space-y-0.5 flex-1">
               <Label className="text-base font-medium text-foreground">Human Oversight</Label>
@@ -649,23 +616,15 @@ export default function MasPage6TechnicalPillars({
             </div>
             <div className="ml-4 flex items-center gap-2">
               <span className={`text-xs font-bold px-2 py-1 rounded ${values.human_oversight
-                ? "text-blue-500 bg-emerald-300"
-                : "text-red-500"
+                ? "text-emerald-700 bg-emerald-100"
+                : "text-slate-500 bg-slate-200"
                 }`}>
                 {values.human_oversight ? "YES" : "NO"}
               </span>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={values.human_oversight}
-                onClick={() => setFieldValue("human_oversight", !values.human_oversight)}
-                className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${values.human_oversight ? "bg-emerald-600 border-emerald-500" : "bg-gray-400 border-gray-500"
-                  }`}
-                style={{ backgroundColor: values.human_oversight ? '#10b981' : '#9ca3af' }}
-              >
-                <span className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform ${values.human_oversight ? "translate-x-5" : "translate-x-0"
-                  }`} />
-              </button>
+              <ToggleSwitchInline
+                checked={values.human_oversight}
+                onChange={(v) => setFieldValue("human_oversight", v)}
+              />
             </div>
           </div>
           {values.human_oversight && (

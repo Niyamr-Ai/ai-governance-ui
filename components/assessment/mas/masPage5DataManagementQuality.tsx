@@ -8,6 +8,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import { ToggleSwitchInline } from "@/components/ui/toggle-switch";
 import { useFormikContext } from "formik";
 
 type EvidenceContent = Record<string, string>;
@@ -43,7 +44,6 @@ export default function MasPage5DataManagementQuality({
   handleEvidenceFileChange,
   evidenceContent,
 }: Props) {
-  // Handle SSR - Formik context not available during static generation
   let formikContext;
   try {
     formikContext = useFormikContext<any>();
@@ -66,7 +66,7 @@ export default function MasPage5DataManagementQuality({
       </CardHeader>
       <CardContent className="space-y-3">
         {/* Data Management & Quality with Sub-questions */}
-        <div className="space-y-3 border border-border rounded-xl p-4 glass-panel">
+        <div className="space-y-3 border border-slate-200 rounded-xl p-4 bg-slate-50 hover:bg-slate-100 transition-colors">
           <div className="flex items-center justify-between">
             <div className="space-y-0.5 flex-1">
               <Label className="text-base font-medium text-foreground">Data Management & Quality</Label>
@@ -74,23 +74,15 @@ export default function MasPage5DataManagementQuality({
             </div>
             <div className="ml-4 flex items-center gap-2">
               <span className={`text-xs font-bold px-2 py-1 rounded ${values.data_quality_checks
-                ? "text-blue-500 bg-emerald-300"
-                : "text-red-500"
+                ? "text-emerald-700 bg-emerald-100"
+                : "text-slate-500 bg-slate-200"
                 }`}>
                 {values.data_quality_checks ? "YES" : "NO"}
               </span>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={values.data_quality_checks}
-                onClick={() => setFieldValue("data_quality_checks", !values.data_quality_checks)}
-                className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${values.data_quality_checks ? "bg-emerald-600 border-emerald-500" : "bg-gray-400 border-gray-500"
-                  }`}
-                style={{ backgroundColor: values.data_quality_checks ? '#10b981' : '#9ca3af' }}
-              >
-                <span className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform ${values.data_quality_checks ? "translate-x-5" : "translate-x-0"
-                  }`} />
-              </button>
+              <ToggleSwitchInline
+                checked={values.data_quality_checks}
+                onChange={(v) => setFieldValue("data_quality_checks", v)}
+              />
             </div>
           </div>
           {values.data_quality_checks && (
@@ -190,7 +182,7 @@ export default function MasPage5DataManagementQuality({
         </div>
 
         {/* NEW: Data Lineage Tracking */}
-        <div className="space-y-3 border border-border rounded-xl p-4 glass-panel">
+        <div className="space-y-3 border border-slate-200 rounded-xl p-4 bg-slate-50 hover:bg-slate-100 transition-colors">
           <div className="flex items-center justify-between">
             <div className="space-y-0.5 flex-1">
               <Label className="text-base font-medium text-foreground">Data Lineage Tracking</Label>
@@ -198,23 +190,15 @@ export default function MasPage5DataManagementQuality({
             </div>
             <div className="ml-4 flex items-center gap-2">
               <span className={`text-xs font-bold px-2 py-1 rounded ${values.data_lineage_tracking
-                ? "text-blue-500 bg-emerald-300"
-                : "text-red-500"
+                ? "text-emerald-700 bg-emerald-100"
+                : "text-slate-500 bg-slate-200"
                 }`}>
                 {values.data_lineage_tracking ? "YES" : "NO"}
               </span>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={values.data_lineage_tracking}
-                onClick={() => setFieldValue("data_lineage_tracking", !values.data_lineage_tracking)}
-                className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${values.data_lineage_tracking ? "bg-emerald-600 border-emerald-500" : "bg-gray-400 border-gray-500"
-                  }`}
-                style={{ backgroundColor: values.data_lineage_tracking ? '#10b981' : '#9ca3af' }}
-              >
-                <span className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform ${values.data_lineage_tracking ? "translate-x-5" : "translate-x-0"
-                  }`} />
-              </button>
+              <ToggleSwitchInline
+                checked={values.data_lineage_tracking}
+                onChange={(v) => setFieldValue("data_lineage_tracking", v)}
+              />
             </div>
           </div>
           {values.data_lineage_tracking && (
@@ -334,7 +318,7 @@ export default function MasPage5DataManagementQuality({
         </div>
 
         {/* NEW: Synthetic Data Usage */}
-        <div className="space-y-3 border border-border rounded-xl p-4 glass-panel">
+        <div className="space-y-3 border border-slate-200 rounded-xl p-4 bg-slate-50 hover:bg-slate-100 transition-colors">
           <div className="flex items-center justify-between">
             <div className="space-y-0.5 flex-1">
               <Label className="text-base font-medium text-foreground">Synthetic Data Usage</Label>
@@ -342,23 +326,15 @@ export default function MasPage5DataManagementQuality({
             </div>
             <div className="ml-4 flex items-center gap-2">
               <span className={`text-xs font-bold px-2 py-1 rounded ${values.data_synthetic_usage
-                ? "text-blue-500 bg-emerald-300"
-                : "text-red-500"
+                ? "text-emerald-700 bg-emerald-100"
+                : "text-slate-500 bg-slate-200"
                 }`}>
                 {values.data_synthetic_usage ? "YES" : "NO"}
               </span>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={values.data_synthetic_usage}
-                onClick={() => setFieldValue("data_synthetic_usage", !values.data_synthetic_usage)}
-                className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${values.data_synthetic_usage ? "bg-emerald-600 border-emerald-500" : "bg-gray-400 border-gray-500"
-                  }`}
-                style={{ backgroundColor: values.data_synthetic_usage ? '#10b981' : '#9ca3af' }}
-              >
-                <span className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform ${values.data_synthetic_usage ? "translate-x-5" : "translate-x-0"
-                  }`} />
-              </button>
+              <ToggleSwitchInline
+                checked={values.data_synthetic_usage}
+                onChange={(v) => setFieldValue("data_synthetic_usage", v)}
+              />
             </div>
           </div>
           {values.data_synthetic_usage && (
@@ -386,7 +362,7 @@ export default function MasPage5DataManagementQuality({
         </div>
 
         {/* NEW: Data Privacy Impact Assessment (DPIA) */}
-        <div className="space-y-3 border border-border rounded-xl p-4 glass-panel">
+        <div className="space-y-3 border border-slate-200 rounded-xl p-4 bg-slate-50 hover:bg-slate-100 transition-colors">
           <div className="flex items-center justify-between">
             <div className="space-y-0.5 flex-1">
               <Label className="text-base font-medium text-foreground">Data Privacy Impact Assessment (DPIA)</Label>
@@ -394,23 +370,15 @@ export default function MasPage5DataManagementQuality({
             </div>
             <div className="ml-4 flex items-center gap-2">
               <span className={`text-xs font-bold px-2 py-1 rounded ${values.data_dpia_conducted
-                ? "text-blue-500 bg-emerald-300"
-                : "text-red-500"
+                ? "text-emerald-700 bg-emerald-100"
+                : "text-slate-500 bg-slate-200"
                 }`}>
                 {values.data_dpia_conducted ? "YES" : "NO"}
               </span>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={values.data_dpia_conducted}
-                onClick={() => setFieldValue("data_dpia_conducted", !values.data_dpia_conducted)}
-                className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${values.data_dpia_conducted ? "bg-emerald-600 border-emerald-500" : "bg-gray-400 border-gray-500"
-                  }`}
-                style={{ backgroundColor: values.data_dpia_conducted ? '#10b981' : '#9ca3af' }}
-              >
-                <span className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform ${values.data_dpia_conducted ? "translate-x-5" : "translate-x-0"
-                  }`} />
-              </button>
+              <ToggleSwitchInline
+                checked={values.data_dpia_conducted}
+                onChange={(v) => setFieldValue("data_dpia_conducted", v)}
+              />
             </div>
           </div>
           {values.data_dpia_conducted && (
@@ -438,7 +406,7 @@ export default function MasPage5DataManagementQuality({
         </div>
 
         {/* NEW: Cross-Border Data Transfer */}
-        <div className="space-y-3 border border-border rounded-xl p-4 glass-panel">
+        <div className="space-y-3 border border-slate-200 rounded-xl p-4 bg-slate-50 hover:bg-slate-100 transition-colors">
           <div className="flex items-center justify-between">
             <div className="space-y-0.5 flex-1">
               <Label className="text-base font-medium text-foreground">Cross-Border Data Transfer</Label>
@@ -446,23 +414,15 @@ export default function MasPage5DataManagementQuality({
             </div>
             <div className="ml-4 flex items-center gap-2">
               <span className={`text-xs font-bold px-2 py-1 rounded ${values.data_cross_border
-                ? "text-blue-500 bg-emerald-300"
-                : "text-red-500"
+                ? "text-emerald-700 bg-emerald-100"
+                : "text-slate-500 bg-slate-200"
                 }`}>
                 {values.data_cross_border ? "YES" : "NO"}
               </span>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={values.data_cross_border}
-                onClick={() => setFieldValue("data_cross_border", !values.data_cross_border)}
-                className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${values.data_cross_border ? "bg-emerald-600 border-emerald-500" : "bg-gray-400 border-gray-500"
-                  }`}
-                style={{ backgroundColor: values.data_cross_border ? '#10b981' : '#9ca3af' }}
-              >
-                <span className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform ${values.data_cross_border ? "translate-x-5" : "translate-x-0"
-                  }`} />
-              </button>
+              <ToggleSwitchInline
+                checked={values.data_cross_border}
+                onChange={(v) => setFieldValue("data_cross_border", v)}
+              />
             </div>
           </div>
           {values.data_cross_border && (

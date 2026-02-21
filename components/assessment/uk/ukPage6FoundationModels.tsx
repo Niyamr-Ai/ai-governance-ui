@@ -8,6 +8,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { ToggleSwitchInline } from "@/components/ui/toggle-switch";
 import {
   Select,
   SelectTrigger,
@@ -62,32 +63,19 @@ export default function UkPage6FoundationModels({
         {(values.foundation_model === "yes" || values.foundation_model === "unsure") && (
           <div className="space-y-4 border-t pt-4">
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between p-4 rounded-xl border transition-colors bg-slate-50 border-slate-200 hover:bg-slate-100">
                 <Label>Model cards and documentation</Label>
                 <div className="ml-4 flex items-center gap-2">
                   <span className={`text-xs font-bold px-2 py-1 rounded ${values.foundation_model_cards
-                    ? "text-blue-500 bg-emerald-300"
-                    : "text-red-500"
+                    ? "text-emerald-700 bg-emerald-100"
+                    : "text-slate-500 bg-slate-200"
                     }`}>
                     {values.foundation_model_cards ? "YES" : "NO"}
                   </span>
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={values.foundation_model_cards}
-                    onClick={() =>
-                      setFieldValue(
-                        "foundation_model_cards",
-                        !values.foundation_model_cards
-                      )
-                    }
-                    className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${values.foundation_model_cards ? "bg-emerald-600 border-emerald-500" : "bg-gray-400 border-gray-500"
-                      }`}
-                    style={{ backgroundColor: values.foundation_model_cards ? '#10b981' : '#9ca3af' }}
-                  >
-                    <span className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform ${values.foundation_model_cards ? "translate-x-5" : "translate-x-0"
-                      }`} />
-                  </button>
+                  <ToggleSwitchInline
+                    checked={values.foundation_model_cards}
+                    onChange={(v) => setFieldValue("foundation_model_cards", v)}
+                  />
                 </div>
               </div>
               {values.foundation_model_cards && (
@@ -228,32 +216,19 @@ export default function UkPage6FoundationModels({
         )}
 
         <div className="space-y-2 border-t pt-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between p-4 rounded-xl border transition-colors bg-slate-50 border-slate-200 hover:bg-slate-100">
             <Label>Regulatory sandbox participation</Label>
             <div className="ml-4 flex items-center gap-2">
               <span className={`text-xs font-bold px-2 py-1 rounded ${values.regulatory_sandbox
-                ? "text-blue-500 bg-emerald-300"
-                : "text-red-500"
+                ? "text-emerald-700 bg-emerald-100"
+                : "text-slate-500 bg-slate-200"
                 }`}>
                 {values.regulatory_sandbox ? "YES" : "NO"}
               </span>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={values.regulatory_sandbox}
-                onClick={() =>
-                  setFieldValue(
-                    "regulatory_sandbox",
-                    !values.regulatory_sandbox
-                  )
-                }
-                className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${values.regulatory_sandbox ? "bg-emerald-600 border-emerald-500" : "bg-gray-400 border-gray-500"
-                  }`}
-                style={{ backgroundColor: values.regulatory_sandbox ? '#10b981' : '#9ca3af' }}
-              >
-                <span className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform ${values.regulatory_sandbox ? "translate-x-5" : "translate-x-0"
-                  }`} />
-              </button>
+              <ToggleSwitchInline
+                checked={values.regulatory_sandbox}
+                onChange={(v) => setFieldValue("regulatory_sandbox", v)}
+              />
             </div>
           </div>
           {values.regulatory_sandbox && (

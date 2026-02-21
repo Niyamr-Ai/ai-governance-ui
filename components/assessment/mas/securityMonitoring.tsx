@@ -10,6 +10,7 @@ import EvidenceUpload from "@/pages/assessment/shared/evidenceUpload";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import { ToggleSwitchInline } from "@/components/ui/toggle-switch";
 import { useFormikContext } from "formik";
 
 type EvidenceContent = Record<string, string>;
@@ -26,7 +27,6 @@ export default function SecurityMonitoring({
   handleEvidenceFileChange,
   evidenceContent,
 }: Props) {
-  // Handle SSR - Formik context not available during static generation
   let formikContext;
   try {
     formikContext = useFormikContext<any>();
@@ -295,7 +295,7 @@ export default function SecurityMonitoring({
             </div>
 
             {/* NEW: Penetration Testing */}
-            <div className="space-y-3 border border-border rounded-xl p-4 glass-panel">
+            <div className="space-y-3 border border-slate-200 rounded-xl p-4 bg-slate-50 hover:bg-slate-100 transition-colors">
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5 flex-1">
                   <Label className="text-base font-medium text-foreground">
@@ -308,39 +308,16 @@ export default function SecurityMonitoring({
                 <div className="ml-4 flex items-center gap-2">
                   <span
                     className={`text-xs font-bold px-2 py-1 rounded ${values.security_penetration_testing
-                      ? "text-blue-500 bg-emerald-300"
-                      : "text-red-500 bg-blue-400"
+                      ? "text-emerald-700 bg-emerald-100"
+                      : "text-slate-500 bg-slate-200"
                       }`}
                   >
                     {values.security_penetration_testing ? "YES" : "NO"}
                   </span>
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={values.security_penetration_testing}
-                    onClick={() =>
-                      setFieldValue(
-                        "security_penetration_testing",
-                        !values.security_penetration_testing
-                      )
-                    }
-                    className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${values.security_penetration_testing
-                      ? "text-blue-500 bg-emerald-300"
-                      : "text-red-500 bg-blue-400"
-                      }`}
-                    style={{
-                      backgroundColor: values.security_penetration_testing
-                        ? "#10b981"
-                        : "#9ca3af",
-                    }}
-                  >
-                    <span
-                      className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform ${values.security_penetration_testing
-                        ? "translate-x-5"
-                        : "translate-x-0"
-                        }`}
-                    />
-                  </button>
+                  <ToggleSwitchInline
+                    checked={values.security_penetration_testing}
+                    onChange={(v) => setFieldValue("security_penetration_testing", v)}
+                  />
                 </div>
               </div>
               {values.security_penetration_testing && (
@@ -436,7 +413,7 @@ export default function SecurityMonitoring({
             </div>
 
             {/* Monitoring & Change Management with Sub-questions */}
-            <div className="space-y-3 border border-border rounded-xl p-4 glass-panel">
+            <div className="space-y-3 border border-slate-200 rounded-xl p-4 bg-slate-50 hover:bg-slate-100 transition-colors">
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5 flex-1">
                   <Label className="text-base font-medium text-foreground">
@@ -450,39 +427,16 @@ export default function SecurityMonitoring({
                 <div className="ml-4 flex items-center gap-2">
                   <span
                     className={`text-xs font-bold px-2 py-1 rounded ${values.monitoring_plan
-                      ? "text-blue-500 bg-emerald-300"
-                      : "text-red-500 bg-blue-400"
+                      ? "text-emerald-700 bg-emerald-100"
+                      : "text-slate-500 bg-slate-200"
                       }`}
                   >
                     {values.monitoring_plan ? "YES" : "NO"}
                   </span>
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={values.monitoring_plan}
-                    onClick={() =>
-                      setFieldValue(
-                        "monitoring_plan",
-                        !values.monitoring_plan
-                      )
-                    }
-                    className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${values.monitoring_plan
-                      ? "text-blue-500 bg-emerald-300"
-                      : "text-red-500 bg-blue-400"
-                      }`}
-                    style={{
-                      backgroundColor: values.monitoring_plan
-                        ? "#10b981"
-                        : "#9ca3af",
-                    }}
-                  >
-                    <span
-                      className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform ${values.monitoring_plan
-                        ? "translate-x-5"
-                        : "translate-x-0"
-                        }`}
-                    />
-                  </button>
+                  <ToggleSwitchInline
+                    checked={values.monitoring_plan}
+                    onChange={(v) => setFieldValue("monitoring_plan", v)}
+                  />
                 </div>
               </div>
               {values.monitoring_plan && (
@@ -799,7 +753,7 @@ export default function SecurityMonitoring({
             </div>
 
             {/* NEW: Kill Switch */}
-            <div className="space-y-3 border border-border rounded-xl p-4 glass-panel">
+            <div className="space-y-3 border border-slate-200 rounded-xl p-4 bg-slate-50 hover:bg-slate-100 transition-colors">
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5 flex-1">
                   <Label className="text-base font-medium text-foreground">
@@ -812,39 +766,16 @@ export default function SecurityMonitoring({
                 <div className="ml-4 flex items-center gap-2">
                   <span
                     className={`text-xs font-bold px-2 py-1 rounded ${values.monitoring_kill_switch
-                      ? "text-blue-500 bg-emerald-300"
-                      : "text-red-500 bg-blue-400"
+                      ? "text-emerald-700 bg-emerald-100"
+                      : "text-slate-500 bg-slate-200"
                       }`}
                   >
                     {values.monitoring_kill_switch ? "YES" : "NO"}
                   </span>
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={values.monitoring_kill_switch}
-                    onClick={() =>
-                      setFieldValue(
-                        "monitoring_kill_switch",
-                        !values.monitoring_kill_switch
-                      )
-                    }
-                    className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${values.monitoring_kill_switch
-                      ? "text-blue-500 bg-emerald-300"
-                      : "text-red-500 bg-blue-400"
-                      }`}
-                    style={{
-                      backgroundColor: values.monitoring_kill_switch
-                        ? "#10b981"
-                        : "#9ca3af",
-                    }}
-                  >
-                    <span
-                      className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform ${values.monitoring_kill_switch
-                        ? "translate-x-5"
-                        : "translate-x-0"
-                        }`}
-                    />
-                  </button>
+                  <ToggleSwitchInline
+                    checked={values.monitoring_kill_switch}
+                    onChange={(v) => setFieldValue("monitoring_kill_switch", v)}
+                  />
                 </div>
               </div>
               {values.monitoring_kill_switch && (
@@ -879,7 +810,7 @@ export default function SecurityMonitoring({
             </div>
 
             {/* Capability & Capacity with Sub-questions */}
-            <div className="space-y-3 border border-border rounded-xl p-4 glass-panel">
+            <div className="space-y-3 border border-slate-200 rounded-xl p-4 bg-slate-50 hover:bg-slate-100 transition-colors">
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5 flex-1">
                   <Label className="text-base font-medium text-foreground">
@@ -893,39 +824,16 @@ export default function SecurityMonitoring({
                 <div className="ml-4 flex items-center gap-2">
                   <span
                     className={`text-xs font-bold px-2 py-1 rounded ${values.capability_training
-                      ? "text-blue-500 bg-emerald-300"
-                      : "text-red-500 bg-blue-400"
+                      ? "text-emerald-700 bg-emerald-100"
+                      : "text-slate-500 bg-slate-200"
                       }`}
                   >
                     {values.capability_training ? "YES" : "NO"}
                   </span>
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={values.capability_training}
-                    onClick={() =>
-                      setFieldValue(
-                        "capability_training",
-                        !values.capability_training
-                      )
-                    }
-                    className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors ${values.capability_training
-                      ? "text-blue-500 bg-emerald-300"
-                      : "text-red-500 bg-blue-400"
-                      }`}
-                    style={{
-                      backgroundColor: values.capability_training
-                        ? "#10b981"
-                        : "#9ca3af",
-                    }}
-                  >
-                    <span
-                      className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform ${values.capability_training
-                        ? "translate-x-5"
-                        : "translate-x-0"
-                        }`}
-                    />
-                  </button>
+                  <ToggleSwitchInline
+                    checked={values.capability_training}
+                    onChange={(v) => setFieldValue("capability_training", v)}
+                  />
                 </div>
               </div>
               {values.capability_training && (

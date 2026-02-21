@@ -19,6 +19,7 @@ import {
   UserCircle2,
   XCircle,
 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 type ComplianceTone = "Compliant" | "Partially compliant" | "Non-compliant";
 type RiskTone = "High" | "Medium" | "Low";
@@ -112,80 +113,80 @@ export default function DashboardPage() {
 
         const ukRows: UnifiedRow[] = Array.isArray(ukData)
           ? ukData.map((item: any) => {
-              const fallbackScore = item.overall_assessment === "Compliant" ? 100 : item.overall_assessment === "Partially compliant" ? 65 : 30;
-              const numericScore = item.compliance_score != null ? Math.round(Number(item.compliance_score)) : fallbackScore;
-              return {
-                id: String(item.id),
-                systemName: item.raw_answers?.system_name || item.raw_answers?.name || "Untitled",
-                createdAt: item.created_at,
-                regulation: "UK AI Act",
-                risk: normalizeUkRisk(item.risk_level),
-                status: normalizeStatus(item.overall_assessment),
-                score: `${numericScore}%`,
-                scoreValue: numericScore,
-                accountability: item.raw_answers?.owner || item.raw_answers?.accountability_owner || "N/A",
-                detailsPath: `/uk/${item.id}`,
-                deletePath: `/api/uk-compliance/${item.id}`,
-                raw: item,
-              };
-            })
+            const fallbackScore = item.overall_assessment === "Compliant" ? 100 : item.overall_assessment === "Partially compliant" ? 65 : 30;
+            const numericScore = item.compliance_score != null ? Math.round(Number(item.compliance_score)) : fallbackScore;
+            return {
+              id: String(item.id),
+              systemName: item.raw_answers?.system_name || item.raw_answers?.name || "Untitled",
+              createdAt: item.created_at,
+              regulation: "UK AI Act",
+              risk: normalizeUkRisk(item.risk_level),
+              status: normalizeStatus(item.overall_assessment),
+              score: `${numericScore}%`,
+              scoreValue: numericScore,
+              accountability: item.raw_answers?.accountable_person || item.accountable_person || "N/A",
+              detailsPath: `/uk/${item.id}`,
+              deletePath: `/api/uk-compliance/${item.id}`,
+              raw: item,
+            };
+          })
           : [];
 
         const masRows: UnifiedRow[] = Array.isArray(masData)
           ? masData.map((item: any) => {
-              const pillars = [
-                item.governance,
-                item.inventory,
-                item.dataManagement,
-                item.transparency,
-                item.fairness,
-                item.humanOversight,
-                item.thirdParty,
-                item.algoSelection,
-                item.evaluationTesting,
-                item.techCybersecurity,
-                item.monitoringChange,
-                item.capabilityCapacity,
-              ].filter(Boolean);
-              const missingCount = pillars.filter((p: any) => p.status !== "Compliant").length;
-              const fallbackScore = Math.max(0, 100 - missingCount * 8);
-              const numericScore = item.compliance_score != null ? Math.round(Number(item.compliance_score)) : fallbackScore;
-              return {
-                id: String(item.id),
-                systemName: item.system_name || "Untitled",
-                createdAt: item.created_at,
-                regulation: "MAS" as const,
-                risk: normalizeMasRisk(item.overall_risk_level),
-                status: normalizeStatus(item.overall_compliance_status),
-                score: `${numericScore}%`,
-                scoreValue: numericScore,
-                accountability: item.owner || "N/A",
-                detailsPath: `/mas/${item.id}`,
-                deletePath: `/api/mas-compliance/${item.id}`,
-                raw: item,
-              };
-            })
+            const pillars = [
+              item.governance,
+              item.inventory,
+              item.dataManagement,
+              item.transparency,
+              item.fairness,
+              item.humanOversight,
+              item.thirdParty,
+              item.algoSelection,
+              item.evaluationTesting,
+              item.techCybersecurity,
+              item.monitoringChange,
+              item.capabilityCapacity,
+            ].filter(Boolean);
+            const missingCount = pillars.filter((p: any) => p.status !== "Compliant").length;
+            const fallbackScore = Math.max(0, 100 - missingCount * 8);
+            const numericScore = item.compliance_score != null ? Math.round(Number(item.compliance_score)) : fallbackScore;
+            return {
+              id: String(item.id),
+              systemName: item.system_name || "Untitled",
+              createdAt: item.created_at,
+              regulation: "MAS" as const,
+              risk: normalizeMasRisk(item.overall_risk_level),
+              status: normalizeStatus(item.overall_compliance_status),
+              score: `${numericScore}%`,
+              scoreValue: numericScore,
+              accountability: item.owner || item.raw_answers?.accountable_person || "N/A",
+              detailsPath: `/mas/${item.id}`,
+              deletePath: `/api/mas-compliance/${item.id}`,
+              raw: item,
+            };
+          })
           : [];
 
         const euRows: UnifiedRow[] = Array.isArray(euData)
           ? euData.map((item: any) => {
-              const fallbackScore = item.compliance_status === "Compliant" ? 100 : item.compliance_status === "Partially compliant" ? 65 : 30;
-              const numericScore = item.compliance_score != null ? Math.round(Number(item.compliance_score)) : fallbackScore;
-              return {
-                id: String(item.id),
-                systemName: item.system_name || item.raw_answers?.system_name || "Untitled",
-                createdAt: item.created_at,
-                regulation: "EU AI Act",
-                risk: normalizeEuRisk(item.risk_tier),
-                status: normalizeStatus(item.compliance_status),
-                score: `${numericScore}%`,
-                scoreValue: numericScore,
-                accountability: item.raw_answers?.owner || item.accountable_owner || "N/A",
-                detailsPath: `/compliance/${item.id}`,
-                deletePath: `/api/compliance/${item.id}`,
-                raw: item,
-              };
-            })
+            const fallbackScore = item.compliance_status === "Compliant" ? 100 : item.compliance_status === "Partially compliant" ? 65 : 30;
+            const numericScore = item.compliance_score != null ? Math.round(Number(item.compliance_score)) : fallbackScore;
+            return {
+              id: String(item.id),
+              systemName: item.system_name || item.raw_answers?.system_name || "Untitled",
+              createdAt: item.created_at,
+              regulation: "EU AI Act",
+              risk: normalizeEuRisk(item.risk_tier),
+              status: normalizeStatus(item.compliance_status),
+              score: `${numericScore}%`,
+              scoreValue: numericScore,
+              accountability: item.raw_answers?.q10 || item.accountable_person || item.accountable_owner || "N/A",
+              detailsPath: `/compliance/${item.id}`,
+              deletePath: `/api/compliance/${item.id}`,
+              raw: item,
+            };
+          })
           : [];
 
         const merged = [...euRows, ...masRows, ...ukRows].sort((a, b) => {
@@ -308,37 +309,40 @@ export default function DashboardPage() {
                   <h2 className="text-[17.5px] font-extrabold tracking-[-0.01em] text-[#1E293B]">AI Systems Compliance Overview</h2>
                   <p className="text-[11px] text-[#667085]">Unified view of all AI compliance assessments across EU AI Act, MAS, and UK AI Act</p>
                 </div>
-                <div className="flex items-center gap-2">
-                  <label className="flex h-9 items-center gap-2 rounded-[10px] border border-[#CBD5E1] px-3 text-[12px] font-bold text-[#475569]">
-                    <ShieldCheck className="h-4 w-4" />
-                    <select
-                      value={regulationFilter}
-                      onChange={(e) => setRegulationFilter(e.target.value as "all" | Regulation)}
-                      className="bg-transparent text-[12px] font-bold outline-none"
-                    >
-                      <option value="all">All Regulations</option>
-                      <option value="EU AI Act">EU AI Act</option>
-                      <option value="UK AI Act">UK AI Act</option>
-                      <option value="MAS">MAS</option>
-                    </select>
-                  </label>
-                  <label className="flex h-9 items-center gap-2 rounded-[10px] border border-[#CBD5E1] px-3 text-[12px] font-bold text-[#475569]">
-                    <AlertTriangle className="h-4 w-4" />
-                    <select
-                      value={statusFilter}
-                      onChange={(e) => setStatusFilter(e.target.value as "all" | ComplianceTone)}
-                      className="bg-transparent text-[12px] font-bold outline-none"
-                    >
-                      <option value="all">All Status</option>
-                      <option value="Compliant">Compliant</option>
-                      <option value="Partially compliant">Partially</option>
-                      <option value="Non-compliant">Non-compliant</option>
-                    </select>
-                  </label>
+                <div className="flex items-center gap-3">
+                  <Select value={regulationFilter} onValueChange={(value) => setRegulationFilter(value as "all" | Regulation)}>
+                    <SelectTrigger className="flex h-9 items-center gap-2 rounded-[10px] border border-[#CBD5E1] px-3 text-[12px] font-bold text-[#475569] shadow-none w-[160px] bg-white">
+                      <div className="flex items-center gap-2">
+                        <ShieldCheck className="h-4 w-4" />
+                        <SelectValue placeholder="All Regulations" />
+                      </div>
+                    </SelectTrigger>
+                    <SelectContent className="bg-white z-50 rounded-[10px] text-[12px] font-semibold text-[#475569] shadow-md border-[#CBD5E1]">
+                      <SelectItem value="all">All Regulations</SelectItem>
+                      <SelectItem value="EU AI Act">EU AI Act</SelectItem>
+                      <SelectItem value="UK AI Act">UK AI Act</SelectItem>
+                      <SelectItem value="MAS">MAS</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as "all" | ComplianceTone)}>
+                    <SelectTrigger className="flex h-9 items-center gap-2 rounded-[10px] border border-[#CBD5E1] px-3 text-[12px] font-bold text-[#475569] shadow-none w-[150px] bg-white">
+                      <div className="flex items-center gap-2">
+                        <AlertTriangle className="h-4 w-4" />
+                        <SelectValue placeholder="All Status" />
+                      </div>
+                    </SelectTrigger>
+                    <SelectContent className="bg-white z-50 rounded-[10px] text-[12px] font-semibold text-[#475569] shadow-md border-[#CBD5E1]">
+                      <SelectItem value="all">All Status</SelectItem>
+                      <SelectItem value="Compliant">Compliant</SelectItem>
+                      <SelectItem value="Partially compliant">Partially</SelectItem>
+                      <SelectItem value="Non-compliant">Non-compliant</SelectItem>
+                    </SelectContent>
+                  </Select>
                   <button
                     type="button"
                     onClick={() => router.push("/assessment")}
-                    className="flex h-9 items-center gap-2 rounded-[10px] bg-[#88BEF1] px-4 text-[15px] font-semibold text-white"
+                    className="flex h-9 items-center gap-2 rounded-[10px] bg-[#3B82F6] px-4 text-[15px] font-semibold text-white hover:bg-[#2563EB] transition-colors"
                   >
                     <span className="text-[18px] leading-none">+</span>
                     New Assessment

@@ -28,14 +28,14 @@ export default function UkPageRapid({ currentPage }: { currentPage: number }) {
             <CardContent className="space-y-6">
                 {/* Critical Decision Impact */}
                 <div className="space-y-4">
-                    <h3 className="text-lg font-medium">Critical Impacts</h3>
-                    <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+                    <h3 className="text-lg font-medium text-slate-800">Critical Impacts</h3>
+                    <div className="flex items-center justify-between p-4 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 transition-colors">
                         <div className="space-y-0.5">
-                            <Label>High-Impact Decisions</Label>
-                            <p className="text-xs text-muted-foreground">Does this system make decisions affecting finance, health, employment, or safety?</p>
+                            <Label className="text-slate-700">High-Impact Decisions</Label>
+                            <p className="text-xs text-slate-500">Does this system make decisions affecting finance, health, employment, or safety?</p>
                         </div>
                         <Switch
-                            checked={values.robustness_testing} // Using existing field for proxy or mapping
+                            checked={values.robustness_testing}
                             onCheckedChange={(v) => setFieldValue("robustness_testing", v)}
                         />
                     </div>
@@ -43,11 +43,11 @@ export default function UkPageRapid({ currentPage }: { currentPage: number }) {
 
                 {/* Data Usage */}
                 <div className="space-y-4">
-                    <h3 className="text-lg font-medium">Data Governance</h3>
-                    <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+                    <h3 className="text-lg font-medium text-slate-800">Data Governance</h3>
+                    <div className="flex items-center justify-between p-4 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 transition-colors">
                         <div className="space-y-0.5">
-                            <Label>Personal or Sensitive Data</Label>
-                            <p className="text-xs text-muted-foreground">Does the system process personal or special category data?</p>
+                            <Label className="text-slate-700">Personal or Sensitive Data</Label>
+                            <p className="text-xs text-slate-500">Does the system process personal or special category data?</p>
                         </div>
                         <Switch
                             checked={values.personal_data_handling}
@@ -58,11 +58,11 @@ export default function UkPageRapid({ currentPage }: { currentPage: number }) {
 
                 {/* Governance */}
                 <div className="space-y-4">
-                    <h3 className="text-lg font-medium">Governance & Oversight</h3>
-                    <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+                    <h3 className="text-lg font-medium text-slate-800">Governance & Oversight</h3>
+                    <div className="flex items-center justify-between p-4 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 transition-colors">
                         <div className="space-y-0.5">
-                            <Label>Human Oversight</Label>
-                            <p className="text-xs text-muted-foreground">Are there existing human-in-the-loop or monitoring processes?</p>
+                            <Label className="text-slate-700">Human Oversight</Label>
+                            <p className="text-xs text-slate-500">Are there existing human-in-the-loop or monitoring processes?</p>
                         </div>
                         <Switch
                             checked={values.human_oversight}
@@ -72,12 +72,12 @@ export default function UkPageRapid({ currentPage }: { currentPage: number }) {
                 </div>
 
                 <div className="space-y-2">
-                    <Label>Primary Governance Measures</Label>
+                    <Label className="text-slate-700">Primary Governance Measures</Label>
                     <Textarea
                         value={values.accountability_roles}
                         onChange={(e) => setFieldValue("accountability_roles", e.target.value)}
                         placeholder="Briefly describe who is responsible for this system..."
-                        className="rounded-xl"
+                        className="rounded-xl border-slate-200 focus:border-emerald-500 focus:ring-emerald-500"
                     />
                 </div>
             </CardContent>

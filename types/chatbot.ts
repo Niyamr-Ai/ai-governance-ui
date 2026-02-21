@@ -45,6 +45,7 @@ export interface ChatRequest {
   pageContext: PageContext;
   conversationHistory?: ChatMessage[]; // Transient - not persisted
   persona?: 'internal' | 'auditor' | 'regulator'; // Future: persona-based filtering (defaults to 'internal')
+  sessionId?: string; // Session ID for grouping related conversations
 }
 
 /**

@@ -1,802 +1,587 @@
-// @ts-nocheck
 "use client";
 
-import { useParams } from "next/navigation";
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from "@/components/ui/chart";
-import {
-  PieChart,
-  Pie,
-  Cell,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  ResponsiveContainer,
-  Legend,
-} from "recharts";
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+import Head from "next/head";
 import {
   AlertTriangle,
   CheckCircle2,
+  FileWarning,
+  Loader2,
   XCircle,
-  Shield,
-  Ban,
-  FileText,
-  Eye,
-  TrendingUp,
-  Plus,
 } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { supabase } from "@/utils/supabase/client";
-import Head from 'next/head';
 
-async function backendFetch(
-  path: string,
-  options: RequestInit = {}
-) {
-  const { data } = await supabase.auth.getSession();
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { backendFetch } from "@/utils/backend-fetch";
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
-  const accessToken = data.session?.access_token;
+type Severity = "critical" | "high" | "info";
 
-  if (!accessToken) {
-    console.error('❌ No access token found in Supabase session');
-    throw new Error("User not authenticated");
-  }
+type EUResult = {
+  id: string;
+  system_id?: string | null;
+  created_at: string;
+  assessment_mode?: "rapid" | "comprehensive";
+  assessment_confidence?: string;
+  is_provisional?: boolean;
+  risk_tier: string;
+  compliance_status: string;
+  prohibited_practices_detected: boolean;
+  high_risk_missing: string[];
+  high_risk_all_fulfilled: boolean;
+  transparency_required: boolean;
+  transparency_missing: string[];
+  monitoring_required: boolean;
+  post_market_monitoring: boolean;
+  incident_reporting: boolean;
+  fria_completed: boolean;
+  summary: string;
+  reference?: Record<string, any>;
+  compliance_score?: number;
+  confidence_score?: number;
+};
 
-  console.log('✅ Frontend: Sending token (first 50 chars):', accessToken.substring(0, 50) + '...');
+const HIGH_RISK_ARTICLES: Record<string, string> = {
+  "Risk Management": "EU AI Act Art. 9",
+  "Data Governance": "EU AI Act Art. 10",
+  "Technical Documentation": "EU AI Act Art. 11",
+  "Record-Keeping": "EU AI Act Art. 12",
+  "Human Oversight": "EU AI Act Art. 14",
+  "Accuracy": "EU AI Act Art. 15",
+  "Conformity Assessment": "EU AI Act Art. 43",
+};
 
-  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+const TRANSPARENCY_ARTICLES: Record<string, string> = {
+  aiIdentityDisclosed: "EU AI Act Art. 50(1)",
+  syntheticContentLabeled: "EU AI Act Art. 50(2)",
+  emotionBioNotice: "EU AI Act Art. 50(3)",
+};
 
-  return fetch(
-    `${process.env.NEXT_PUBLIC_BACKEND_URL}${normalizedPath}`,
-    {
-      ...options,
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-    }
-  );
+function riskClasses(tier: string) {
+  const v = tier?.toLowerCase() || "";
+  if (v.includes("prohibited") || v.includes("unacceptable")) return "bg-red-100 text-red-800 border-red-200";
+  if (v.includes("high")) return "bg-orange-100 text-orange-800 border-orange-200";
+  if (v.includes("limited")) return "bg-amber-100 text-amber-800 border-amber-200";
+  return "bg-emerald-100 text-emerald-800 border-emerald-200";
 }
 
-// Risk Tier badge styles
-const getRiskTierClasses = (tier) => {
-  switch (tier) {
-    case "Minimal-Risk":
-      return "bg-emerald-50 text-emerald-700 border-emerald-200";
-    case "Limited-Risk":
-      return "bg-amber-50 text-amber-700 border-amber-200";
-    case "High-Risk":
-      return "bg-orange-50 text-orange-700 border-orange-200";
-    case "Prohibited":
-    case "Unacceptable":
-      return "bg-red-50 text-red-700 border-red-200";
-    default:
-      return "bg-muted text-muted-foreground border-border";
-  }
-};
+function statusClasses(status: string) {
+  const v = status?.toLowerCase() || "";
+  if (v.includes("non")) return "bg-red-100 text-red-800 border-red-200";
+  if (v.includes("partial")) return "bg-amber-100 text-amber-800 border-amber-200";
+  return "bg-emerald-100 text-emerald-800 border-emerald-200";
+}
 
-// Compliance Status badge styles
-const getComplianceStatusClasses = (status) => {
-  switch (status) {
-    case "Compliant":
-      return "bg-emerald-600 text-white border-emerald-500 font-semibold";
-    case "Partially compliant":
-      return "bg-amber-600 text-white border-amber-500 font-semibold";
-    case "Non-Compliant":
-    case "Non-compliant":
-      return "bg-red-600 text-white border-red-500 font-semibold";
-    default:
-      return "bg-slate-600 text-white border-slate-500 font-semibold";
-  }
-};
+function warningClasses(severity: Severity) {
+  if (severity === "critical") return "bg-red-50 border-red-200 text-red-900";
+  if (severity === "high") return "bg-amber-50 border-amber-200 text-amber-900";
+  return "bg-blue-50 border-blue-200 text-blue-900";
+}
 
-const highRiskObligationLabels = {
-  riskManagement: "Risk Management",
-  dataGovernance: "Data Governance", // Changed from "Data Quality" to match backend
-  technicalDocumentation: "Technical Documentation", // Changed from "Documentation" to match backend
-  recordKeeping: "Record-Keeping", // Added - was missing!
-  humanOversight: "Human Oversight",
-  accuracy: "Accuracy",
-  conformityAssessment: "Conformity Assessment",
-};
+function toReadable(text: string) {
+  return text
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
 
-const transparencyLabels = {
-  aiIdentityDisclosed: "AI Identity Disclosed",
-  syntheticContentLabeled: "Synthetic Content Labeled",
-  emotionBioNotice: "Emotion/Biometric Notice",
-};
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
 
-const monitoringFRIALabels = {
-  postMarketMonitoring: "Post-Market Monitoring",
-  incidentReporting: "Incident Reporting",
-  friaCompleted: "Fundamental Rights Impact Assessment (FRIA) Completed",
-};
+function normalizeSummaryText(summary: string) {
+  return summary
+    .replace(/\bas indicated in Q\d+[a-z]?\b\.?/gi, "")
+    .replace(/\breferenced in Q\d+[a-z]?\b\.?/gi, "")
+    .replace(/\bQ\d+[a-z]?\b/gi, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
 
-export default function ComplianceResultPage() {
+function renderSummaryText(summary: string, highlights: string[] = []) {
+  const normalized = normalizeSummaryText(summary || "");
+  if (!normalized) return "";
+
+  const autoTokens = normalized.match(/\b[a-z]+_[a-z_]+\b/gi) || [];
+  const merged = Array.from(new Set([...highlights, ...autoTokens].filter(Boolean)));
+  if (merged.length === 0) return normalized;
+
+  const regex = new RegExp(`(${merged.map((m) => escapeRegExp(m)).join("|")})`, "gi");
+  const mergedLower = new Set(merged.map((m) => m.toLowerCase()));
+
+  return normalized.split(regex).map((part, idx) => {
+    if (mergedLower.has(part.toLowerCase())) {
+      return <strong key={`${part}-${idx}`}>{toReadable(part)}</strong>;
+    }
+    return part;
+  });
+}
+
+export default function EUComplianceResultPage() {
   const params = useParams();
   const router = useRouter();
-  const [result, setResult] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const id = params?.id as string | undefined;
 
-  const id = params?.id;
+  const [result, setResult] = useState<EUResult | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    async function fetchResult() {
+    const load = async () => {
       if (!id) {
         setError("Invalid compliance ID");
         setLoading(false);
         return;
       }
-
       try {
         const res = await backendFetch(`/api/compliance/${id}`);
-        if (!res.ok) throw new Error(`${res.status}`);
+        if (!res.ok) {
+          const payload = await res.json().catch(() => ({}));
+          throw new Error(payload.error || "Unable to load compliance result");
+        }
         const data = await res.json();
         setResult(data);
-      } catch (err) {
-        setError("Unable to load compliance result.");
+      } catch (err: any) {
+        setError(err.message || "Unable to load compliance result");
       } finally {
         setLoading(false);
       }
-    }
-    fetchResult();
+    };
+    void load();
   }, [id]);
+
+  const isProhibited = useMemo(() => {
+    if (!result) return false;
+    const tier = (result.risk_tier || "").toLowerCase();
+    return tier.includes("prohibited") || tier.includes("unacceptable") || result.prohibited_practices_detected;
+  }, [result]);
+
+  const isMinimal = useMemo(() => {
+    if (!result) return false;
+    return (result.risk_tier || "").toLowerCase().includes("minimal");
+  }, [result]);
+
+  const prohibitedItems = useMemo(() => {
+    if (!result) return [];
+    return Array.isArray(result.reference?.prohibited_practices)
+      ? result.reference?.prohibited_practices
+      : [];
+  }, [result]);
+
+  const warning = useMemo(() => {
+    if (!result) return null;
+    if (isProhibited || result.compliance_status?.toLowerCase().includes("non")) {
+      return {
+        severity: "critical" as Severity,
+        title: "Critical EU AI Act Compliance Failure",
+        description: "This system is non-compliant or includes prohibited risk indicators and requires immediate remediation.",
+      };
+    }
+    if (result.assessment_mode === "rapid" || result.is_provisional) {
+      return {
+        severity: "high" as Severity,
+        title: "Quick Scan Result (Provisional)",
+        description:
+          "This result is from rapid mode and does not represent full obligation coverage. Run Deep Review for complete validation.",
+      };
+    }
+    return {
+      severity: "info" as Severity,
+      title: "Assessment Loaded",
+      description: "Review missing obligations and legal references below.",
+    };
+  }, [result, isProhibited]);
+
+  const failureRows = useMemo(() => {
+    if (!result) return [];
+
+    const prohibitedFailures =
+      isProhibited
+        ? [
+          {
+            law: "EU AI Act Art. 5 (Prohibited Practices)",
+            area: "Prohibited Classification",
+            why:
+              prohibitedItems.length > 0
+                ? `Prohibited practice(s) identified: ${prohibitedItems.map((p: string) => toReadable(p)).join(", ")}.`
+                : "System has been classified as prohibited/unacceptable risk under submitted answers.",
+          },
+        ]
+        : [];
+
+    const highRiskFailures = (result.high_risk_missing || []).map((item) => ({
+      law: HIGH_RISK_ARTICLES[item] || "EU AI Act (High-Risk Obligations)",
+      area: item,
+      why: `Control is marked as missing in the submitted assessment.`,
+    }));
+
+    const transparencyFailures = (result.transparency_missing || []).map((key) => ({
+      law: TRANSPARENCY_ARTICLES[key] || "EU AI Act Art. 50",
+      area: key,
+      why: "Required transparency disclosure was not confirmed.",
+    }));
+
+    const monitoringFailures: Array<{ law: string; area: string; why: string }> = [];
+    if (result.monitoring_required && !isProhibited && !isMinimal) {
+      if (!result.post_market_monitoring) {
+        monitoringFailures.push({
+          law: "EU AI Act Art. 72",
+          area: "Post-Market Monitoring",
+          why: "Required monitoring process is missing.",
+        });
+      }
+      if (!result.incident_reporting) {
+        monitoringFailures.push({
+          law: "EU AI Act Art. 73",
+          area: "Incident Reporting",
+          why: "Serious incident reporting setup is missing.",
+        });
+      }
+      if (!result.fria_completed) {
+        monitoringFailures.push({
+          law: "EU AI Act FRIA Requirement",
+          area: "Fundamental Rights Impact Assessment",
+          why: "FRIA completion is not confirmed.",
+        });
+      }
+    }
+
+    return [...prohibitedFailures, ...highRiskFailures, ...transparencyFailures, ...monitoringFailures];
+  }, [result, isProhibited, isMinimal, prohibitedItems]);
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-slate-950 via-indigo-950 to-purple-950">
+      <div className="flex h-screen items-center justify-center bg-slate-50">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mx-auto"></div>
-          <p className="text-xl mt-4 text-muted-foreground">Loading compliance data...</p>
+          <Loader2 className="mx-auto h-8 w-8 animate-spin text-blue-600" />
+          <p className="mt-3 text-slate-700">Loading compliance data...</p>
         </div>
       </div>
     );
   }
-  if (error) {
+
+  if (error || !result) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-slate-950 via-indigo-950 to-purple-950">
-        <Alert variant="destructive" className="max-w-md border-red-700/50 bg-red-900/20 backdrop-blur-sm">
+      <div className="mx-auto max-w-4xl px-4 py-16">
+        <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertTitle className="text-red-300">Error</AlertTitle>
-          <AlertDescription className="text-red-200">{error}</AlertDescription>
+          <AlertTitle>Unable to open assessment</AlertTitle>
+          <AlertDescription>{error || "Assessment not found"}</AlertDescription>
         </Alert>
+        <Button className="mt-4" variant="outline" onClick={() => router.push("/dashboard")}>
+          Back to Dashboard
+        </Button>
       </div>
     );
   }
 
-  const {
-    risk_tier,
-    compliance_status,
-    prohibited_practices_detected,
-    high_risk_missing = [],
-    high_risk_all_fulfilled,
-    transparency_required,
-    transparency_missing = [],
-    monitoring_required,
-    post_market_monitoring,
-    incident_reporting,
-    fria_completed,
-    summary,
-    reference = {},
-    created_at,
-    assessment_mode,
-    assessment_confidence,
-    is_provisional,
-  } = result;
-
-  // Extract prohibited practices list from reference
-  const prohibitedPracticesList = reference?.prohibited_practices || [];
-
-  // Check if system is prohibited or minimal-risk
-  const isProhibited = risk_tier === 'Prohibited' || prohibited_practices_detected;
-  const isMinimalRisk = risk_tier === 'Minimal-risk' || risk_tier === 'Minimal-Risk';
-  const isNotApplicable = isProhibited || isMinimalRisk; // Both don't require high-risk obligations
-
-  // Calculate compliance metrics for charts
-  // IMPORTANT: Prohibited and Minimal-risk systems don't require high-risk obligations - they are not applicable
-  const totalObligations = Object.keys(highRiskObligationLabels).length;
-  const fulfilledObligations = isNotApplicable ? 0 : (totalObligations - high_risk_missing.length);
-  const compliancePercentage = isNotApplicable ? 0 : Math.round((fulfilledObligations / totalObligations) * 100);
-
-  // Enhanced color palette
-  const COLORS = {
-    fulfilled: "#10b981",
-    fulfilledGradient: "url(#fulfilledGradient)",
-    missing: "#ef4444",
-    missingGradient: "url(#missingGradient)",
-    pending: "#f59e0b",
-    info: "#3b82f6",
-    success: "#22c55e",
-    danger: "#dc2626",
+  const totalObligations = Object.keys(HIGH_RISK_ARTICLES).length;
+  const applicable = !isProhibited && !isMinimal;
+  const fulfilled = applicable ? Math.max(0, totalObligations - (result.high_risk_missing || []).length) : 0;
+  const obligationPct = applicable ? Math.round((fulfilled / totalObligations) * 100) : 0;
+  const visualData = {
+    prohibited: isProhibited ? 1 : 0,
+    highRiskMissing: (result.high_risk_missing || []).length,
+    transparencyMissing: (result.transparency_missing || []).length,
+    monitoringMissing:
+      (result.monitoring_required && !result.post_market_monitoring ? 1 : 0) +
+      (result.monitoring_required && !result.incident_reporting ? 1 : 0) +
+      (result.monitoring_required && !result.fria_completed ? 1 : 0),
   };
-
-  // Data for pie chart - Obligations Status
-  // For prohibited and minimal-risk systems, show all as "Not Applicable"
-  const obligationsData = isNotApplicable
-    ? [
-      { name: "Not Applicable", value: totalObligations, color: "#6b7280", gradientId: "notApplicableGradient" },
-    ]
-    : [
-      { name: "Fulfilled", value: fulfilledObligations, color: COLORS.fulfilled, gradientId: "fulfilledGradient" },
-      { name: "Missing", value: high_risk_missing.length, color: COLORS.missing, gradientId: "missingGradient" },
-    ];
-
-  // Data for bar chart - Individual Obligations with varied colors
-  const obligationColors = [
-    { fulfilled: "#10b981", missing: "#ef4444" },
-    { fulfilled: "#3b82f6", missing: "#dc2626" },
-    { fulfilled: "#8b5cf6", missing: "#dc2626" },
-    { fulfilled: "#06b6d4", missing: "#dc2626" },
-    { fulfilled: "#f59e0b", missing: "#dc2626" },
-    { fulfilled: "#ec4899", missing: "#dc2626" },
+  const euChartData = [
+    { name: "Prohibited", value: visualData.prohibited, color: "#dc2626" },
+    { name: "High-Risk Missing", value: visualData.highRiskMissing, color: "#d97706" },
+    { name: "Transparency Missing", value: visualData.transparencyMissing, color: "#f59e0b" },
+    { name: "Monitoring Missing", value: visualData.monitoringMissing, color: "#ef4444" },
+  ];
+  const legalAreaMatrix = [
+    {
+      area: "Prohibited Practices",
+      met: 0,
+      missing: isProhibited ? 1 : 0,
+      na: isProhibited ? 0 : 1,
+    },
+    {
+      area: "High-Risk Obligations",
+      met: applicable && result.high_risk_missing.length === 0 ? 1 : 0,
+      missing: applicable && result.high_risk_missing.length > 0 ? 1 : 0,
+      na: applicable ? 0 : 1,
+    },
+    {
+      area: "Transparency",
+      met: result.transparency_required ? (result.transparency_missing.length === 0 ? 1 : 0) : 0,
+      missing: result.transparency_required && result.transparency_missing.length > 0 ? 1 : 0,
+      na: result.transparency_required ? 0 : 1,
+    },
+    {
+      area: "Monitoring/FRIA",
+      met:
+        result.monitoring_required
+          ? result.post_market_monitoring && result.incident_reporting && result.fria_completed
+            ? 1
+            : 0
+          : 0,
+      missing:
+        result.monitoring_required &&
+          (!result.post_market_monitoring || !result.incident_reporting || !result.fria_completed)
+          ? 1
+          : 0,
+      na: result.monitoring_required ? 0 : 1,
+    },
   ];
 
-  const obligationsBreakdown = Object.entries(highRiskObligationLabels).map(([key, label], idx) => {
-    // For prohibited and minimal-risk systems, all obligations are "Not Applicable"
-    if (isNotApplicable) {
-      return {
-        name: label.split(" ")[0],
-        fullName: label,
-        fulfilled: false,
-        value: 0,
-        color: "#6b7280", // Gray for not applicable
-        gradientId: `obligationGradient-${idx}`,
-        notApplicable: true,
-      };
-    }
-    // FIX: Check if the LABEL (not the key) is in high_risk_missing array
-    // high_risk_missing contains full labels like "Risk Management", "Data Governance", etc.
-    const isFulfilled = !high_risk_missing.includes(label);
-    const colorSet = obligationColors[idx % obligationColors.length];
-    return {
-      name: label.split(" ")[0],
-      fullName: label,
-      fulfilled: isFulfilled,
-      value: isFulfilled ? 100 : 0,
-      color: isFulfilled ? colorSet.fulfilled : colorSet.missing,
-      gradientId: `obligationGradient-${idx}`,
-      notApplicable: false,
-    };
-  });
-
-  // Data for monitoring status
-  const monitoringData = monitoring_required
-    ? [
-      { name: "Post-Market Monitoring", value: post_market_monitoring ? 100 : 0 },
-      { name: "Incident Reporting", value: incident_reporting ? 100 : 0 },
-      { name: "FRIA Completed", value: fria_completed ? 100 : 0 },
-    ]
-    : [];
-
-  // Handle case where ID is not available (server-side rendering)
-  if (!id) {
-    return (
-      <main className="min-h-screen bg-gradient-to-br from-slate-950 via-indigo-950 to-purple-950 py-8 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto space-y-6">
-          <div className="text-center py-12">
-            <h1 className="text-2xl font-bold text-foreground mb-4">Loading Compliance Assessment...</h1>
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto"></div>
-          </div>
-        </div>
-      </main>
-    );
-  }
-
   return (
-    <main className="min-h-screen bg-gradient-to-br from-white via-gray-50 to-blue-50 py-8 px-4 sm:px-6 lg:px-8">
+    <main className="min-h-screen bg-slate-50 px-4 py-8">
       <Head>
-        <title>Compliance Details</title>
-        <meta name="description" content="Detailed view of the AI compliance assessment." />
+        <title>EU Compliance Detail</title>
+        <meta name="description" content="EU AI Act compliance assessment detail." />
       </Head>
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header Section */}
-        <div className="flex items-center justify-between">
+
+      <div className="mx-auto max-w-7xl space-y-6">
+        <header className="flex flex-wrap items-start justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <div>
-            <h1 className="text-4xl font-bold text-foreground">Compliance Dashboard</h1>
-            <p className="text-primary mt-2 text-lg font-medium">EU AI Act Compliance Assessment Result</p>
-            {created_at && (
-              <p className="text-sm text-slate-400 mt-1">
-                Assessment Date: {new Date(created_at).toLocaleDateString("en-US", {
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                })}
-              </p>
-            )}
+            <h1 className="text-2xl font-bold text-slate-900">EU AI Act Compliance Result</h1>
+            <p className="mt-1 text-sm text-slate-600">
+              Assessment Date:{" "}
+              {new Date(result.created_at).toLocaleDateString("en-US", {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              })}
+            </p>
           </div>
-          <div className="flex gap-2">
-            {assessment_mode === 'rapid' && (
-              <Button
-                className="bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl"
-                onClick={() => router.push(`/assessment/eu/${id}`)}
-              >
-                Complete Comprehensive Assessment
-              </Button>
-            )}
-            <Button
-              variant="outline"
-              className="border-gray-300 bg-white text-gray-900 hover:bg-gray-100 hover:text-gray-900"
-              onClick={() => router.push("/dashboard")}
-            >
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" onClick={() => router.push("/dashboard")}>
               Back to Dashboard
             </Button>
           </div>
-        </div>
+        </header>
 
-        {assessment_mode === 'rapid' && (
-          <Alert className="bg-amber-50 border-amber-200 shadow-sm">
-            <AlertTriangle className="h-5 w-5 text-amber-600" />
-            <AlertTitle className="text-amber-800 font-bold">Quick Scan Result</AlertTitle>
-            <AlertDescription className="text-amber-700">
-              This assessment was performed in <strong>Quick Scan</strong> mode and covers core risk indicators.
-              For full obligation coverage and detailed compliance analysis, run <strong>Deep Review</strong>.
-            </AlertDescription>
+        {warning && (
+          <Alert className={warningClasses(warning.severity)}>
+            <FileWarning className="h-4 w-4" />
+            <AlertTitle>{warning.title}</AlertTitle>
+            <AlertDescription>{warning.description}</AlertDescription>
           </Alert>
         )}
 
-
-        {/* Key Metrics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="glass-card shadow-premium rounded-2xl border-0 bg-gradient-to-br from-white/90 via-white/80 to-white/70 backdrop-blur-xl">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-slate-400">Risk Tier</CardTitle>
-              <Shield className="h-4 w-4 text-slate-400" />
-            </CardHeader>
-            <CardContent>
-              <div className={`inline-block px-3 py-1 rounded-lg text-sm font-semibold border ${getRiskTierClasses(risk_tier)}`}>
-                {risk_tier}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="glass-card shadow-premium rounded-2xl border-0 bg-gradient-to-br from-white/90 via-white/80 to-white/70 backdrop-blur-xl">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-slate-400">Compliance Status</CardTitle>
-              <TrendingUp className="h-4 w-4 text-primary" />
-            </CardHeader>
-            <CardContent>
-              <div className={`inline-block px-3 py-1 rounded-lg text-sm font-semibold border ${getComplianceStatusClasses(compliance_status)}`}>
-                {compliance_status}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="glass-card shadow-premium rounded-2xl border-0 bg-gradient-to-br from-white/90 via-white/80 to-white/70 backdrop-blur-xl">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-slate-400">Obligations Fulfilled</CardTitle>
-              {isNotApplicable ? (
-                <Ban className="h-4 w-4 text-gray-400" />
-              ) : (
-                <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+        <section className="grid grid-cols-1 gap-4 md:grid-cols-4">
+          <Card className="border-slate-200">
+            <CardHeader className="pb-2">
+              <CardDescription>Compliance Score</CardDescription>
+              <CardTitle className="text-xl">{result.compliance_score ?? obligationPct}%</CardTitle>
+              {result.confidence_score && result.confidence_score < 100 && (
+                <p className="text-xs text-amber-600">{result.confidence_score}% confident</p>
               )}
             </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-foreground">
-                {isNotApplicable ? (
-                  <span className="text-gray-500">N/A</span>
-                ) : (
-                  `${fulfilledObligations}/${totalObligations}`
-                )}
-              </div>
-              <div className={`text-sm mt-1 ${isNotApplicable ? 'text-gray-500' : 'text-slate-400'}`}>
-                {isProhibited
-                  ? 'Not Applicable - System is Prohibited'
-                  : isMinimalRisk
-                    ? 'Not Applicable - Minimal-risk systems do not require high-risk obligations'
-                    : `${compliancePercentage}% Complete`}
-              </div>
-            </CardContent>
           </Card>
-
-          <Card className="glass-card shadow-premium rounded-2xl border-0 bg-gradient-to-br from-white/90 via-white/80 to-white/70 backdrop-blur-xl">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-slate-400">Prohibited Practices</CardTitle>
-              <Ban className="h-4 w-4 text-red-400" />
+          <Card className="border-slate-200">
+            <CardHeader className="pb-2">
+              <CardDescription>Assessment Mode</CardDescription>
+              <CardTitle className="text-xl capitalize">{result.assessment_mode || "comprehensive"}</CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">
-                {prohibited_practices_detected ? (
-                  <span className="text-red-400">Detected</span>
-                ) : (
-                  <span className="text-emerald-400">None</span>
-                )}
-              </div>
-            </CardContent>
           </Card>
-        </div>
-
-        {/* Charts Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Obligations Pie Chart */}
-          <Card className="glass-card shadow-premium rounded-2xl border-0 bg-gradient-to-br from-white/90 via-white/80 to-white/70 backdrop-blur-xl">
-            <CardHeader className="bg-gradient-to-r from-purple-50/50 to-indigo-50/50 border-b border-gray-200/50">
-              <CardTitle className="text-foreground">Obligations Overview</CardTitle>
-              <CardDescription className="text-muted-foreground">High-risk obligations fulfillment status</CardDescription>
+          <Card className="border-slate-200">
+            <CardHeader className="pb-2">
+              <CardDescription>Risk Tier</CardDescription>
+              <Badge className={riskClasses(result.risk_tier)} variant="outline">
+                {result.risk_tier}
+              </Badge>
             </CardHeader>
-            <CardContent className="pt-6 flex items-center justify-center bg-white/50">
-              <ChartContainer
-                config={{
-                  fulfilled: { color: COLORS.fulfilled },
-                  missing: { color: COLORS.missing },
-                }}
-                className="h-[320px] w-full"
-              >
-                <PieChart>
-                  <defs>
-                    <linearGradient id="fulfilledGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#10b981" stopOpacity={1} />
-                      <stop offset="100%" stopColor="#059669" stopOpacity={0.8} />
-                    </linearGradient>
-                    <linearGradient id="missingGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#ef4444" stopOpacity={1} />
-                      <stop offset="100%" stopColor="#dc2626" stopOpacity={0.8} />
-                    </linearGradient>
-                    <linearGradient id="notApplicableGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#6b7280" stopOpacity={1} />
-                      <stop offset="100%" stopColor="#4b5563" stopOpacity={0.8} />
-                    </linearGradient>
-                  </defs>
-                  <Pie
-                    data={obligationsData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ name, percent, value }) => value > 0 ? `${name}\n${(percent * 100).toFixed(0)}%` : ""}
-                    outerRadius={100}
-                    innerRadius={40}
-                    paddingAngle={5}
-                    fill="#8884d8"
-                    dataKey="value"
-                    stroke="#ffffff"
-                    strokeWidth={1}
-                  >
-                    {obligationsData.map((entry, index) => (
-                      <Cell
-                        key={`cell-${index}`}
-                        fill={entry.gradientId ? `url(#${entry.gradientId})` : entry.color}
-                        style={{ filter: "drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1))" }}
-                      />
-                    ))}
-                  </Pie>
-                  <ChartTooltip
-                    content={({ active, payload }) => {
-                      if (active && payload && payload.length) {
-                        const data = payload[0];
-                        return (
-                          <div className="bg-white/95 backdrop-blur-sm p-4 border border-gray-200 rounded-lg shadow-xl">
-                            <p className="font-bold text-lg mb-1 text-foreground">{data.name}</p>
-                            <p className="text-2xl font-extrabold" style={{ color: data.payload.color }}>
-                              {data.value} {data.value === 1 ? "Obligation" : "Obligations"}
-                            </p>
-                            <p className="text-sm text-muted-foreground mt-1">
-                              {((data.value / totalObligations) * 100).toFixed(1)}% of total
-                            </p>
-                          </div>
-                        );
-                      }
-                      return null;
-                    }}
-                  />
-                </PieChart>
-              </ChartContainer>
-            </CardContent>
           </Card>
-
-          {/* Obligations Bar Chart */}
-          <Card className="glass-card shadow-premium rounded-2xl border-0 bg-gradient-to-br from-white/90 via-white/80 to-white/70 backdrop-blur-xl">
-            <CardHeader className="bg-gradient-to-r from-emerald-50/50 to-teal-50/50 border-b border-gray-200/50">
-              <CardTitle className="text-foreground">Obligations Breakdown</CardTitle>
-              <CardDescription className="text-muted-foreground">Individual obligation fulfillment status</CardDescription>
+          <Card className="border-slate-200">
+            <CardHeader className="pb-2">
+              <CardDescription>Compliance Status</CardDescription>
+              <Badge className={statusClasses(result.compliance_status)} variant="outline">
+                {result.compliance_status}
+              </Badge>
             </CardHeader>
-            <CardContent className="pt-6 overflow-hidden bg-white/50">
-              <div className="w-full h-[320px]">
-                <ChartContainer
-                  config={{
-                    fulfilled: { color: COLORS.fulfilled },
-                    missing: { color: COLORS.missing },
-                  }}
-                  className="h-full w-full"
-                >
-                  <BarChart data={obligationsBreakdown} margin={{ top: 10, right: 20, left: 10, bottom: 70 }}>
-                    <defs>
-                      {obligationsBreakdown.map((item, idx) => (
-                        <linearGradient key={`obligationGradient-${idx}`} id={`obligationGradient-${idx}`} x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor={item.color} stopOpacity={0.9} />
-                          <stop offset="100%" stopColor={item.color} stopOpacity={0.6} />
-                        </linearGradient>
-                      ))}
-                    </defs>
-                    <XAxis
-                      dataKey="name"
-                      tick={{ fill: "#64748b", fontSize: 11, fontWeight: 500 }}
-                      angle={-45}
-                      textAnchor="end"
-                      height={70}
-                      axisLine={{ stroke: "#cbd5e1" }}
-                    />
-                    <YAxis
-                      domain={[0, 100]}
-                      tick={{ fill: "#64748b", fontSize: 10 }}
-                      axisLine={{ stroke: "#cbd5e1" }}
-                      width={35}
-                    />
-                    <ChartTooltip
-                      content={({ active, payload }) => {
-                        if (active && payload && payload.length) {
-                          const data = payload[0].payload;
-                          const isNotApplicableTooltip = data.notApplicable || isNotApplicable;
-                          return (
-                            <div className="bg-white/95 backdrop-blur-sm p-4 border border-gray-200 rounded-lg shadow-xl">
-                              <p className="font-bold text-lg mb-2 text-foreground">{data.fullName}</p>
-                              <div className="flex items-center gap-2">
-                                {isNotApplicableTooltip ? (
-                                  <>
-                                    <span className="text-2xl text-gray-600">🚫</span>
-                                    <span className="font-extrabold text-xl text-gray-600">
-                                      Not Applicable
-                                    </span>
-                                  </>
-                                ) : (
-                                  <>
-                                    <span className={`text-2xl ${data.fulfilled ? "text-emerald-600" : "text-red-600"}`}>
-                                      {data.fulfilled ? "✅" : "❌"}
-                                    </span>
-                                    <span className={`font-extrabold text-xl ${data.fulfilled ? "text-emerald-600" : "text-red-600"}`}>
-                                      {data.fulfilled ? "Fulfilled" : "Missing"}
-                                    </span>
-                                  </>
-                                )}
-                              </div>
-                              <p className="text-sm text-muted-foreground mt-2">
-                                {isNotApplicableTooltip
-                                  ? (isProhibited
-                                    ? "System is prohibited - obligations do not apply"
-                                    : "Minimal-risk systems do not require high-risk obligations")
-                                  : `Score: ${data.value}%`}
-                              </p>
-                            </div>
-                          );
-                        }
-                        return null;
-                      }}
-                    />
-                    <Bar
-                      dataKey="value"
-                      radius={[8, 8, 0, 0]}
-                      style={{ filter: "drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1))" }}
-                    >
-                      {obligationsBreakdown.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={`url(#obligationGradient-${index})`} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ChartContainer>
-              </div>
-            </CardContent>
           </Card>
-        </div>
+        </section>
 
-        {/* Detailed Sections */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* High-Risk Obligations */}
-          <Card className="glass-card shadow-premium rounded-2xl border-0 bg-gradient-to-br from-white/90 via-white/80 to-white/70 backdrop-blur-xl">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-foreground">
-                <Shield className="h-5 w-5 text-primary" />
-                High-Risk Obligations
-              </CardTitle>
-              <CardDescription className="text-slate-400">
-                {isProhibited
-                  ? "Obligations are not applicable for prohibited systems"
-                  : isMinimalRisk
-                    ? "High-risk obligations are not applicable for minimal-risk systems"
-                    : high_risk_all_fulfilled
-                      ? "All obligations are fulfilled"
-                      : `${high_risk_missing.length} obligation(s) missing`}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {Object.entries(highRiskObligationLabels).map(([key, label]) => {
-                  // FIX: Check if the LABEL (not the key) is in high_risk_missing array
-                  const isFulfilled = isNotApplicable ? false : !high_risk_missing.includes(label);
-                  return (
-                    <div
-                      key={key}
-                      className={`flex items-center justify-between p-3 rounded-lg border ${isNotApplicable
-                        ? "bg-gray-100 border-gray-300"
-                        : isFulfilled
-                          ? "bg-emerald-50 border-emerald-200"
-                          : "bg-red-50 border-red-200"
-                        }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        {isNotApplicable ? (
-                          <Ban className="h-5 w-5 text-gray-600" />
-                        ) : isFulfilled ? (
-                          <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-                        ) : (
-                          <XCircle className="h-5 w-5 text-red-600" />
-                        )}
-                        <span className="font-medium text-foreground">{label}</span>
-                      </div>
-                      <Badge
-                        variant={isNotApplicable ? "secondary" : (isFulfilled ? "default" : "destructive")}
-                        className={isNotApplicable
-                          ? "bg-gray-500/80 text-white border-gray-400/50"
-                          : isFulfilled
-                            ? "bg-emerald-600/80 text-foreground border-emerald-500/50"
-                            : "bg-red-600/80 text-foreground border-red-500/50"}
-                      >
-                        {isNotApplicable ? "Not Applicable" : (isFulfilled ? "Fulfilled" : "Missing")}
-                      </Badge>
-                    </div>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Transparency & Monitoring */}
-          <Card className="glass-card shadow-premium rounded-2xl border-0 bg-gradient-to-br from-white/90 via-white/80 to-white/70 backdrop-blur-xl">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-foreground">
-                <Eye className="h-5 w-5 text-primary" />
-                Transparency & Monitoring
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {transparency_required ? (
-                  <div>
-                    <h4 className="font-semibold text-foreground mb-2">Transparency Requirements</h4>
-                    <div className="space-y-2">
-                      {Object.entries(transparencyLabels).map(([key, label]) => {
-                        const isFulfilled = !transparency_missing.includes(key);
-                        return (
-                          <div
-                            key={key}
-                            className={`flex items-center gap-2 p-2 rounded ${isFulfilled ? "bg-emerald-50 border border-emerald-200" : "bg-red-50 border border-red-200"
-                              }`}
-                          >
-                            {isFulfilled ? (
-                              <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                            ) : (
-                              <XCircle className="h-4 w-4 text-red-600" />
-                            )}
-                            <span className="text-sm text-muted-foreground">{label}</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                    <p className="text-sm text-muted-foreground">
-                      <strong className="text-foreground">Transparency Requirements:</strong> Not required for this AI system.
-                      Transparency obligations (Article 50) apply to limited-risk AI systems that
-                      interact with humans, generate synthetic content, or perform emotion/biometric recognition.
-                    </p>
-                  </div>
-                )}
-
-                {monitoring_required ? (
-                  <div>
-                    <h4 className="font-semibold text-foreground mb-2">Monitoring & FRIA</h4>
-                    <div className="space-y-2">
-                      <div
-                        className={`flex items-center gap-2 p-2 rounded ${post_market_monitoring ? "bg-emerald-50 border border-emerald-200" : "bg-red-50 border border-red-200"
-                          }`}
-                      >
-                        {post_market_monitoring ? (
-                          <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                        ) : (
-                          <XCircle className="h-4 w-4 text-red-600" />
-                        )}
-                        <span className="text-sm text-muted-foreground">
-                          {monitoringFRIALabels.postMarketMonitoring}
-                        </span>
-                      </div>
-                      <div
-                        className={`flex items-center gap-2 p-2 rounded ${incident_reporting ? "bg-emerald-50 border border-emerald-200" : "bg-red-50 border border-red-200"
-                          }`}
-                      >
-                        {incident_reporting ? (
-                          <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                        ) : (
-                          <XCircle className="h-4 w-4 text-red-600" />
-                        )}
-                        <span className="text-sm text-muted-foreground">
-                          {monitoringFRIALabels.incidentReporting}
-                        </span>
-                      </div>
-                      <div
-                        className={`flex items-center gap-2 p-2 rounded ${fria_completed ? "bg-emerald-50 border border-emerald-200" : "bg-red-50 border border-red-200"
-                          }`}
-                      >
-                        {fria_completed ? (
-                          <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                        ) : (
-                          <XCircle className="h-4 w-4 text-red-600" />
-                        )}
-                        <span className="text-sm text-muted-foreground">
-                          {monitoringFRIALabels.friaCompleted}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                    <p className="text-sm text-muted-foreground">
-                      <strong className="text-foreground">Monitoring & FRIA:</strong> Not required for this AI system.
-                      Post-market monitoring and Fundamental Rights Impact Assessment (FRIA)
-                      are mandatory for high-risk AI systems only.
-                    </p>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Summary Section */}
-        <Card className="glass-card shadow-premium rounded-2xl border-0 bg-gradient-to-r from-primary/10 via-accent/5 to-primary/10 backdrop-blur-xl">
+        <Card className="border-slate-200">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-foreground">
-              <FileText className="h-5 w-5 text-primary" />
-              Executive Summary
-            </CardTitle>
+            <CardTitle>Executive Summary</CardTitle>
+            <CardDescription>High-level outcome and immediate interpretation</CardDescription>
           </CardHeader>
-          <CardContent>
-            <p className="text-foreground leading-relaxed text-base font-medium whitespace-pre-wrap">{summary}</p>
+          <CardContent className="text-sm text-slate-700">
+            <ul className="space-y-1">
+              <li>
+                <strong>Risk Tier:</strong> {result.risk_tier}
+              </li>
+              <li>
+                <strong>Overall Assessment:</strong> {result.compliance_status}
+              </li>
+              <li>
+                <strong>Failed Legal Requirements:</strong> {failureRows.length}
+              </li>
+              <li>
+                <strong>High-Risk Obligation Coverage:</strong> {applicable ? `${fulfilled}/${totalObligations} (${obligationPct}%)` : "Not applicable"}
+              </li>
+              <li>
+                <strong>Transparency Requirements Missing:</strong> {result.transparency_missing?.length || 0}
+              </li>
+              <li>
+                <strong>Monitoring/FRIA Missing:</strong>{" "}
+                {(result.monitoring_required && !result.post_market_monitoring ? 1 : 0) +
+                  (result.monitoring_required && !result.incident_reporting ? 1 : 0) +
+                  (result.monitoring_required && !result.fria_completed ? 1 : 0)}
+              </li>
+              {result.assessment_mode === "rapid" && (
+                <li>
+                  <strong>Mode Note:</strong> Provisional quick-scan output. Run Deep Review for full legal obligation validation.
+                </li>
+              )}
+            </ul>
+            {isProhibited && (
+              <div className="mt-3 rounded-lg border border-red-200 bg-red-50 p-3">
+                <p className="font-semibold text-red-800">Prohibited Practice Indicators</p>
+                {prohibitedItems.length > 0 ? (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {prohibitedItems.map((item: string) => (
+                      <Badge key={item} className="bg-red-100 text-red-800 border-red-200" variant="outline">
+                        {toReadable(item)}
+                      </Badge>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="mt-1 text-red-700">System is marked prohibited/unacceptable based on submitted answers.</p>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
 
-        {/* References Section */}
-        {Object.keys(reference).length > 0 && (
-          <Card className="glass-card shadow-premium rounded-2xl border-0 bg-gradient-to-br from-white/90 via-white/80 to-white/70 backdrop-blur-xl">
-            <CardHeader>
-              <CardTitle className="text-foreground">Regulatory References</CardTitle>
-              <CardDescription className="text-muted-foreground">EU AI Act articles and provisions referenced</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {Object.entries(reference).map(([key, value]) => {
-                  // Capitalize first letter of the value
-                  const capitalizeFirst = (str: string): string => {
-                    if (!str || str.length === 0) return str;
-                    return str.charAt(0).toUpperCase() + str.slice(1);
-                  };
+        <Card className="border-slate-200">
+          <CardHeader>
+            <CardTitle>Assessment Summary</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="whitespace-pre-wrap text-sm leading-6 text-slate-700">
+              {renderSummaryText(result.summary, prohibitedItems)}
+            </p>
+          </CardContent>
+        </Card>
 
-                  const formattedValue = Array.isArray(value)
-                    ? value.map(v => capitalizeFirst(String(v))).join(", ")
-                    : capitalizeFirst(String(value));
-
-                  return (
-                    <div key={key} className="p-3 bg-gray-50 rounded-lg border border-gray-200">
-                      <div className="font-semibold text-foreground mb-1">{key}</div>
-                      <div className="text-sm text-muted-foreground">
-                        {formattedValue || "—"}
-                      </div>
-                    </div>
-                  );
-                })}
+        <Card className="border-slate-200">
+          <CardHeader>
+            <CardTitle>High-Risk Obligation Coverage</CardTitle>
+            <CardDescription>
+              {applicable
+                ? `${fulfilled} of ${totalObligations} obligations fulfilled`
+                : "High-risk obligations are not applicable to this classification"}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div>
+              <div className="mb-1 flex items-center justify-between text-sm">
+                <span className="text-slate-600">Coverage</span>
+                <span className="font-semibold text-slate-900">{applicable ? `${obligationPct}%` : "N/A"}</span>
               </div>
-            </CardContent>
-          </Card>
+              <div className="h-2 rounded-full bg-slate-200">
+                <div className="h-2 rounded-full bg-blue-600" style={{ width: `${applicable ? obligationPct : 0}%` }} />
+              </div>
+            </div>
+
+            {!applicable && (
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
+                {isProhibited
+                  ? "System is prohibited/unacceptable risk. High-risk obligations are not the governing path."
+                  : "Minimal-risk systems do not require high-risk obligation controls."}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="border-slate-200">
+          <CardHeader>
+            <CardTitle>EU Legal-Area Status Matrix</CardTitle>
+            <CardDescription>Per legal area: met vs missing vs not applicable</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[280px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={legalAreaMatrix} margin={{ top: 12, right: 12, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                  <XAxis dataKey="area" tick={{ fontSize: 11, fill: "#475569" }} />
+                  <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: "#475569" }} />
+                  <Tooltip />
+                  <Bar dataKey="met" stackId="a" fill="#16a34a" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="missing" stackId="a" fill="#dc2626" />
+                  <Bar dataKey="na" stackId="a" fill="#94a3b8" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-slate-200">
+          <CardHeader>
+            <CardTitle>Obligation Checklist</CardTitle>
+            <CardDescription>Core EU AI Act high-risk control checks</CardDescription>
+          </CardHeader>
+          <CardContent className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            {Object.entries(HIGH_RISK_ARTICLES).map(([obligation, article]) => {
+              const missing = (result.high_risk_missing || []).includes(obligation);
+              const notApplicable = !applicable;
+              return (
+                <div key={obligation} className={`rounded-xl border p-4 ${notApplicable
+                    ? "border-slate-300 bg-slate-50"
+                    : missing
+                      ? "border-red-200 bg-red-50/50"
+                      : "border-emerald-200 bg-emerald-50/50"
+                  }`}>
+                  <div className="mb-2 flex items-center justify-between">
+                    <p className="font-semibold text-slate-900">{obligation}</p>
+                    {notApplicable ? (
+                      <Badge variant="outline" className="border-slate-300 text-slate-600">N/A</Badge>
+                    ) : missing ? (
+                      <XCircle className="h-5 w-5 text-red-600" />
+                    ) : (
+                      <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-600">{article}</p>
+                </div>
+              );
+            })}
+          </CardContent>
+        </Card>
+
+        <Card className="border-slate-200">
+          <CardHeader>
+            <CardTitle>Why It Failed (Law/Control Level)</CardTitle>
+            <CardDescription>Direct mapping of failed controls to relevant EU AI Act obligations</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {failureRows.length === 0 ? (
+              <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
+                No failed EU obligation detected from the current assessment outputs.
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {failureRows.map((row, index) => (
+                  <div key={`${row.law}-${index}`} className="grid grid-cols-1 gap-2 rounded-lg border border-slate-200 p-3 md:grid-cols-[1.2fr_1fr_2fr]">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{row.law}</p>
+                    <p className="text-sm font-semibold text-slate-800">{row.area}</p>
+                    <p className="text-sm text-slate-700">{row.why}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {result.assessment_mode === "rapid" && (result.system_id || id) && (
+          <div className="flex justify-end">
+            <Button onClick={() => router.push(`/assessment/eu/${result.system_id || id}?mode=comprehensive`)}>
+              Run Deep Review
+            </Button>
+          </div>
         )}
       </div>
-    </main >
+    </main>
   );
 }

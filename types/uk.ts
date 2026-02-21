@@ -15,6 +15,17 @@ export interface UKAssessmentResult {
   sector_regulation: UKSectorRegulation;
   summary: string;
   raw_answers?: Record<string, any>;
+  compliance_score?: number;
+  confidence_score?: number;
+  score_breakdown?: {
+    baseScore: number;
+    penaltiesApplied: { reason: string; amount: number; conditionMet: boolean }[];
+    evidenceBoost: number;
+    finalScore: number;
+    questionsAssessed: string[];
+    questionsSkipped: string[];
+    confidenceScore: number;
+  };
 }
 
 export type UKRiskLevel =

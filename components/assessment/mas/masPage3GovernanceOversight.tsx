@@ -2,6 +2,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import { ToggleSwitchInline } from "@/components/ui/toggle-switch";
 import { useFormikContext } from "formik";
 
 type EvidenceContent = Record<string, string>;
@@ -35,7 +36,7 @@ export default function MasPage3GovernanceOversight({
         <CardContent className="space-y-3">
 
           {/* Governance Policy */}
-          <div className="space-y-3 border border-border rounded-xl p-4 glass-panel">
+          <div className="space-y-3 border border-slate-200 rounded-xl p-4 bg-slate-50 hover:bg-slate-100 transition-colors">
             <div className="flex items-center justify-between">
               <div className="space-y-0.5 flex-1">
                 <Label className="text-base font-medium text-foreground">
@@ -49,37 +50,17 @@ export default function MasPage3GovernanceOversight({
               <div className="ml-4 flex items-center gap-2">
                 <span
                   className={`text-xs font-bold px-2 py-1 rounded ${values.governance_policy
-                    ? "text-blue-500 bg-emerald-300"
-                    : "text-red-500"
+                    ? "text-emerald-700 bg-emerald-100"
+                    : "text-slate-500 bg-slate-200"
                     }`}
                 >
                   {values.governance_policy ? "YES" : "NO"}
                 </span>
 
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={values.governance_policy}
-                  onClick={() =>
-                    setFieldValue(
-                      "governance_policy",
-                      !values.governance_policy
-                    )
-                  }
-                  className="relative inline-flex h-7 w-12 items-center rounded-full border-2"
-                  style={{
-                    backgroundColor: values.governance_policy
-                      ? "#10b981"
-                      : "#9ca3af",
-                  }}
-                >
-                  <span
-                    className={`inline-block h-6 w-6 transform rounded-full bg-white transition ${values.governance_policy
-                      ? "translate-x-5"
-                      : "translate-x-0"
-                      }`}
-                  />
-                </button>
+                <ToggleSwitchInline
+                  checked={values.governance_policy}
+                  onChange={(v) => setFieldValue("governance_policy", v)}
+                />
               </div>
             </div>
 

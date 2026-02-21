@@ -21,6 +21,35 @@ type JurisdictionResult = {
   loading: boolean;
 };
 
+function toSafeTimestamp(value: unknown): number {
+  if (typeof value !== "string" || !value) return 0;
+  const ts = Date.parse(value);
+  return Number.isFinite(ts) ? ts : 0;
+}
+
+function pickLatestAssessmentForSystem(data: any[], targetSystemId: string) {
+  const normalizedTargetSystemId = String(targetSystemId || "").trim();
+  const matches = data.filter((item: any) => {
+    const itemSystemId = item?.system_id ? String(item.system_id).trim() : null;
+    const itemId = item?.id ? String(item.id).trim() : null;
+    return itemSystemId === normalizedTargetSystemId || itemId === normalizedTargetSystemId;
+  });
+
+  if (matches.length === 0) return null;
+
+  const sorted = [...matches].sort((a, b) => {
+    const timeDiff = toSafeTimestamp(b?.created_at) - toSafeTimestamp(a?.created_at);
+    if (timeDiff !== 0) return timeDiff;
+
+    if (a?.assessment_mode === b?.assessment_mode) return 0;
+    if (a?.assessment_mode === "comprehensive") return -1;
+    if (b?.assessment_mode === "comprehensive") return 1;
+    return 0;
+  });
+
+  return sorted[0];
+}
+
 export default function MultiJurisdictionResultsPage() {
   const router = useRouter();
   const { systemId } = router.query;
@@ -122,13 +151,10 @@ export default function MultiJurisdictionResultsPage() {
                 throw new Error(errorData.error || `Failed to fetch UK results: ${res.status}`);
               }
               const data = await res.json();
-              // Find the assessment for this systemId
-              result = Array.isArray(data) ? data.find((item: any) => {
-                const itemSystemId = item.system_id ? String(item.system_id).trim() : null;
-                const itemId = item.id ? String(item.id).trim() : null;
-                const targetSystemId = normalizedSystemId ? String(normalizedSystemId).trim() : null;
-                return itemSystemId === targetSystemId || itemId === targetSystemId;
-              }) : null;
+              // Pick the latest matching assessment for this systemId
+              result = Array.isArray(data)
+                ? pickLatestAssessmentForSystem(data, String(normalizedSystemId))
+                : null;
               console.log(`✅ [MULTI-RESULTS] UK results fetched:`, result ? "Found" : "Not found");
             } else if (jurisdiction.id === "MAS") {
               const res = await backendFetch(`/api/mas-compliance`);
@@ -148,25 +174,10 @@ export default function MultiJurisdictionResultsPage() {
                   created_at: item.created_at
                 })));
               }
-              // Find the assessment for this systemId - try multiple matching strategies
-              result = Array.isArray(data) ? data.find((item: any) => {
-                // Normalize both values to strings for comparison
-                const itemSystemId = item.system_id ? String(item.system_id).trim() : null;
-                const itemId = item.id ? String(item.id).trim() : null;
-                const targetSystemId = normalizedSystemId ? String(normalizedSystemId).trim() : null;
-                
-                // Try exact match first
-                if (itemSystemId === targetSystemId || itemId === targetSystemId) {
-                  console.log(`✅ [MULTI-RESULTS] MAS match found:`, { itemSystemId, itemId, targetSystemId });
-                  return true;
-                }
-                // Try case-insensitive comparison
-                if (itemSystemId && targetSystemId && itemSystemId.toLowerCase() === targetSystemId.toLowerCase()) {
-                  console.log(`✅ [MULTI-RESULTS] MAS match found (case-insensitive):`, { itemSystemId, targetSystemId });
-                  return true;
-                }
-                return false;
-              }) : null;
+              // Pick the latest matching assessment for this systemId
+              result = Array.isArray(data)
+                ? pickLatestAssessmentForSystem(data, String(normalizedSystemId))
+                : null;
               console.log(`✅ [MULTI-RESULTS] MAS results fetched:`, result ? `Found (ID: ${result.id}, system_id: ${result.system_id})` : "Not found");
               if (!result && Array.isArray(data) && data.length > 0) {
                 const allSystemIds = data.map((item: any) => item.system_id).filter(Boolean);
@@ -182,13 +193,10 @@ export default function MultiJurisdictionResultsPage() {
                 throw new Error(errorData.error || `Failed to fetch EU results: ${res.status}`);
               }
               const data = await res.json();
-              // Find the assessment for this systemId
-              result = Array.isArray(data) ? data.find((item: any) => {
-                const itemSystemId = item.system_id ? String(item.system_id).trim() : null;
-                const itemId = item.id ? String(item.id).trim() : null;
-                const targetSystemId = normalizedSystemId ? String(normalizedSystemId).trim() : null;
-                return itemSystemId === targetSystemId || itemId === targetSystemId;
-              }) : null;
+              // Pick the latest matching assessment for this systemId
+              result = Array.isArray(data)
+                ? pickLatestAssessmentForSystem(data, String(normalizedSystemId))
+                : null;
               console.log(`✅ [MULTI-RESULTS] EU results fetched:`, result ? "Found" : "Not found");
             }
 

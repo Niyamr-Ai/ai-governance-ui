@@ -1,990 +1,276 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/router";
+import { useForm, FormProvider } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import Head from "next/head";
+import {
+  Shield,
+  ArrowLeft,
+  ArrowRight,
+  Loader2,
+  Check,
+  Settings,
+  Eye,
+  Scale,
+  UserCheck,
+  MessageSquare,
+  Box,
+} from "lucide-react";
 
-import { Formik } from "formik";
-import * as Yup from "yup";
-
-
-// UK FORM PAGES
-import UkPage0SystemProfile from "@/components/assessment/uk/ukPage0SystemProfile";
-import UkPage1SafetySecurityRobustness from "@/components/assessment/uk/ukPage1SafetySecurityRobustness";
-import UkPage2TransparencyExplainability from "@/components/assessment/uk/ukPage2TransparencyExplainability";
-import UkPage3FairnessDataGovernance from "@/components/assessment/uk/ukPage3FairnessDataGovernance";
-import UkPage4AccountabilityGovernance from "@/components/assessment/uk/ukPage4AccountabilityGovernance";
-import UkPage5ContestabilityRedress from "@/components/assessment/uk/ukPage5ContestabilityRedress";
-import UkPage6FoundationModels from "@/components/assessment/uk/ukPage6FoundationModels";
-import UkPageRapid from "@/components/assessment/uk/ukPageRapid";
-
+import { supabase } from "@/utils/supabase/client";
+import { backendFetch } from "@/utils/backend-fetch";
+import Sidebar from "@/components/sidebar";
 
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  AssessmentCard,
+  ProgressStepper,
+  ValidationMessage,
+} from "@/components/assessment/shared";
+
+import {
+  ukPageSchemas,
+  ukRapidPageSchemas,
+  getDefaultValues,
+  type UkFormValues,
+} from "@/components/assessment/uk/ukSchema";
+
+import UkPage0SystemProfile from "@/components/assessment/uk/ukPage0SystemProfile";
+
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Shield } from "lucide-react";
-import Sidebar from "@/components/sidebar";
-import { supabase } from "@/utils/supabase/client";
-import { backendFetch } from "@/utils/backend-fetch";
-import Head from 'next/head';
+import { ToggleSwitch } from "@/components/ui/toggle-switch";
+import { Info } from "lucide-react";
 
+type AssessmentMode = "rapid" | "comprehensive";
 
+const comprehensiveSteps = [
+  { id: "profile", title: "Profile", icon: <Settings className="h-4 w-4" /> },
+  { id: "safety", title: "Safety", icon: <Shield className="h-4 w-4" /> },
+  { id: "transparency", title: "Transparency", icon: <Eye className="h-4 w-4" /> },
+  { id: "fairness", title: "Fairness", icon: <Scale className="h-4 w-4" /> },
+  { id: "accountability", title: "Accountability", icon: <UserCheck className="h-4 w-4" /> },
+  { id: "contestability", title: "Contestability", icon: <MessageSquare className="h-4 w-4" /> },
+  { id: "foundation", title: "Foundation", icon: <Box className="h-4 w-4" /> },
+];
 
-
-// UK Initial State for Multi-Page Form
-const ukInitialState = {
-  // Page 1: System Profile & Company Info
-  system_name: "",
-  description: "",
-  owner: "",
-  jurisdiction: "",
-  sector: "",
-  system_status: "envision", // Changed to "envision" as first option
-  business_use_case: "",
-
-  // Page 2: Safety, Security & Robustness
-  robustness_testing: false,
-  robustness_testing_methods: "",
-  robustness_testing_frequency_text: "",
-  robustness_testing_frequency: "",
-  robustness_test_results: "",
-  robustness_test_evidence: "",
-
-  red_teaming: false,
-  red_teaming_who: "",
-  red_teaming_methodology: "",
-  red_teaming_findings: "",
-  red_teaming_evidence: "",
-
-  misuse_prevention: false,
-  misuse_prevention_measures: "",
-  misuse_monitoring: "",
-  misuse_prevention_evidence: "",
-
-  cybersecurity: false,
-  cybersecurity_controls: "",
-  cybersecurity_incident_response: "",
-  cybersecurity_monitoring: "",
-  cybersecurity_evidence: "",
-
-  safety_testing: false,
-  safety_testing_protocols: "",
-  safety_validation_methods: "",
-  safety_testing_evidence: "",
-
-  risk_assessment_process: "",
-  error_handling_mechanisms: "",
-  failsafe_mechanisms: "",
-  adversarial_attack_testing: "",
-
-  // Page 3: Transparency & Explainability
-  user_disclosure: false,
-  user_disclosure_how: "",
-  user_disclosure_when: "",
-  user_disclosure_format: "",
-  user_disclosure_evidence: "",
-
-  explainability: false,
-  explainability_methods: "",
-  explainability_technical_details: "",
-  explainability_user_types: "",
-  explainability_evidence: "",
-
-  documentation: false,
-  documentation_types: "",
-  documentation_storage: "",
-  documentation_update_frequency: "",
-
-  transparency_reports: false,
-  transparency_reports_content: "",
-  transparency_reports_frequency: "",
-  transparency_reports_publication: "",
-
-
-  // Page 4: Fairness & Data Governance
-  bias_testing: false,
-  bias_testing_methodology: "",
-  bias_testing_tools: "",
-  bias_testing_frequency: "",
-  bias_testing_results: "",
-  bias_testing_evidence: "",
-
-  discrimination_mitigation: false,
-  discrimination_mitigation_measures: "",
-  discrimination_mitigation_evidence: "",
-
-  data_quality: false,
-  data_quality_checks: "",
-  data_quality_metrics: "",
-  data_quality_evidence: "",
-
-  fairness_monitoring: false,
-  fairness_monitoring_processes: "",
-  fairness_monitoring_alerts: "",
-  fairness_monitoring_evidence: "",
-
-  personal_data_handling: false,
-  personal_data_types: "",
-  personal_data_sources: "",
-  personal_data_retention: "",
-
-  data_representativeness: "",
-  protected_characteristics: "",
-  bias_detection_training: "",
-  fairness_metrics_used: "",
-  fairness_continuous_monitoring: "",
-  adverse_impact_assessment: "",
-
-  // Page 5: Accountability & Governance
-  accountability_framework: false,
-  accountability_framework_structure: "",
-  accountability_roles: "",
-  accountability_evidence: "",
-
-  human_oversight: false,
-  human_oversight_who: "",
-  human_oversight_when: "",
-  human_oversight_how: "",
-  human_oversight_evidence: "",
-
-  risk_management: false,
-  risk_management_processes: "",
-  risk_management_documentation: "",
-  risk_management_evidence: "",
-
-  governance_structure: false,
-  governance_board_involvement: "",
-  governance_committees: "",
-  governance_structure_evidence: "",
-
-  audit_trail: false,
-  audit_trail_what: "",
-  audit_trail_retention: "",
-  audit_trail_access: "",
-  audit_trail_evidence: "",
-
-  senior_management_oversight: "",
-  ethics_committee: false,
-  ethics_committee_details: "",
-  policy_assignment: "",
-  policy_review_frequency: "",
-  training_requirements: "",
-  escalation_procedures: "",
-
-  // Page 6: Contestability & Redress
-  user_rights: false,
-  user_rights_what: "",
-  user_rights_communication: "",
-  user_rights_evidence: "",
-
-  appeal_mechanism: false,
-  appeal_mechanism_process: "",
-  appeal_mechanism_timeline: "",
-  appeal_mechanism_accessibility: "",
-  appeal_mechanism_evidence: "",
-
-  redress_process: false,
-  redress_process_steps: "",
-  redress_compensation: "",
-  redress_documentation: "",
-  redress_process_evidence: "",
-
-  complaint_handling: false,
-  complaint_handling_procedures: "",
-  complaint_response_time: "",
-  complaint_tracking: "",
-  complaint_handling_evidence: "",
-
-  appeal_success_rates: "",
-  redress_outcomes_tracking: "",
-
-  // Page 7: Foundation Models & High-Impact Systems
-  foundation_model: "no", // yes, no, unsure
-  foundation_model_cards: false,
-  foundation_model_documentation: "",
-  foundation_model_capability_testing: "",
-  foundation_model_risk_assessment: "",
-  foundation_model_deployment_restrictions: "",
-  foundation_model_monitoring: "",
-  foundation_model_evidence: "",
-
-  regulatory_sandbox: false,
-  regulatory_sandbox_details: "",
-  sector_specific_requirements: "",
-
-  // Accountability person
-  accountable_person: "",
-};
-
+const rapidSteps = [
+  { id: "profile", title: "Profile", icon: <Settings className="h-4 w-4" /> },
+  { id: "rapid", title: "Screening", icon: <Shield className="h-4 w-4" /> },
+  { id: "foundation", title: "Foundation", icon: <Box className="h-4 w-4" /> },
+];
 
 export default function UkAssessmentPage() {
   const router = useRouter();
-  const { systemId } = router.query;
+  const { systemId, mode: modeParam, multi, common: commonId, prev, completed: prevCompleted } = router.query;
 
-  const [ukCurrentPage, setUkCurrentPage] = useState(0);
-  const [ukInitialFromDb, setUkInitialFromDb] = useState<typeof ukInitialState | null>(null);
-  const [assessmentMode, setAssessmentMode] = useState<'rapid' | 'comprehensive'>('comprehensive');
-  const [error, setError] = useState<string | null>(null);
+  const [assessmentMode, setAssessmentMode] = useState<AssessmentMode>("comprehensive");
+  const [currentPage, setCurrentPage] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [systemName, setSystemName] = useState<string | null>(null);
   const [isMultiJurisdiction, setIsMultiJurisdiction] = useState(false);
-  const initialValues = ukInitialFromDb ?? ukInitialState;
-  const [evidenceContent, setEvidenceContent] = useState<Record<string, string>>({});
+  const [commonData, setCommonData] = useState<any>(null);
+  const [completedJurisdictions, setCompletedJurisdictions] = useState<string[]>([]);
 
-  // UK Page structure (Dynamic)
-  const ukPages = useMemo(() => {
-    if (assessmentMode === 'rapid') {
-      return [
-        { id: "profile", title: "System Profile & Mode" },
-        { id: "rapid", title: "Rapid Risk Screening" },
-        { id: "foundation", title: "Foundation Models & High-Impact" },
-      ];
-    }
-    return [
-      { id: "profile", title: "System Profile & Company Info" },
-      { id: "safety", title: "Safety, Security & Robustness" },
-      { id: "transparency", title: "Transparency & Explainability" },
-      { id: "fairness", title: "Fairness & Data Governance" },
-      { id: "accountability", title: "Accountability & Governance" },
-      { id: "contestability", title: "Contestability & Redress" },
-      { id: "foundation", title: "Foundation Models & High-Impact Systems" },
-    ];
-  }, [assessmentMode]);
+  const steps = useMemo(
+    () => (assessmentMode === "rapid" ? rapidSteps : comprehensiveSteps),
+    [assessmentMode]
+  );
 
-  const validationSchema = Yup.object({
-    system_name: Yup.string().required("System name is required"),
-    sector: Yup.string().required("Sector is required"),
-    description: Yup.string().required("Description is required"),
+  const pageSchemas = useMemo(
+    () => (assessmentMode === "rapid" ? ukRapidPageSchemas : ukPageSchemas),
+    [assessmentMode]
+  );
+
+  const methods = useForm<UkFormValues>({
+    resolver: zodResolver(pageSchemas[currentPage] as any),
+    defaultValues: getDefaultValues(),
+    mode: "onChange",
   });
 
+  const {
+    handleSubmit,
+    reset,
+    watch,
+    register,
+    setValue,
+    trigger,
+    formState: { errors },
+  } = methods;
 
-  const ukPageSchemas = useMemo(() => {
-    if (assessmentMode === 'rapid') {
-      return [
-        // Page 0 – System Profile
-        Yup.object({
-          system_name: Yup.string().required("System name is required"),
-          sector: Yup.string().required("Sector is required"),
-          description: Yup.string().required("Description is required"),
-        }),
-        // Page 1 – Rapid Screening
-        Yup.object({
-          robustness_testing: Yup.boolean(),
-          personal_data_handling: Yup.boolean(),
-          human_oversight: Yup.boolean(),
-          accountability_roles: Yup.string(),
-        }),
-        // Page 2 – Foundation / High-Impact
-        Yup.object({
-          foundation_model: Yup.string().oneOf(["yes", "no", "unsure"]),
-          regulatory_sandbox: Yup.boolean(),
-          regulatory_sandbox_details: Yup.string().when("regulatory_sandbox", {
-            is: true,
-            then: (s) => s.required("Please describe regulatory sandbox participation"),
-          }),
-          sector_specific_requirements: Yup.string(),
-        }),
-      ];
+  useEffect(() => {
+    console.log("[UK] Params:", { modeParam, multi, commonId, prevCompleted });
+
+    if (modeParam === "rapid" || modeParam === "comprehensive") {
+      setAssessmentMode(modeParam);
     }
 
-    return [
-      // Page 0
-      Yup.object({
-        system_name: Yup.string().required("System name is required"),
-        sector: Yup.string().required("Sector is required"),
-        description: Yup.string().required("Description is required"),
-      }),
+    // Check if this is part of multi-jurisdiction flow
+    if (multi === "true") {
+      setIsMultiJurisdiction(true);
+
+      // Load common data from localStorage
+      if (commonId) {
+        const stored = localStorage.getItem(`multi_${commonId}_common`);
+        if (stored) {
+          try {
+            const parsed = JSON.parse(stored);
+            setCommonData(parsed);
+          } catch (e) {
+            console.error("Failed to parse common data:", e);
+          }
+        }
+      }
+
+      // Load previously completed jurisdictions
+      if (prevCompleted && typeof prevCompleted === "string") {
+        const completed = prevCompleted.split(",").filter(Boolean);
+        console.log("[UK] Setting completed jurisdictions:", completed);
+        setCompletedJurisdictions(completed);
+      }
+    }
+  }, [modeParam, multi, commonId, prevCompleted]);
 
-      // Page 1 – Safety, Security & Robustness
-      Yup.object({
-        robustness_testing: Yup.boolean(),
-
-
-        robustness_testing_methods: Yup.string().when("robustness_testing", {
-          is: (v) => v === true,
-          then: (s) => s.required("Testing methods are required. Enter null if nothing to show"),
-        }),
-
-
-        // robustness_testing_frequency: Yup.string().when("robustness_testing", {
-        //   is: (v) => v === true,
-        //   then: (s) => s.required("Testing frequency evidence is required. Enter null if nothing to show"),
-        // }),
-
-        robustness_test_results: Yup.string().when("robustness_testing", {
-          is: (v) => v === true,
-          then: (s) => s.required("Test results summary is required. Enter null if nothing to show"),
-        }),
-
-        // robustness_test_evidence: Yup.string().when("robustness_testing", {
-        //   is: (v) => v === true,
-        //   then: (s) => s.required("Robustness testing evidence is required. Enter null if nothing to show"),
-        // }),
-
-        red_teaming: Yup.boolean(),
-
-        red_teaming_who: Yup.string().when("red_teaming", {
-          is: (v) => v === true,
-          then: (s) => s.required("Red-teaming owner is required. Enter null if nothing to show"),
-        }),
-
-        red_teaming_methodology: Yup.string().when("red_teaming", {
-          is: (v) => v === true,
-          then: (s) => s.required("Red-teaming methodology is required. Enter null if nothing to show"),
-        }),
-
-        red_teaming_findings: Yup.string().when("red_teaming", {
-          is: (v) => v === true,
-          then: (s) => s.required("Red-teaming findings are required. Enter null if nothing to show"),
-        }),
-
-        // red_teaming_evidence: Yup.string().when("red_teaming", {
-        //   is: (v) => v === true,
-        //   then: (s) => s.required("Red-teaming evidence is required. Enter null if nothing to show"),
-        // }),
-
-        misuse_prevention: Yup.boolean(),
-
-        misuse_prevention_measures: Yup.string().when("misuse_prevention", {
-          is: (v) => v === true,
-          then: (s) => s.required("Misuse prevention measures are required. Enter null if nothing to show"),
-        }),
-
-        misuse_monitoring: Yup.string().when("misuse_prevention", {
-          is: (v) => v === true,
-          then: (s) => s.required("Misuse monitoring approach is required. Enter null if nothing to show"),
-        }),
-
-        cybersecurity: Yup.boolean(),
-
-        cybersecurity_controls: Yup.string().when("cybersecurity", {
-          is: (v) => v === true,
-          then: (s) => s.required("Cybersecurity controls are required. Enter null if nothing to show"),
-        }),
-
-        cybersecurity_incident_response: Yup.string().when("cybersecurity", {
-          is: (v) => v === true,
-          then: (s) => s.required("Incident response plan is required. Enter null if nothing to show"),
-        }),
-
-        cybersecurity_monitoring: Yup.string().when("cybersecurity", {
-          is: (v) => v === true,
-          then: (s) => s.required("Cybersecurity monitoring is required. Enter null if nothing to show"),
-        }),
-
-        // cybersecurity_evidence: Yup.string().when("cybersecurity", {
-        //   is: (v) => v === true,
-        //   then: (s) => s.required("Cybersecurity evidence is required. Enter null if nothing to show"),
-        // }),
-
-        safety_testing: Yup.boolean(),
-
-        safety_testing_protocols: Yup.string().when("safety_testing", {
-          is: (v) => v === true,
-          then: (s) => s.required("Safety testing protocols are required. Enter null if nothing to show"),
-        }),
-
-        safety_validation_methods: Yup.string().when("safety_testing", {
-          is: (v) => v === true,
-          then: (s) => s.required("Safety validation methods are required. Enter null if nothing to show"),
-        }),
-
-        // safety_testing_evidence: Yup.string().when("safety_testing", {
-        //   is: (v) => v === true,
-        //   then: (s) => s.required("Safety testing evidence is required. Enter null if nothing to show"),
-        // }),
-      }),
-
-
-      // Page 2
-      Yup.object({
-        user_disclosure: Yup.boolean()
-          .oneOf([true, false], "Please answer this question"),
-
-        user_disclosure_how: Yup.string().when("user_disclosure", {
-          is: (v) => v === true,
-          then: (s) => s.required("AI disclosure to users are required. Enter null if nothing to show"),
-        }),
-
-        user_disclosure_when: Yup.string().when("user_disclosure", {
-          is: (v) => v === true,
-          then: (s) => s.required("when is AI disclosed is required. Enter null if nothing to show"),
-        }),
-
-        user_disclosure_format: Yup.string().when("user_disclosure", {
-          is: (v) => v === true,
-          then: (s) => s.required("Format of user disclosure is required. Enter null if nothing to show"),
-        }),
-
-        // user_disclosure_evidence: Yup.string().when("user_disclosure", {
-        //   is: (v) => v === true,
-        //   then: (s) => s.required("AI disclosure of evidence is required. Enter null if nothing to show"),
-        // }),
-
-        explainability: Yup.boolean()
-          .oneOf([true, false], "Please answer this question"),
-
-        explainability_methods: Yup.string().when("explainability", {
-          is: (v) => v === true,
-          then: (s) => s.required("Methods of explainability is required. Enter null if nothing to show"),
-        }),
-
-        explainability_technical_details: Yup.string().when("explainability", {
-          is: (v) => v === true,
-          then: (s) => s.required("Details of explainability is required. Enter null if nothing to show"),
-        }),
-
-        explainability_user_types: Yup.string().when("explainability", {
-          is: (v) => v === true,
-          then: (s) => s.required("Explainability of AI to different users is required. Enter null if nothing to show"),
-        }),
-
-        explainability_evidence: Yup.string().when(["explainability", "explainability_methods", "explainability_technical_details", "explainability_user_types"], {
-          is: (explainability, methods, technicalDetails, userTypes) => {
-            return explainability === true;
-          },
-          then: (s) => s.test(
-            "evidence-or-text-content",
-            "Evidence of AI disclosure is required. Enter null if nothing to show",
-            function (value) {
-              const { explainability_methods, explainability_technical_details, explainability_user_types } = this.parent;
-              // If any text field has content (and it's not just "null"), evidence is optional
-              const hasTextContent =
-                (explainability_methods && explainability_methods.trim() && explainability_methods.trim().toLowerCase() !== "null") ||
-                (explainability_technical_details && explainability_technical_details.trim() && explainability_technical_details.trim().toLowerCase() !== "null") ||
-                (explainability_user_types && explainability_user_types.trim() && explainability_user_types.trim().toLowerCase() !== "null");
-
-              // If text content exists, evidence is optional (can be empty, null, or file)
-              if (hasTextContent) {
-                return true;
-              }
-
-              // If no text content, evidence is required (must be file or explicitly set to "null")
-              // Accept empty string, "null", or any non-empty value (file name)
-              if (!value) {
-                return false;
-              }
-              const trimmedValue = value.trim().toLowerCase();
-              return trimmedValue === "null" || trimmedValue !== "";
-            }
-          ),
-        }),
-
-        documentation: Yup.boolean()
-          .oneOf([true, false], "Please answer this question"),
-
-        documentation_types: Yup.string().when("documentation", {
-          is: (v) => v === true,
-          then: (s) => s.required("Documentation is required. Enter null if nothing to show"),
-        }),
-
-        documentation_storage: Yup.string().when("documentation", {
-          is: (v) => v === true,
-          then: (s) => s.required("Place of documentation storage is required. Enter null if nothing to show"),
-        }),
-
-        documentation_update_frequency: Yup.string().when("documentation", {
-          is: (v) => v === true,
-          then: (s) => s.required("Documentation update frequency is required. Enter null if nothing to show")
-        }),
-
-        transparency_reports: Yup.boolean()
-          .oneOf([true, false], "Please answer this question"),
-
-        transparency_reports_content: Yup.string().when("transparency_reports", {
-          is: (v) => v === true,
-          then: (s) => s.required("Transparency report is required. Enter null if nothing to show"),
-        }),
-
-        transparency_reports_frequency: Yup.string().when("transparency_reports", {
-          is: (v) => v === true,
-          then: (s) => s.required("How often is reports recorded required. Enter null if nothing to show"),
-        }),
-
-        transparency_reports_publication: Yup.string().when("transparency_reports", {
-          is: (v) => v === true,
-          then: (s) => s.required("report published address is required. Enter null if nothing to show"),
-        }),
-      }),
-
-      Yup.object({
-        // Bias testing
-        bias_testing: Yup.boolean()
-          .oneOf([true, false], "Please indicate whether bias testing is conducted"),
-
-        bias_testing_methodology: Yup.string().when("bias_testing", {
-          is: true,
-          then: (s) =>
-            s.required("Please describe the methodology used for bias testing. Enter null if nothing to show"),
-        }),
-
-        bias_testing_tools: Yup.string().when("bias_testing", {
-          is: true,
-          then: (s) =>
-            s.required("Please specify the tools or techniques used for bias testing. Enter null if nothing to show"),
-        }),
-
-        bias_testing_frequency: Yup.string().when("bias_testing", {
-          is: true,
-          then: (s) =>
-            s.required("Please indicate how frequently bias testing is performed. Enter null if nothing to show"),
-        }),
-
-        bias_testing_results: Yup.string().when("bias_testing", {
-          is: true,
-          then: (s) =>
-            s.required("Please summarise the results of bias testing. Enter null if nothing to show"),
-        }),
-
-        // Discrimination mitigation
-        discrimination_mitigation: Yup.boolean()
-          .oneOf([true, false], "Please indicate whether discrimination mitigation measures exist"),
-
-        discrimination_mitigation_measures: Yup.string().when("discrimination_mitigation", {
-          is: true,
-          then: (s) =>
-            s.required("Please describe the measures taken to mitigate discrimination"),
-        }),
-
-        // Data quality
-        data_quality: Yup.boolean()
-          .oneOf([true, false], "Please indicate whether data quality controls are implemented"),
-
-        data_quality_checks: Yup.string().when("data_quality", {
-          is: true,
-          then: (s) =>
-            s.required("Please describe the data quality checks that are performed. Enter null if nothing to show"),
-        }),
-
-        data_quality_metrics: Yup.string().when("data_quality", {
-          is: true,
-          then: (s) =>
-            s.required("Please specify the metrics used to assess data quality. Enter null if nothing to show"),
-        }),
-
-        // Fairness monitoring
-        fairness_monitoring: Yup.boolean()
-          .oneOf([true, false], "Please indicate whether ongoing fairness monitoring is conducted"),
-
-        fairness_monitoring_processes: Yup.string().when("fairness_monitoring", {
-          is: true,
-          then: (s) =>
-            s.required("Please describe the processes used for fairness monitoring. Enter null if nothing to show"),
-        }),
-
-        fairness_monitoring_alerts: Yup.string().when("fairness_monitoring", {
-          is: true,
-          then: (s) =>
-            s.required("Please describe how fairness issues or alerts are identified. Enter null if nothing to show"),
-        }),
-
-        // Personal data handling
-        personal_data_handling: Yup.boolean()
-          .oneOf([true, false], "Please indicate whether personal data is processed"),
-
-        personal_data_types: Yup.string().when("personal_data_handling", {
-          is: true,
-          then: (s) =>
-            s.required("Please specify the types of personal data processed. Enter null if nothing to show"),
-        }),
-
-        personal_data_sources: Yup.string().when("personal_data_handling", {
-          is: true,
-          then: (s) =>
-            s.required("Please specify the sources of personal data. Enter null if nothing to show"),
-        }),
-
-        personal_data_retention: Yup.string().when("personal_data_handling", {
-          is: true,
-          then: (s) =>
-            s.required("Please describe the personal data retention period. Enter null if nothing to show"),
-        }),
-
-        // Representativeness & fairness metrics
-        data_representativeness: Yup.string()
-          .required("Please describe how data representativeness is ensured. Enter null if nothing to show"),
-
-        protected_characteristics: Yup.string()
-          .required("Please specify which protected characteristics are considered. Enter null if nothing to show"),
-
-        fairness_metrics_used: Yup.string()
-          .required("Please describe the fairness metrics used. Enter null if nothing to show"),
-
-        fairness_evidence: Yup.string().when("data_representativeness", {
-          is: true,
-          then: (s) =>
-            s.required("Please provide evidence supporting fairness and representativeness assessments. Enter null if nothing to show"),
-        }),
-      }),
-
-
-
-      // Page 4
-      Yup.object({
-        // Clear accountability framework
-        accountability_framework: Yup.boolean()
-          .oneOf([true, false], "Please indicate whether a clear accountability framework exists"),
-
-        accountability_framework_structure: Yup.string().when("accountability_framework", {
-          is: true,
-          then: (s) =>
-            s.required("Please describe the structure of your accountability framework. Enter null if nothing to show"),
-        }),
-
-        accountability_roles: Yup.string().when("accountability_framework", {
-          is: true,
-          then: (s) =>
-            s.required("Please describe the accountability roles and responsibilities. Enter null if nothing to show"),
-        }),
-
-        // accountability_framework_evidence: Yup.string().when("accountability_framework", {
-        //   is: true,
-        //   then: (s) =>
-        //     s.required("Please provide evidence supporting your accountability framework. Enter null if nothing to show"),
-        // }),
-
-        // Human oversight mechanisms
-        human_oversight: Yup.boolean()
-          .oneOf([true, false], "Please indicate whether human oversight mechanisms are in place"),
-
-        human_oversight_who: Yup.string().when("human_oversight", {
-          is: true,
-          then: (s) =>
-            s.required("Please specify who provides human oversight. Enter null if nothing to show"),
-        }),
-
-        human_oversight_when: Yup.string().when("human_oversight", {
-          is: true,
-          then: (s) =>
-            s.required("Please specify when human oversight occurs. Enter null if nothing to show"),
-        }),
-
-        human_oversight_how: Yup.string().when("human_oversight", {
-          is: true,
-          then: (s) =>
-            s.required("Please describe how human oversight is implemented. Enter null if nothing to show"),
-        }),
-
-        // human_oversight_evidence: Yup.string().when("human_oversight", {
-        //   is: true,
-        //   then: (s) =>
-        //     s.required("Please provide evidence of human oversight mechanisms. Enter null if nothing to show"),
-        // }),
-
-        // Risk management processes
-        risk_management: Yup.boolean()
-          .oneOf([true, false], "Please indicate whether risk management processes are in place"),
-
-        risk_management_processes: Yup.string().when("risk_management", {
-          is: true,
-          then: (s) =>
-            s.required("Please describe your risk management processes. Enter null if nothing to show"),
-        }),
-
-        risk_management_documentation: Yup.string().when("risk_management", {
-          is: true,
-          then: (s) =>
-            s.required("Please describe how risks are documented. Enter null if nothing to show"),
-        }),
-
-        // risk_management_evidence: Yup.string().when("risk_management", {
-        //   is: true,
-        //   then: (s) =>
-        //     s.required("Please provide evidence of risk management processes. Enter null if nothing to show"),
-        // }),
-
-        // Governance structure and roles
-        governance_structure: Yup.boolean()
-          .oneOf([true, false], "Please indicate whether a governance structure exists"),
-
-        governance_board_involvement: Yup.string().when("governance_structure", {
-          is: true,
-          then: (s) =>
-            s.required("Please describe board involvement in AI governance. Enter null if nothing to show"),
-        }),
-
-        governance_committees: Yup.string().when("governance_structure", {
-          is: true,
-          then: (s) =>
-            s.required("Please describe AI governance committees. Enter null if nothing to show"),
-        }),
-
-        // Audit trail and record-keeping
-        audit_trail: Yup.boolean()
-          .oneOf([true, false], "Please indicate whether audit trails are maintained"),
-
-        audit_trail_what: Yup.string().when("audit_trail", {
-          is: true,
-          then: (s) =>
-            s.required("Please specify what is logged in audit trails. Enter null if nothing to show"),
-        }),
-
-        audit_trail_retention: Yup.string().when("audit_trail", {
-          is: true,
-          then: (s) =>
-            s.required("Please specify audit trail retention period. Enter null if nothing to show"),
-        }),
-
-        audit_trail_access: Yup.string().when("audit_trail", {
-          is: true,
-          then: (s) =>
-            s.required("Please specify who has access to audit trails. Enter null if nothing to show"),
-        }),
-
-        // audit_trail_evidence: Yup.string().when("audit_trail", {
-        //   is: true,
-        //   then: (s) =>
-        //     s.required("Please provide evidence of audit trail implementation. Enter null if nothing to show"),
-        // }),
-
-        // Senior management oversight
-        senior_management_oversight: Yup.string()
-          .required("Please describe senior management oversight of AI systems. Enter null if nothing to show"),
-
-        // Ethics committee
-        ethics_committee: Yup.boolean()
-          .oneOf([true, false], "Please indicate whether an ethics committee exists"),
-
-        ethics_committee_details: Yup.string().when("ethics_committee", {
-          is: true,
-          then: (s) =>
-            s.required("Please describe your ethics committee structure and role"),
-        }),
-
-        // Policy assignment and review frequency
-        policy_assignment: Yup.string()
-          .required("Please describe policy assignment and review frequency. Enter null if nothing to show"),
-
-        // Training requirements
-        training_requirements: Yup.string()
-          .required("Please describe training requirements for AI system staff"),
-
-        // Escalation procedures
-        escalation_procedures: Yup.string()
-          .required("Please describe escalation procedures for AI-related issues. Enter null if nothing to show"),
-
-        // Accountable person (required field)
-        accountable_person: Yup.string()
-          .required("Please specify who is accountable for this AI system. Enter null if nothing to show"),
-      }),
-
-      // Page 5
-      Yup.object({
-        // Clear user rights and information
-        user_rights: Yup.boolean()
-          .oneOf([true, false], "Please indicate whether clear user rights are established"),
-
-        user_rights_what: Yup.string().when("user_rights", {
-          is: true,
-          then: (s) =>
-            s.required("Please specify what rights users have. Enter null if nothing to show"),
-        }),
-
-        user_rights_communication: Yup.string().when("user_rights", {
-          is: true,
-          then: (s) =>
-            s.required("Please describe how rights are communicated to users. Enter null if nothing to show"),
-        }),
-
-        user_rights_evidence: Yup.string().when(["user_rights", "user_rights_what", "user_rights_communication"], {
-          is: (user_rights, what, communication) => {
-            return user_rights === true;
-          },
-          then: (s) => s.test(
-            "evidence-or-text-content",
-            "Please provide evidence of user rights documentation. Enter null if nothing to show",
-            function (value) {
-              const { user_rights_what, user_rights_communication } = this.parent;
-              // If any text field has content (and it's not just "null"), evidence is optional
-              const hasTextContent =
-                (user_rights_what && user_rights_what.trim() && user_rights_what.trim().toLowerCase() !== "null") ||
-                (user_rights_communication && user_rights_communication.trim() && user_rights_communication.trim().toLowerCase() !== "null");
-
-              // If text content exists, evidence is optional (can be empty, null, or file)
-              if (hasTextContent) {
-                return true;
-              }
-
-              // If no text content, evidence is required (must be file or explicitly set to "null")
-              if (!value) {
-                return false;
-              }
-              const trimmedValue = value.trim().toLowerCase();
-              return trimmedValue === "null" || trimmedValue !== "";
-            }
-          ),
-        }),
-
-        // Appeal or challenge mechanism
-        appeal_mechanism: Yup.boolean()
-          .oneOf([true, false], "Please indicate whether an appeal mechanism exists"),
-
-        appeal_mechanism_process: Yup.string().when("appeal_mechanism", {
-          is: true,
-          then: (s) =>
-            s.required("Please describe the appeal process. Enter null if nothing to show"),
-        }),
-
-        appeal_mechanism_timeline: Yup.string().when("appeal_mechanism", {
-          is: true,
-          then: (s) =>
-            s.required("Please specify the timeline for appeals. Enter null if nothing to show"),
-        }),
-
-        appeal_mechanism_accessibility: Yup.string().when("appeal_mechanism", {
-          is: true,
-          then: (s) =>
-            s.required("Please describe how accessible the appeal mechanism is. Enter null if nothing to show"),
-        }),
-
-        // appeal_mechanism_evidence: Yup.string().when("appeal_mechanism", {
-        //   is: true,
-        //   then: (s) =>
-        //     s.required("Please provide evidence of appeal mechanism documentation. Enter null if nothing to show"),
-        // }),
-
-        // Redress process for adverse outcomes
-        redress_process: Yup.boolean()
-          .oneOf([true, false], "Please indicate whether a redress process exists"),
-
-        redress_process_steps: Yup.string().when("redress_process", {
-          is: true,
-          then: (s) =>
-            s.required("Please describe the steps involved in the redress process. Enter null if nothing to show"),
-        }),
-
-        redress_compensation: Yup.string().when("redress_process", {
-          is: true,
-          then: (s) =>
-            s.required("Please describe compensation mechanisms. Enter null if nothing to show"),
-        }),
-
-        redress_documentation: Yup.string().when("redress_process", {
-          is: true,
-          then: (s) =>
-            s.required("Please describe how redress cases are documented. Enter null if nothing to show"),
-        }),
-
-        redress_process_evidence: Yup.string().when(["redress_process", "redress_process_steps", "redress_compensation", "redress_documentation"], {
-          is: (redress_process, steps, compensation, documentation) => {
-            return redress_process === true;
-          },
-          then: (s) => s.test(
-            "evidence-or-text-content",
-            "Please provide evidence of redress process documentation. Enter null if nothing to show",
-            function (value) {
-              const { redress_process_steps, redress_compensation, redress_documentation } = this.parent;
-              // If any text field has content (and it's not just "null"), evidence is optional
-              const hasTextContent =
-                (redress_process_steps && redress_process_steps.trim() && redress_process_steps.trim().toLowerCase() !== "null") ||
-                (redress_compensation && redress_compensation.trim() && redress_compensation.trim().toLowerCase() !== "null") ||
-                (redress_documentation && redress_documentation.trim() && redress_documentation.trim().toLowerCase() !== "null");
-
-              // If text content exists, evidence is optional (can be empty, null, or file)
-              if (hasTextContent) {
-                return true;
-              }
-
-              // If no text content, evidence is required (must be file or explicitly set to "null")
-              if (!value) {
-                return false;
-              }
-              const trimmedValue = value.trim().toLowerCase();
-              return trimmedValue === "null" || trimmedValue !== "";
-            }
-          ),
-        }),
-
-        // Complaint handling procedures
-        complaint_handling: Yup.boolean()
-          .oneOf([true, false], "Please indicate whether complaint handling procedures exist"),
-
-        complaint_handling_procedures: Yup.string().when("complaint_handling", {
-          is: true,
-          then: (s) =>
-            s.required("Please describe complaint handling procedures. Enter null if nothing to show"),
-        }),
-
-        complaint_response_time: Yup.string().when("complaint_handling", {
-          is: true,
-          then: (s) =>
-            s.required("Please specify complaint response time. Enter null if nothing to show"),
-        }),
-
-        complaint_tracking: Yup.string().when("complaint_handling", {
-          is: true,
-          then: (s) =>
-            s.required("Please describe how complaints are tracked. Enter null if nothing to show"),
-        }),
-
-        // complaint_handling_evidence: Yup.string().when("complaint_handling", {
-        //   is: true,
-        //   then: (s) =>
-        //     s.required("Please provide evidence of complaint handling procedures. Enter null if nothing to show"),
-        // }),
-
-        // Appeal success rates
-        appeal_success_rates: Yup.string()
-          .required("Please describe appeal success rates. Enter null if nothing to show"),
-
-        // Redress outcomes tracking
-        redress_outcomes_tracking: Yup.string()
-          .required("Please describe how redress outcomes are tracked. Enter null if nothing to show"),
-      }),
-
-      // Page 6
-      Yup.object({
-        // Foundation model or high-impact system
-        foundation_model: Yup.string()
-          .oneOf(["yes", "no", "unsure"], "Please indicate if this is a foundation model or high-impact system"),
-
-        // foundation_model_evidence: Yup.string().when("foundation_model", {
-        //   is: (val: string) => val === "yes" || val === "unsure",
-        //   then: (s) =>
-        //     s.required("Please provide evidence of foundation model documentation. Enter null if nothing to show"),
-        // }),
-
-        // Regulatory sandbox participation
-        regulatory_sandbox: Yup.boolean()
-          .oneOf([true, false], "Please indicate regulatory sandbox participation"),
-
-        regulatory_sandbox_details: Yup.string().when("regulatory_sandbox", {
-          is: true,
-          then: (s) =>
-            s.required("Please describe your regulatory sandbox participation. Enter null if nothing to show"),
-        }),
-
-        // Sector-specific requirements
-        sector_specific_requirements: Yup.string()
-          .required("Please describe any sector-specific requirements. Enter null if nothing to show"),
-      }),
-    ];
-  }, [assessmentMode]);
-
-
-
-
-  // Check authentication status
   useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+    if (!router.isReady || !systemId) return;
+
+    const loadAssessment = async () => {
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const { data: systemData, error: systemError } = await supabase
+          .from("ai_systems")
+          .select("*")
+          .eq("id", systemId as string)
+          .single();
+
+        if (systemError) throw new Error(systemError.message);
+
+        setSystemName(systemData.system_name);
+
+        const locations = systemData.data_processing_locations || [];
+        const hasUK = locations.includes("United Kingdom") || locations.includes("UK");
+        const hasEU = locations.includes("European Union") || locations.includes("EU");
+        const hasSingapore = locations.includes("Singapore");
+
+        setIsMultiJurisdiction(hasUK && (hasEU || hasSingapore));
+
+        if (hasUK && (hasEU || hasSingapore)) {
+          setCurrentPage(1);
+        }
+
+        let jurisdiction = "";
+        if (locations.includes("United Kingdom") || locations.includes("UK")) {
+          jurisdiction = "United Kingdom";
+        } else if (locations.length > 0) {
+          jurisdiction = locations.join(", ");
+        }
+
+        reset(
+          getDefaultValues({
+            system_name: systemData.system_name,
+            description: systemData.description,
+            sector: systemData.sector,
+            system_status: systemData.system_status,
+            business_use_case: systemData.business_use_case,
+            owner: systemData.company_name,
+            jurisdiction,
+          })
+        );
+      } catch (err: any) {
+        console.error("Error loading assessment:", err);
+        setError(err.message || "Failed to load assessment");
+      } finally {
+        setIsLoading(false);
+      }
     };
-    checkAuth();
-  }, []);
 
+    loadAssessment();
+  }, [router.isReady, systemId, reset]);
 
+  const handleModeChange = (mode: AssessmentMode) => {
+    setAssessmentMode(mode);
+    setCurrentPage(0);
+    router.replace(
+      { pathname: router.pathname, query: { ...router.query, mode } },
+      undefined,
+      { shallow: true }
+    );
+  };
 
-  const ukPageFields: Record<number, string[]> = {
-    0: ["system_name", "sector", "description"],
-    // ... remaining logic
+  const handleNext = async () => {
+    const isValid = await trigger();
+    if (isValid) {
+      if (currentPage < steps.length - 1) {
+        setCurrentPage(currentPage + 1);
+      }
+    }
+  };
+
+  const handlePrevious = () => {
+    if (currentPage > 0) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
+
+  const onSubmit = async (values: UkFormValues) => {
+    if (currentPage !== steps.length - 1) return;
+
+    setIsSubmitting(true);
+    setError(null);
+
+    try {
+      // Merge common data with jurisdiction-specific answers
+      const mergedValues = commonData ? {
+        ...values,
+        system_name: values.system_name || commonData.systemName,
+        owner: values.owner || commonData.companyName,
+        business_use_case: values.business_use_case || commonData.businessUseCase,
+        description: values.description || commonData.description,
+      } : values;
+
+      const response = await backendFetch("/api/uk-compliance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          system_id: systemId,
+          system_name: mergedValues.system_name,
+          company_name: mergedValues.owner,
+          company_use_case: mergedValues.business_use_case,
+          assessment_mode: assessmentMode,
+          answers: mergedValues,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to submit assessment");
+      }
+
+      const data = await response.json();
+      const assessmentId = data.id || systemId;
+
+      if (isMultiJurisdiction) {
+        // Navigate back to multi-jurisdiction page to continue with next jurisdiction
+        const allCompleted = [...completedJurisdictions, "UK"].filter(Boolean).join(",");
+        const redirectUrl = `/assessment/multi/${systemId}?step=jurisdiction-forms&completed=${allCompleted}&mode=${assessmentMode}`;
+        console.log("[UK] Multi-jurisdiction redirect:", redirectUrl);
+        router.push(redirectUrl);
+      } else {
+        router.push(`/uk/${assessmentId}`);
+      }
+    } catch (err: any) {
+      setError(err.message || "Failed to submit assessment");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleLogout = async () => {
@@ -992,662 +278,539 @@ export default function UkAssessmentPage() {
     router.push("/");
   };
 
-  useEffect(() => {
-    if (!systemId) return;
-
-    const loadSystem = async () => {
-      const { data, error } = await supabase
-        .from("ai_systems")
-        .select("*")
-        .eq("id", systemId)
-        .single();
-
-      if (error) {
-        setError("Failed to load assessment");
-        return;
-      }
-
-      // Check if this is part of a multi-jurisdiction assessment
-      const dataProcessingLocations = data.data_processing_locations || [];
-      const hasMultipleJurisdictions =
-        (dataProcessingLocations.includes("United Kingdom") || dataProcessingLocations.includes("UK")) &&
-        (dataProcessingLocations.includes("European Union") || dataProcessingLocations.includes("EU") ||
-          dataProcessingLocations.some((loc: string) =>
-            ["Austria", "Belgium", "Bulgaria", "Croatia", "Cyprus", "Czechia",
-              "Denmark", "Estonia", "Finland", "France", "Germany", "Greece",
-              "Hungary", "Ireland", "Italy", "Latvia", "Lithuania", "Luxembourg",
-              "Malta", "Netherlands", "Poland", "Portugal", "Romania", "Slovakia",
-              "Slovenia", "Spain", "Sweden"].some(c => c.toLowerCase() === loc.toLowerCase())
-          )) ||
-        dataProcessingLocations.includes("Singapore");
-
-      console.log(`\n${'='.repeat(80)}`);
-      console.log(`🔄 [UK-ASSESSMENT] Loading UK assessment`);
-      console.log(`   System ID: ${systemId}`);
-      console.log(`   Multi-jurisdiction flow: ${hasMultipleJurisdictions}`);
-      console.log(`   Data processing locations:`, dataProcessingLocations);
-      console.log(`${'='.repeat(80)}\n`);
-
-      setIsMultiJurisdiction(hasMultipleJurisdictions);
-
-      // If multi-jurisdiction flow, skip page 0 (common questions already answered)
-      if (hasMultipleJurisdictions) {
-        console.log(`➡️  [UK-ASSESSMENT] Multi-jurisdiction detected - skipping page 0`);
-        setUkCurrentPage(1); // Start at page 1 instead of page 0
-      } else if (data.current_step && data.current_step > 1) {
-        setUkCurrentPage(data.current_step - 1);
-      }
-
-      // Respect mode passed from intro/multi flow.
-      const modeParam = router.query.mode;
-      const modeValue = Array.isArray(modeParam) ? modeParam[0] : modeParam;
-      if (modeValue === "rapid" || modeValue === "comprehensive") {
-        setAssessmentMode(modeValue);
-      } else if (data.assessment_mode) {
-        setAssessmentMode(data.assessment_mode as 'rapid' | 'comprehensive');
-      }
-
-      // Determine jurisdiction from data_processing_locations (preferred) or fallback to country
-      let jurisdiction = "";
-      if (data.data_processing_locations && Array.isArray(data.data_processing_locations) && data.data_processing_locations.length > 0) {
-        // For UK form, prioritize UK if present, otherwise show all locations
-        if (data.data_processing_locations.includes("United Kingdom") || data.data_processing_locations.includes("UK")) {
-          jurisdiction = "United Kingdom";
-        } else {
-          jurisdiction = data.data_processing_locations.join(", ");
-        }
-      } else {
-        // Fallback to country if data_processing_locations is not available
-        jurisdiction = data.country ?? "";
-      }
-
-      setUkInitialFromDb({
-        ...ukInitialState,
-        system_name: data.system_name ?? "",
-        description: data.description ?? "",
-        sector: data.sector ?? "",
-        system_status: data.system_status ?? "envision",
-        business_use_case: data.business_use_case ?? "",
-        owner: data.company_name,
-        jurisdiction: jurisdiction,
-      });
-    };
-
-    loadSystem();
-  }, [systemId, router.query.mode]);
-
-  const handleSubmit = async (values: typeof ukInitialState) => {
-    if (ukCurrentPage < ukPages.length - 1) return;
-
-    setIsSubmitting(true);
-    setError(null);
-
-    const payload = {
-      system_id: systemId,
-      system_name: values.system_name || "",
-      company_name: values.owner || "",
-      company_use_case: values.business_use_case || "",
-      assessment_mode: assessmentMode,
-      answers: {
-        ...values,
-        ...Object.fromEntries(
-          Object.entries(evidenceContent).map(([k, v]) => [`${k}_content`, v])
-        ),
-      },
-    };
-
-    const res = await backendFetch("/api/uk-compliance", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-
-    if (!res.ok) {
-      setError("Submission failed");
-      setIsSubmitting(false);
-      return;
-    }
-
-    const data = await res.json();
-    const assessmentId = data.id || systemId;
-
-    // Check if this is part of a multi-jurisdiction assessment
-    console.log(`\n${'='.repeat(80)}`);
-    console.log(`✅ [UK-ASSESSMENT] UK assessment submitted successfully`);
-    console.log(`   System ID: ${systemId}`);
-    console.log(`   Assessment ID: ${assessmentId}`);
-    console.log(`   Checking for multi-jurisdiction flow...`);
-    console.log(`${'='.repeat(80)}\n`);
-
-    try {
-      const { data: systemData } = await supabase
-        .from("ai_systems")
-        .select("data_processing_locations")
-        .eq("id", systemId)
-        .single();
-
-      const dataProcessingLocations = systemData?.data_processing_locations || [];
-      console.log(`📋 [UK-ASSESSMENT] Data processing locations:`, dataProcessingLocations);
-
-      const hasMultipleJurisdictions =
-        (dataProcessingLocations.includes("United Kingdom") || dataProcessingLocations.includes("UK")) &&
-        (dataProcessingLocations.includes("European Union") || dataProcessingLocations.includes("EU") ||
-          dataProcessingLocations.some((loc: string) =>
-            ["Austria", "Belgium", "Bulgaria", "Croatia", "Cyprus", "Czechia",
-              "Denmark", "Estonia", "Finland", "France", "Germany", "Greece",
-              "Hungary", "Ireland", "Italy", "Latvia", "Lithuania", "Luxembourg",
-              "Malta", "Netherlands", "Poland", "Portugal", "Romania", "Slovakia",
-              "Slovenia", "Spain", "Sweden"].some(c => c.toLowerCase() === loc.toLowerCase())
-          )) ||
-        dataProcessingLocations.includes("Singapore");
-
-      console.log(`🔍 [UK-ASSESSMENT] Multiple jurisdictions detected: ${hasMultipleJurisdictions}`);
-
-      if (hasMultipleJurisdictions) {
-        console.log(`➡️  [UK-ASSESSMENT] Redirecting to multi-jurisdiction page`);
-        router.push(`/assessment/multi/${systemId}?completed=UK&assessmentId=${assessmentId}&mode=${assessmentMode}`);
-      } else {
-        console.log(`➡️  [UK-ASSESSMENT] Single jurisdiction - redirecting to UK results`);
-        router.push(`/uk/${assessmentId}`);
-      }
-    } catch (err: any) {
-      console.error(`❌ [UK-ASSESSMENT] Error checking multi-jurisdiction:`, err);
-      console.log(`➡️  [UK-ASSESSMENT] Fallback: redirecting to UK results`);
-      // Fallback to normal redirect if check fails
-      router.push(`/uk/${assessmentId}`);
-    }
-  };
-
-
-  const handleEvidenceFileChange = async (
-    key: string,
-    file: File | null,
-    setFieldValue?: (field: string, value: any) => void
-  ) => {
-    if (!file) {
-      setEvidenceContent((prev) => {
-        const updated = { ...prev };
-        delete updated[key];
-        return updated;
-      });
-      return;
-    }
-
-    try {
-      const formData = new FormData();
-      formData.append("files", file);
-
-      const res = await backendFetch("/api/process-evidence", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!res.ok) {
-        throw new Error("Evidence processing failed");
-      }
-
-      const data = await res.json();
-
-      if (data.files?.[file.name]) {
-        const extractedText = data.files[file.name];
-        setEvidenceContent((prev) => ({
-          ...prev,
-          [key]: extractedText,
-        }));
-
-        // Auto-populate form fields for supported evidence types
-        if (setFieldValue) {
-          try {
-            console.log(`\n${'='.repeat(80)}`);
-            console.log(`🤖 [AUTO-POPULATE] Starting auto-population analysis`);
-            console.log(`📋 [AUTO-POPULATE] Evidence key: ${key}`);
-            console.log(`📄 [AUTO-POPULATE] Extracted text length: ${extractedText.length} characters`);
-            console.log(`${'='.repeat(80)}\n`);
-
-            // Call universal analysis endpoint
-            const analysisRes = await backendFetch("/api/analyze-document", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                documentText: extractedText,
-                evidenceKey: key,
-              }),
-            });
-
-            if (analysisRes.ok) {
-              const analysisData = await analysisRes.json();
-              console.log(`✅ [AUTO-POPULATE] Analysis completed successfully`);
-              console.log(`📊 [AUTO-POPULATE] Extracted fields:`, Object.keys(analysisData));
-
-              // Auto-populate all fields returned by the analysis
-              let populatedCount = 0;
-              let toggleFields: Record<string, boolean> = {};
-
-              // Field name mapping: backend field names -> UK form field names
-              const fieldNameMapping: Record<string, string> = {
-                'fairness_testing': 'bias_testing_methodology',
-                'fairness_mitigation': 'discrimination_mitigation_measures',
-                'user_rights_procedures': 'user_rights_what',
-                'user_rights_communication': 'user_rights_communication',
-                'redress_process': 'redress_process_steps',
-                'redress_timeline': 'redress_compensation',
-                'complaint_tracking': 'complaint_tracking',
-                'foundation_model_name': 'foundation_model_documentation',
-                'foundation_model_usage': 'foundation_model_capability_testing',
-                'user_disclosure_method': 'user_disclosure_how',
-                'user_disclosure_content': 'user_disclosure_format',
-                'explainability_scope': 'explainability_user_types',
-                'safety_testing_methods': 'safety_testing_protocols',
-                'safety_testing_results': 'safety_validation_methods',
-                'red_teaming_methods': 'red_teaming_methodology',
-                'red_teaming_findings': 'red_teaming_findings',
-                'robustness_measures': 'robustness_testing_methods',
-                'cybersecurity_measures': 'cybersecurity_controls',
-                'cybersecurity_testing': 'cybersecurity_monitoring',
-              };
-
-              Object.keys(analysisData).forEach(fieldName => {
-                const value = analysisData[fieldName];
-                if (value && typeof value === 'string' && value.trim().length > 0) {
-                  // Map backend field name to actual form field name
-                  const actualFieldName = fieldNameMapping[fieldName] || fieldName;
-
-                  setFieldValue(actualFieldName, value);
-                  populatedCount++;
-                  console.log(`✓ [AUTO-POPULATE] Populated: ${fieldName} -> ${actualFieldName} (${value.length} chars)`);
-
-                  // Track toggle fields that should be set to true (use actualFieldName for checks)
-                  // UK Accountability
-                  if (actualFieldName === 'accountability_framework_structure' || actualFieldName === 'accountability_roles') {
-                    toggleFields['accountability_framework'] = true;
-                  }
-                  // Human Oversight
-                  if (actualFieldName === 'human_oversight_who' || actualFieldName === 'human_oversight_when' || actualFieldName === 'human_oversight_how') {
-                    toggleFields['human_oversight'] = true;
-                  }
-                  // Risk Management
-                  if (actualFieldName === 'risk_management_processes' || actualFieldName === 'risk_management_documentation') {
-                    toggleFields['risk_management'] = true;
-                  }
-                  // Governance Structure
-                  if (actualFieldName === 'governance_board_involvement' || actualFieldName === 'governance_committees') {
-                    toggleFields['governance_structure'] = true;
-                  }
-                  // Audit Trail
-                  if (actualFieldName === 'audit_trail_what' || actualFieldName === 'audit_trail_retention' || actualFieldName === 'audit_trail_access') {
-                    toggleFields['audit_trail'] = true;
-                  }
-                  // User Rights
-                  if (actualFieldName === 'user_rights_what' || actualFieldName === 'user_rights_communication') {
-                    toggleFields['user_rights'] = true;
-                  }
-                  // Appeal Mechanism
-                  if (actualFieldName === 'appeal_mechanism_process' || actualFieldName === 'appeal_mechanism_timeline') {
-                    toggleFields['appeal_mechanism'] = true;
-                  }
-                  // Redress Process
-                  if (actualFieldName === 'redress_process_steps' || actualFieldName === 'redress_compensation') {
-                    toggleFields['redress_process'] = true;
-                  }
-                  // Complaint Handling
-                  if (actualFieldName === 'complaint_handling_procedures' || actualFieldName === 'complaint_response_time' || actualFieldName === 'complaint_tracking') {
-                    toggleFields['complaint_handling'] = true;
-                  }
-                  // Robustness Testing
-                  if (actualFieldName === 'robustness_testing_methods' || actualFieldName === 'robustness_test_results') {
-                    toggleFields['robustness_testing'] = true;
-                  }
-                  // Red Teaming
-                  if (actualFieldName === 'red_teaming_who' || actualFieldName === 'red_teaming_methodology' || actualFieldName === 'red_teaming_findings') {
-                    toggleFields['red_teaming'] = true;
-                  }
-                  // Misuse Prevention
-                  if (actualFieldName === 'misuse_prevention_measures' || actualFieldName === 'misuse_monitoring') {
-                    toggleFields['misuse_prevention'] = true;
-                  }
-                  // Cybersecurity
-                  if (actualFieldName === 'cybersecurity_controls' || actualFieldName === 'cybersecurity_incident_response' || actualFieldName === 'cybersecurity_monitoring') {
-                    toggleFields['cybersecurity'] = true;
-                  }
-                  // Safety Testing
-                  if (actualFieldName === 'safety_testing_protocols' || actualFieldName === 'safety_validation_methods') {
-                    toggleFields['safety_testing'] = true;
-                  }
-                  // User Disclosure
-                  if (actualFieldName === 'user_disclosure_how' || actualFieldName === 'user_disclosure_when' || actualFieldName === 'user_disclosure_format') {
-                    toggleFields['user_disclosure'] = true;
-                  }
-                  // Explainability
-                  if (actualFieldName === 'explainability_methods' || actualFieldName === 'explainability_technical_details' || actualFieldName === 'explainability_user_types') {
-                    toggleFields['explainability'] = true;
-                  }
-                  // Documentation
-                  if (actualFieldName === 'documentation_types' || actualFieldName === 'documentation_storage') {
-                    toggleFields['documentation'] = true;
-                  }
-                  // Transparency Reports
-                  if (actualFieldName === 'transparency_reports_content' || actualFieldName === 'transparency_reports_frequency') {
-                    toggleFields['transparency_reports'] = true;
-                  }
-                  // Bias Testing (check both original backend field and mapped field names)
-                  if (fieldName === 'fairness_testing' || actualFieldName === 'bias_testing_methodology' || actualFieldName === 'bias_testing_results') {
-                    toggleFields['bias_testing'] = true;
-                  }
-                  // Discrimination Mitigation (check both original backend field and mapped field names)
-                  if (fieldName === 'fairness_mitigation' || actualFieldName === 'discrimination_mitigation_measures') {
-                    toggleFields['discrimination_mitigation'] = true;
-                  }
-                  // Data Quality
-                  if (actualFieldName === 'data_quality_checks' || actualFieldName === 'data_quality_metrics') {
-                    toggleFields['data_quality'] = true;
-                  }
-                  // Fairness Monitoring
-                  if (actualFieldName === 'fairness_monitoring_processes' || actualFieldName === 'fairness_monitoring_alerts') {
-                    toggleFields['fairness_monitoring'] = true;
-                  }
-                  // Personal Data Handling
-                  if (actualFieldName === 'personal_data_types' || actualFieldName === 'personal_data_sources') {
-                    toggleFields['personal_data_handling'] = true;
-                  }
-                }
-              });
-
-              // Set toggle fields to true
-              Object.keys(toggleFields).forEach(toggleField => {
-                setFieldValue(toggleField, true);
-                console.log(`✓ [AUTO-POPULATE] Set toggle: ${toggleField} = true`);
-              });
-
-              console.log(`\n${'='.repeat(80)}`);
-              console.log(`✅ [AUTO-POPULATE] Auto-population completed`);
-              console.log(`📊 [AUTO-POPULATE] Total fields populated: ${populatedCount}`);
-              console.log(`📊 [AUTO-POPULATE] Toggles set: ${Object.keys(toggleFields).length}`);
-              console.log(`${'='.repeat(80)}\n`);
-            } else {
-              const errorData = await analysisRes.json().catch(() => ({}));
-              console.warn(`\n${'='.repeat(80)}`);
-              console.warn(`⚠️  [AUTO-POPULATE] Analysis failed`);
-              console.warn(`   Status: ${analysisRes.status}`);
-              console.warn(`   Status Text: ${analysisRes.statusText}`);
-              console.warn(`   Error:`, errorData);
-              console.warn(`💡 [AUTO-POPULATE] You can continue filling the form manually`);
-              console.warn(`${'='.repeat(80)}\n`);
-            }
-          } catch (analysisError: any) {
-            console.error(`\n${'='.repeat(80)}`);
-            console.error(`❌ [AUTO-POPULATE] Error during analysis`);
-            console.error(`   Evidence Key: ${key}`);
-            console.error(`   Error: ${analysisError.message}`);
-            console.error(`💡 [AUTO-POPULATE] User can continue with manual entry`);
-            console.error(`${'='.repeat(80)}\n`);
-          }
-        }
-      }
-    } catch (err) {
-      console.error("Evidence upload failed", err);
-      setError("Failed to process evidence file");
-    }
-  };
-
-  type UkValues = typeof ukInitialState;
-
-
-  type FormValues = UkValues;
-
-  if (!systemId) {
-    return (
-      <div className="min-h-screen bg-white">
-        <Head>
-          <title>Invalid System | AI Governance</title>
-          <meta name="description" content="The requested system ID is invalid or missing." />
-        </Head>
-        <Sidebar />
-        <div className="lg:pl-72 pt-24 p-8">
-          <Card className="glass-panel shadow-elevated max-w-md mx-auto">
-            <CardHeader>
-              <CardTitle className="text-red-600">Invalid System</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">System ID is missing from the URL. Please navigate from the dashboard.</p>
-              <Button onClick={() => router.push("/dashboard")} className="mt-4 w-full rounded-xl">
-                Go to Dashboard
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
-  }
-
-  if (!ukInitialFromDb) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-white">
         <Head>
           <title>Loading Assessment | AI Governance</title>
-          <meta name="description" content="Loading the UK AI regulatory assessment..." />
         </Head>
-        <Sidebar />
-        <div className="lg:pl-72 pt-24 p-8 flex items-center justify-center min-h-[400px]">
-          <div className="text-center">
-            <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
-            <p className="text-muted-foreground">Loading UK assessment…</p>
+        <Sidebar onLogout={handleLogout} />
+        <div className="lg:pl-72 pt-16 lg:pt-24 px-4">
+          <div className="max-w-4xl mx-auto py-12 flex items-center justify-center min-h-[400px]">
+            <div className="text-center">
+              <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto mb-4" />
+              <p className="text-muted-foreground">Loading assessment...</p>
+            </div>
           </div>
         </div>
       </div>
     );
   }
 
+  if (error && !methods.formState.isDirty) {
+    return (
+      <div className="min-h-screen bg-white">
+        <Head>
+          <title>Error | AI Governance</title>
+        </Head>
+        <Sidebar onLogout={handleLogout} />
+        <div className="lg:pl-72 pt-16 lg:pt-24 px-4">
+          <div className="max-w-4xl mx-auto py-12">
+            <ValidationMessage type="error" message={error} />
+            <Button
+              variant="outline"
+              className="mt-4 rounded-xl"
+              onClick={() => router.push("/dashboard")}
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Return to Dashboard
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const isLastPage = currentPage === steps.length - 1;
+
+  const ToggleField = ({
+    name,
+    label,
+    description,
+  }: {
+    name: keyof UkFormValues;
+    label: string;
+    description?: string;
+  }) => {
+    const checked = Boolean(watch(name));
+    return (
+      <ToggleSwitch
+        checked={checked}
+        onChange={(val) => setValue(name, val, { shouldValidate: true, shouldDirty: true })}
+        label={label}
+        description={description}
+      />
+    );
+  };
+
+  const AreaField = ({
+    name,
+    label,
+    placeholder,
+  }: {
+    name: keyof UkFormValues;
+    label: string;
+    placeholder?: string;
+  }) => (
+    <div className="space-y-1">
+      <Label className="text-sm text-foreground">{label}</Label>
+      <Textarea {...register(name)} placeholder={placeholder} className="min-h-[88px] rounded-xl" />
+      {(errors as any)?.[name]?.message && <p className="text-xs text-red-500">{String((errors as any)[name].message)}</p>}
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-white">
       <Head>
-        <title>UK AI Act Assessment</title>
-        <meta name="description" content="Complete the UK AI regulatory framework compliance assessment." />
+        <title>
+          {steps[currentPage]?.title} | UK AI Act Assessment
+        </title>
       </Head>
-      <Sidebar />
+      <Sidebar onLogout={handleLogout} />
 
-      <div className="lg:pl-72 pt-16 lg:pt-24 px-0 lg:px-4">
-        <div className="container mx-auto max-w-4xl py-4 px-2 lg:py-12 lg:px-4">
-          <Card className="glass-panel shadow-elevated">
-            <CardHeader>
-              <CardTitle className="text-2xl flex items-center gap-2">
-                <Shield className="h-6 w-6 text-primary" />
-                UK AI Regulatory Framework Assessment
-              </CardTitle>
-
-              <div className="mt-4">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium">
-                    Step {isMultiJurisdiction ? ukCurrentPage : ukCurrentPage + 1} of {isMultiJurisdiction ? ukPages.length - 1 : ukPages.length}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    {ukPages[ukCurrentPage].title}
-                  </span>
+      <div className="lg:pl-72 pt-16 lg:pt-24 px-4">
+        <div className="max-w-4xl mx-auto py-8">
+          <FormProvider {...methods}>
+            <form onSubmit={handleSubmit(onSubmit)}>
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-xl bg-purple-100 flex items-center justify-center">
+                    <Shield className="h-5 w-5 text-purple-600" />
+                  </div>
+                  <div>
+                    <h1 className="text-xl font-bold text-foreground">
+                      UK AI Act {assessmentMode === "rapid" ? "Quick Scan" : "Deep Review"}
+                    </h1>
+                    <p className="text-sm text-muted-foreground">
+                      {systemName || "Complete all required questions"}
+                    </p>
+                  </div>
                 </div>
 
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div
-                    className="bg-purple-600 h-2 rounded-full transition-all"
-                    style={{
-                      width: `${isMultiJurisdiction
-                        ? ((ukCurrentPage) / (ukPages.length - 1)) * 100
-                        : ((ukCurrentPage + 1) / ukPages.length) * 100}%`,
-                    }}
-                  />
+                <div className="flex items-center gap-4">
                 </div>
               </div>
-            </CardHeader>
 
-            <CardContent>
-              {error && (
-                <Alert variant="destructive" className="mb-4">
-                  <AlertDescription>{error}</AlertDescription>
+              <div className="mb-8">
+                <ProgressStepper
+                  steps={steps}
+                  currentStep={currentPage}
+                  onStepClick={setCurrentPage}
+                  variant="default"
+                />
+              </div>
+
+              {assessmentMode === "rapid" && (
+                <Alert className="mb-6 bg-purple-50 border-purple-200">
+                  <Info className="h-4 w-4 text-purple-600" />
+                  <AlertDescription className="text-purple-800">
+                    <strong>Quick Scan:</strong> This provides a preliminary assessment. Run Deep
+                    Review for comprehensive compliance analysis.
+                  </AlertDescription>
                 </Alert>
               )}
 
-              <Formik
-                initialValues={initialValues}
-                enableReinitialize
-                validationSchema={ukPageSchemas[ukCurrentPage]}
-                onSubmit={handleSubmit}
-              >
-                {({ handleSubmit, validateForm, setTouched, values, submitForm, setFieldValue }) => {
-                  // Create wrapper function that includes setFieldValue
-                  const handleEvidenceFileChangeWithForm = (key: string, file: File | null) => {
-                    return handleEvidenceFileChange(key, file, setFieldValue);
-                  };
+              <div className="mb-8">
+                {currentPage === 0 && (
+                  <UkPage0SystemProfile
+                    assessmentMode={assessmentMode}
+                    onModeChange={handleModeChange}
+                  />
+                )}
 
-                  const handleNext = async () => {
-                    const errors = await validateForm();
-                    if (Object.keys(errors).length > 0) {
-                      setTouched(
-                        Object.keys(errors).reduce(
-                          (acc, key) => ({ ...acc, [key]: true }),
-                          {}
-                        )
-                      );
-                      return;
-                    }
-
-                    // Persist Page 0 (only if not multi-jurisdiction, as common questions already saved)
-                    if (ukCurrentPage === 0 && !isMultiJurisdiction && systemId) {
-                      const { error } = await supabase
-                        .from("ai_systems")
-                        .update({
-                          system_name: values.system_name,
-                          description: values.description,
-                          sector: values.sector,
-                          system_status: values.system_status,
-                          business_use_case: values.business_use_case,
-                          current_step: 2,
-                          status: "in_progress",
-                        })
-                        .eq("id", systemId);
-
-                      if (error) {
-                        setError("Failed to save progress");
-                        return;
-                      }
-                    }
-
-                    setUkCurrentPage((p) => p + 1);
-                  };
-
-                  return (
-                    <form onSubmit={handleSubmit} className="space-y-6">
-                      {ukCurrentPage === 0 && !isMultiJurisdiction && (
-                        <UkPage0SystemProfile
-                          ukCurrentPage={ukCurrentPage}
-                          assessmentMode={assessmentMode}
-                          setAssessmentMode={setAssessmentMode}
-                        />
+                {currentPage === 1 && assessmentMode === "comprehensive" && (
+                  <AssessmentCard
+                    title="Safety, Security & Robustness"
+                    description="Ensure your AI system is safe, secure, and robust"
+                    icon={<Shield className="h-5 w-5" />}
+                  >
+                    <div className="space-y-4">
+                      <ToggleField name="robustness_testing" label="Robustness Testing and Validation" description="Whether structured robustness tests are run." />
+                      {watch("robustness_testing") && (
+                        <div className="ml-2 grid gap-3 rounded-xl border border-emerald-200 bg-emerald-50/40 p-3">
+                          <AreaField name="robustness_testing_methods" label="Testing Methods" placeholder="e.g., Unit tests, integration tests, stress tests." />
+                          <AreaField name="robustness_testing_frequency_text" label="Testing Frequency" placeholder="e.g., Before release, monthly, quarterly." />
+                          <AreaField name="robustness_test_results" label="Latest Test Results Summary" placeholder="Brief summary of key results and failures." />
+                        </div>
                       )}
 
-                      {assessmentMode === 'rapid' ? (
-                        <>
-                          {ukCurrentPage === 1 && <UkPageRapid currentPage={ukCurrentPage} />}
-                          {ukCurrentPage === 2 && (
-                            <UkPage6FoundationModels
-                              ukCurrentPage={ukCurrentPage}
-                              handleEvidenceFileChange={handleEvidenceFileChangeWithForm}
-                              evidenceContent={evidenceContent}
-                            />
+                      <ToggleField name="red_teaming" label="Red Teaming / Adversarial Testing" />
+                      {watch("red_teaming") && (
+                        <div className="ml-2 grid gap-3 rounded-xl border border-emerald-200 bg-emerald-50/40 p-3">
+                          <AreaField name="red_teaming_who" label="Who Conducts Red Teaming" placeholder="Internal team, external specialists, or hybrid." />
+                          <AreaField name="red_teaming_methodology" label="Methodology" placeholder="Describe attack simulation methods." />
+                          <AreaField name="red_teaming_findings" label="Key Findings" placeholder="Key vulnerabilities and remediation outcomes." />
+                        </div>
+                      )}
+
+                      <ToggleField name="misuse_prevention" label="Misuse Prevention Controls" />
+                      {watch("misuse_prevention") && (
+                        <div className="ml-2 grid gap-3 rounded-xl border border-emerald-200 bg-emerald-50/40 p-3">
+                          <AreaField name="misuse_prevention_measures" label="Control Measures" placeholder="Access controls, abuse filters, guardrails, etc." />
+                          <AreaField name="misuse_monitoring" label="Misuse Monitoring Approach" placeholder="How misuse is detected and escalated." />
+                        </div>
+                      )}
+
+                      <ToggleField name="cybersecurity" label="Cybersecurity Controls" />
+                      {watch("cybersecurity") && (
+                        <div className="ml-2 grid gap-3 rounded-xl border border-emerald-200 bg-emerald-50/40 p-3">
+                          <AreaField name="cybersecurity_controls" label="Cybersecurity Controls" placeholder="Encryption, IAM, network segmentation, etc." />
+                          <AreaField name="cybersecurity_incident_response" label="Incident Response Plan" placeholder="Detection to resolution playbook." />
+                          <AreaField name="cybersecurity_monitoring" label="Security Monitoring" placeholder="Monitoring stack and alerting process." />
+                        </div>
+                      )}
+
+                      <ToggleField name="safety_testing" label="Safety Testing Protocols" />
+                      {watch("safety_testing") && (
+                        <div className="ml-2 grid gap-3 rounded-xl border border-emerald-200 bg-emerald-50/40 p-3">
+                          <AreaField name="safety_testing_protocols" label="Safety Testing Protocols" placeholder="Describe safety testing stages." />
+                          <AreaField name="safety_validation_methods" label="Safety Validation Methods" placeholder="How outcomes are validated before release." />
+                        </div>
+                      )}
+                    </div>
+                  </AssessmentCard>
+                )}
+
+                {currentPage === 1 && assessmentMode === "rapid" && (
+                  <AssessmentCard
+                    title="Rapid Risk Screening"
+                    description="Quick assessment of key risk indicators"
+                    icon={<Shield className="h-5 w-5" />}
+                  >
+                    <div className="space-y-4">
+                      <ToggleField name="robustness_testing" label="Robustness Testing in Place" />
+                      <ToggleField name="personal_data_handling" label="Processes Personal or Sensitive Data" />
+                      <ToggleField name="human_oversight" label="Human Oversight Defined" />
+                      <ToggleField name="accountability_framework" label="Accountability Framework Defined" />
+                    </div>
+                  </AssessmentCard>
+                )}
+
+                {currentPage === 2 && assessmentMode === "comprehensive" && (
+                  <AssessmentCard
+                    title="Transparency & Explainability"
+                    description="How users are informed and how decisions are explained"
+                    icon={steps[currentPage]?.icon}
+                  >
+                    <div className="space-y-4">
+                      <ToggleField name="user_disclosure" label="User Disclosure Implemented" />
+                      {watch("user_disclosure") && (
+                        <div className="ml-2 grid gap-3 rounded-xl border border-blue-200 bg-blue-50/40 p-3">
+                          <AreaField name="user_disclosure_how" label="How Disclosure Happens" placeholder="In-app notice, policy screen, banner, etc." />
+                          <AreaField name="user_disclosure_when" label="When Disclosure Happens" placeholder="Before first use, at each interaction, etc." />
+                          <AreaField name="user_disclosure_format" label="Disclosure Format" placeholder="Simple plain-language notice format." />
+                        </div>
+                      )}
+
+                      <ToggleField name="explainability" label="Explainability Methods Implemented" />
+                      {watch("explainability") && (
+                        <div className="ml-2 grid gap-3 rounded-xl border border-blue-200 bg-blue-50/40 p-3">
+                          <AreaField name="explainability_methods" label="Explainability Methods" placeholder="SHAP, feature importance, decision traces, etc." />
+                          <AreaField name="explainability_technical_details" label="Technical Detail Level" placeholder="What technical depth is documented." />
+                          <AreaField name="explainability_user_types" label="Audience-Specific Explanation" placeholder="How explanations differ for users, auditors, developers." />
+                        </div>
+                      )}
+
+                      <ToggleField name="documentation" label="Documentation Available" />
+                      {watch("documentation") && (
+                        <div className="ml-2 grid gap-3 rounded-xl border border-blue-200 bg-blue-50/40 p-3">
+                          <AreaField name="documentation_types" label="Documentation Types" placeholder="User docs, technical docs, model docs, etc." />
+                          <AreaField name="documentation_storage" label="Documentation Storage" placeholder="Where documentation is stored and versioned." />
+                          <AreaField name="documentation_update_frequency" label="Update Frequency" placeholder="How often documentation is updated." />
+                        </div>
+                      )}
+
+                      <ToggleField name="transparency_reports" label="Transparency Reports Published" />
+                      {watch("transparency_reports") && (
+                        <div className="ml-2 grid gap-3 rounded-xl border border-blue-200 bg-blue-50/40 p-3">
+                          <AreaField name="transparency_reports_content" label="Report Content" placeholder="What is included in transparency reports." />
+                          <AreaField name="transparency_reports_frequency" label="Report Frequency" placeholder="Quarterly, annual, on major release, etc." />
+                          <AreaField name="transparency_reports_publication" label="Publication Channel" placeholder="Internal portal, website, regulator filing, etc." />
+                        </div>
+                      )}
+                    </div>
+                  </AssessmentCard>
+                )}
+
+                {currentPage === 3 && assessmentMode === "comprehensive" && (
+                  <AssessmentCard title="Fairness & Data Governance" description="Bias controls, fairness monitoring, and data handling" icon={steps[currentPage]?.icon}>
+                    <div className="space-y-4">
+                      <ToggleField name="bias_testing" label="Bias Testing Conducted" />
+                      {watch("bias_testing") && (
+                        <div className="ml-2 grid gap-3 rounded-xl border border-amber-200 bg-amber-50/40 p-3">
+                          <AreaField name="bias_testing_methodology" label="Bias Testing Methodology" placeholder="Describe methodology." />
+                          <AreaField name="bias_testing_tools" label="Bias Testing Tools" placeholder="Tools used for bias checks." />
+                          <AreaField name="bias_testing_frequency" label="Bias Testing Frequency" placeholder="When fairness tests are executed." />
+                          <AreaField name="bias_testing_results" label="Bias Testing Results" placeholder="Summary of outcomes and unresolved issues." />
+                        </div>
+                      )}
+                      <ToggleField name="discrimination_mitigation" label="Discrimination Mitigation Controls" />
+                      {watch("discrimination_mitigation") && <AreaField name="discrimination_mitigation_measures" label="Mitigation Measures" placeholder="How discrimination risk is reduced." />}
+                      <ToggleField name="data_quality" label="Data Quality Controls" />
+                      {watch("data_quality") && (
+                        <div className="ml-2 grid gap-3 rounded-xl border border-amber-200 bg-amber-50/40 p-3">
+                          <AreaField name="data_quality_checks" label="Data Quality Checks" placeholder="Completeness, consistency, validity checks." />
+                          <AreaField name="data_quality_metrics" label="Quality Metrics" placeholder="Metrics used to track data quality." />
+                        </div>
+                      )}
+                      <ToggleField name="fairness_monitoring" label="Fairness Monitoring in Production" />
+                      {watch("fairness_monitoring") && (
+                        <div className="ml-2 grid gap-3 rounded-xl border border-amber-200 bg-amber-50/40 p-3">
+                          <AreaField name="fairness_monitoring_processes" label="Monitoring Processes" placeholder="How fairness drift is monitored." />
+                          <AreaField name="fairness_monitoring_alerts" label="Alert Mechanisms" placeholder="How alerts are triggered and handled." />
+                        </div>
+                      )}
+                      <ToggleField name="personal_data_handling" label="Personal Data Handling" />
+                      {watch("personal_data_handling") && (
+                        <div className="ml-2 grid gap-3 rounded-xl border border-amber-200 bg-amber-50/40 p-3">
+                          <AreaField name="personal_data_types" label="Personal Data Types" placeholder="Types of personal/sensitive data used." />
+                          <AreaField name="personal_data_sources" label="Personal Data Sources" placeholder="Data origin and collection process." />
+                          <AreaField name="personal_data_retention" label="Retention Policy" placeholder="Retention windows and deletion policy." />
+                        </div>
+                      )}
+                      {(watch("bias_testing") || watch("fairness_monitoring") || watch("data_quality")) && (
+                        <AreaField name="data_representativeness" label="Data Representativeness" placeholder="How representative the dataset is." />
+                      )}
+                      {watch("personal_data_handling") && (
+                        <AreaField name="protected_characteristics" label="Protected Characteristics Handling" placeholder="How protected characteristics are considered." />
+                      )}
+                      {(watch("bias_testing") || watch("fairness_monitoring")) && (
+                        <AreaField name="fairness_metrics_used" label="Fairness Metrics Used" placeholder="Metrics used for fairness evaluation." />
+                      )}
+                    </div>
+                  </AssessmentCard>
+                )}
+
+                {currentPage === 4 && assessmentMode === "comprehensive" && (
+                  <AssessmentCard title="Accountability & Governance" description="Ownership, oversight, auditability, escalation" icon={steps[currentPage]?.icon}>
+                    <div className="space-y-4">
+                      <ToggleField name="accountability_framework" label="Accountability Framework Defined" />
+                      {watch("accountability_framework") && (
+                        <div className="ml-2 grid gap-3 rounded-xl border border-violet-200 bg-violet-50/40 p-3">
+                          <AreaField name="accountability_framework_structure" label="Framework Structure" placeholder="Structure of accountability model." />
+                          <AreaField name="accountability_roles" label="Accountability Roles" placeholder="Role-to-responsibility mapping." />
+                        </div>
+                      )}
+
+                      <ToggleField name="human_oversight" label="Human Oversight in Place" />
+                      {watch("human_oversight") && (
+                        <div className="ml-2 grid gap-3 rounded-xl border border-violet-200 bg-violet-50/40 p-3">
+                          <AreaField name="human_oversight_who" label="Who Provides Oversight" placeholder="Teams/roles providing oversight." />
+                          <AreaField name="human_oversight_when" label="When Oversight Happens" placeholder="At what decision points oversight is applied." />
+                          <AreaField name="human_oversight_how" label="How Oversight Is Executed" placeholder="Workflow for intervention/escalation." />
+                        </div>
+                      )}
+
+                      <ToggleField name="risk_management" label="Risk Management Process Defined" />
+                      {watch("risk_management") && (
+                        <div className="ml-2 grid gap-3 rounded-xl border border-violet-200 bg-violet-50/40 p-3">
+                          <AreaField name="risk_management_processes" label="Risk Processes" placeholder="How risks are identified/tracked." />
+                          <AreaField name="risk_management_documentation" label="Risk Documentation" placeholder="Where risk register and records are maintained." />
+                        </div>
+                      )}
+
+                      <ToggleField name="governance_structure" label="Governance Structure Active" />
+                      {watch("governance_structure") && (
+                        <div className="ml-2 grid gap-3 rounded-xl border border-violet-200 bg-violet-50/40 p-3">
+                          <AreaField name="governance_board_involvement" label="Board Involvement" placeholder="Board decision/oversight responsibilities." />
+                          <AreaField name="governance_committees" label="Governance Committees" placeholder="Committees and their charter." />
+                        </div>
+                      )}
+
+                      <ToggleField name="audit_trail" label="Audit Trail Enabled" />
+                      {watch("audit_trail") && (
+                        <div className="ml-2 grid gap-3 rounded-xl border border-violet-200 bg-violet-50/40 p-3">
+                          <AreaField name="audit_trail_what" label="What is Logged" placeholder="Decisions, model versions, inputs, outputs." />
+                          <AreaField name="audit_trail_retention" label="Retention Duration" placeholder="How long audit logs are retained." />
+                          <AreaField name="audit_trail_access" label="Audit Access" placeholder="Who can access and review audit logs." />
+                        </div>
+                      )}
+
+                      <AreaField name="senior_management_oversight" label="Senior Management Oversight" placeholder="How senior management oversees AI risk." />
+                      <ToggleField name="ethics_committee" label="Ethics Committee in Place" />
+                      {watch("ethics_committee") && <AreaField name="ethics_committee_details" label="Ethics Committee Details" placeholder="Scope, membership, and review cadence." />}
+                      <AreaField name="policy_assignment" label="Policy Assignment" placeholder="Who owns policy maintenance and review." />
+                      <AreaField name="training_requirements" label="Training Requirements" placeholder="Mandatory training for relevant staff." />
+                      <AreaField name="escalation_procedures" label="Escalation Procedures" placeholder="Escalation paths for model/system risks." />
+                      <AreaField name="accountable_person" label="Accountable Person (Required)" placeholder="Name and role of accountable owner." />
+                    </div>
+                  </AssessmentCard>
+                )}
+
+                {currentPage === 5 && assessmentMode === "comprehensive" && (
+                  <AssessmentCard title="Contestability & Redress" description="Appeals, complaints, and user rights protections" icon={steps[currentPage]?.icon}>
+                    <div className="space-y-4">
+                      <ToggleField name="user_rights" label="User Rights Framework Defined" />
+                      {watch("user_rights") && (
+                        <div className="ml-2 grid gap-3 rounded-xl border border-cyan-200 bg-cyan-50/40 p-3">
+                          <AreaField name="user_rights_what" label="User Rights Covered" placeholder="What rights are granted to affected users." />
+                          <AreaField name="user_rights_communication" label="How Rights Are Communicated" placeholder="How users learn about rights and options." />
+                        </div>
+                      )}
+
+                      <ToggleField name="appeal_mechanism" label="Appeal Mechanism Available" />
+                      {watch("appeal_mechanism") && (
+                        <div className="ml-2 grid gap-3 rounded-xl border border-cyan-200 bg-cyan-50/40 p-3">
+                          <AreaField name="appeal_mechanism_process" label="Appeal Process" placeholder="Steps users take to submit appeals." />
+                          <AreaField name="appeal_mechanism_timeline" label="Appeal Timeline" placeholder="Expected response and resolution timeline." />
+                          <AreaField name="appeal_mechanism_accessibility" label="Appeal Accessibility" placeholder="Accessibility and language support details." />
+                        </div>
+                      )}
+
+                      <ToggleField name="redress_process" label="Redress Process Defined" />
+                      {watch("redress_process") && (
+                        <div className="ml-2 grid gap-3 rounded-xl border border-cyan-200 bg-cyan-50/40 p-3">
+                          <AreaField name="redress_process_steps" label="Redress Steps" placeholder="Steps from complaint to redress closure." />
+                          <AreaField name="redress_compensation" label="Compensation Process" placeholder="If applicable, how compensation is determined." />
+                          <AreaField name="redress_documentation" label="Redress Documentation" placeholder="How redress outcomes are recorded." />
+                        </div>
+                      )}
+
+                      <ToggleField name="complaint_handling" label="Complaint Handling Process" />
+                      {watch("complaint_handling") && (
+                        <div className="ml-2 grid gap-3 rounded-xl border border-cyan-200 bg-cyan-50/40 p-3">
+                          <AreaField name="complaint_handling_procedures" label="Complaint Procedures" placeholder="Complaint intake and handling steps." />
+                          <AreaField name="complaint_response_time" label="Response Time Targets" placeholder="SLA/response commitments." />
+                          <AreaField name="complaint_tracking" label="Complaint Tracking" placeholder="System for tracking complaint status/outcomes." />
+                        </div>
+                      )}
+
+                      {watch("appeal_mechanism") && (
+                        <AreaField name="appeal_success_rates" label="Appeal Success Rates" placeholder="How appeal outcomes are measured." />
+                      )}
+                      {watch("redress_process") && (
+                        <AreaField name="redress_outcomes_tracking" label="Redress Outcome Tracking" placeholder="How you track long-term redress outcomes." />
+                      )}
+                    </div>
+                  </AssessmentCard>
+                )}
+
+                {currentPage === 6 && assessmentMode === "comprehensive" && (
+                  <AssessmentCard title="Foundation Models & High-Impact" description="Additional controls for foundation/high-impact systems" icon={steps[currentPage]?.icon}>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label className="text-sm text-foreground">Is this a foundation or high-impact model?</Label>
+                        <Select
+                          value={watch("foundation_model") || "no"}
+                          onValueChange={(value) => setValue("foundation_model", value as any, { shouldValidate: true, shouldDirty: true })}
+                        >
+                          <SelectTrigger className="rounded-xl">
+                            <SelectValue placeholder="Select option" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-white border shadow-lg">
+                            <SelectItem value="yes">Yes</SelectItem>
+                            <SelectItem value="no">No</SelectItem>
+                            <SelectItem value="unsure">Unsure</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {(watch("foundation_model") === "yes" || watch("foundation_model") === "unsure") && (
+                        <div className="grid gap-3 rounded-xl border border-indigo-200 bg-indigo-50/40 p-3">
+                          <ToggleField name="foundation_model_cards" label="Model Cards Maintained" />
+                          {watch("foundation_model_cards") && (
+                            <AreaField name="foundation_model_documentation" label="Model Card Documentation" placeholder="Describe model card artifacts and coverage." />
                           )}
+                          <AreaField name="foundation_model_capability_testing" label="Capability Testing" placeholder="Capability testing methods and outcomes." />
+                          <AreaField name="foundation_model_risk_assessment" label="Risk Assessment" placeholder="Foundation/high-impact-specific risk analysis." />
+                          <AreaField name="foundation_model_deployment_restrictions" label="Deployment Restrictions" placeholder="Any deployment constraints or gating." />
+                          <AreaField name="foundation_model_monitoring" label="Monitoring Requirements" placeholder="Post-deployment monitoring strategy." />
+                        </div>
+                      )}
+
+                      <ToggleField name="regulatory_sandbox" label="Regulatory Sandbox Participation" />
+                      {watch("regulatory_sandbox") && (
+                        <AreaField name="regulatory_sandbox_details" label="Sandbox Details" placeholder="Participation details and outcomes." />
+                      )}
+                      <AreaField name="sector_specific_requirements" label="Sector-Specific Requirements" placeholder="FCA, MHRA, Ofcom, or other sector requirements." />
+                    </div>
+                  </AssessmentCard>
+                )}
+
+                {currentPage === 2 && assessmentMode === "rapid" && (
+                  <AssessmentCard
+                    title="Foundation Models & High-Impact"
+                    description="Assessment for foundation models"
+                    icon={<Box className="h-5 w-5" />}
+                  >
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label className="text-sm text-foreground">Foundation or High-Impact Model</Label>
+                        <Select
+                          value={watch("foundation_model") || "no"}
+                          onValueChange={(value) => setValue("foundation_model", value as any, { shouldValidate: true, shouldDirty: true })}
+                        >
+                          <SelectTrigger className="rounded-xl">
+                            <SelectValue placeholder="Select option" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-white border shadow-lg">
+                            <SelectItem value="yes">Yes</SelectItem>
+                            <SelectItem value="no">No</SelectItem>
+                            <SelectItem value="unsure">Unsure</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <ToggleField name="regulatory_sandbox" label="Regulatory Sandbox Participation" />
+                      {watch("regulatory_sandbox") && (
+                        <AreaField name="regulatory_sandbox_details" label="Sandbox Details" placeholder="Describe participation and controls." />
+                      )}
+                      <AreaField name="sector_specific_requirements" label="Sector-Specific Requirements" placeholder="Applicable sector-specific requirements." />
+                    </div>
+                  </AssessmentCard>
+                )}
+              </div>
+
+              {error && (
+                <ValidationMessage type="error" message={error} className="mb-6" />
+              )}
+
+              <div className="flex items-center justify-between pt-6 border-t border-border/50">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handlePrevious}
+                  disabled={currentPage === 0}
+                  className="rounded-xl"
+                >
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Previous
+                </Button>
+
+                <div className="flex items-center gap-3">
+                  {!isLastPage ? (
+                    <Button
+                      type="button"
+                      onClick={handleNext}
+                      className="rounded-xl bg-primary"
+                    >
+                      Next
+                      <ArrowRight className="h-4 w-4 ml-2" />
+                    </Button>
+                  ) : (
+                    <Button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="rounded-xl bg-green-600 hover:bg-green-700 text-white"
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Submitting...
                         </>
                       ) : (
                         <>
-                          {ukCurrentPage === 1 && (
-                            <UkPage1SafetySecurityRobustness
-                              ukCurrentPage={ukCurrentPage}
-                              handleEvidenceFileChange={handleEvidenceFileChangeWithForm}
-                              evidenceContent={evidenceContent}
-                            />
-                          )}
-
-                          {ukCurrentPage === 2 && (
-                            <UkPage2TransparencyExplainability
-                              ukCurrentPage={ukCurrentPage}
-                              handleEvidenceFileChange={handleEvidenceFileChangeWithForm}
-                              evidenceContent={evidenceContent}
-                            />
-                          )}
-
-                          {ukCurrentPage === 3 && (
-                            <UkPage3FairnessDataGovernance
-                              ukCurrentPage={ukCurrentPage}
-                              handleEvidenceFileChange={handleEvidenceFileChangeWithForm}
-                              evidenceContent={evidenceContent}
-                            />
-                          )}
-
-                          {ukCurrentPage === 4 && (
-                            <UkPage4AccountabilityGovernance
-                              ukCurrentPage={ukCurrentPage}
-                              handleEvidenceFileChange={handleEvidenceFileChangeWithForm}
-                              evidenceContent={evidenceContent}
-                            />
-                          )}
-
-                          {ukCurrentPage === 5 && (
-                            <UkPage5ContestabilityRedress
-                              ukCurrentPage={ukCurrentPage}
-                              handleEvidenceFileChange={handleEvidenceFileChangeWithForm}
-                              evidenceContent={evidenceContent}
-                            />
-                          )}
-
-                          {ukCurrentPage === 6 && (
-                            <UkPage6FoundationModels
-                              ukCurrentPage={ukCurrentPage}
-                              handleEvidenceFileChange={handleEvidenceFileChangeWithForm}
-                              evidenceContent={evidenceContent}
-                            />
-                          )}
+                          <Check className="h-4 w-4 mr-2" />
+                          Submit Assessment
                         </>
                       )}
-
-                      <div className="flex justify-between pt-4">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          disabled={ukCurrentPage === 0 || (ukCurrentPage === 1 && isMultiJurisdiction)}
-                          onClick={() =>
-                            setUkCurrentPage((p) => Math.max(isMultiJurisdiction ? 1 : 0, p - 1))
-                          }
-                        >
-                          Previous
-                        </Button>
-
-                        {ukCurrentPage < ukPages.length - 1 ? (
-                          <Button
-                            type="button"
-                            onClick={handleNext}
-                            className="hover:bg-blue-700"
-                          >
-                            Next
-                          </Button>
-                        ) : (
-                          <Button
-                            type="button"
-                            disabled={isSubmitting}
-                            onClick={() => submitForm()}
-                            className="hover:bg-blue-700"
-                          >
-                            {isSubmitting ? "Submitting..." : "Submit Assessment"}
-                          </Button>
-
-                        )}
-                      </div>
-                    </form>
-                  );
-                }}
-              </Formik>
-            </CardContent>
-          </Card>
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </form>
+          </FormProvider>
         </div>
       </div>
     </div>
   );
-
 }
