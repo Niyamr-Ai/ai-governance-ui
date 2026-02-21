@@ -12,7 +12,6 @@ import {
   CheckCircle2,
   ChevronDown,
   FileText,
-  Filter,
   Loader2,
   LogOut,
   RefreshCw,
@@ -21,6 +20,7 @@ import {
   UserCircle2,
   X,
 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { DocumentationWithSystemInfo } from "../../types/documentation";
 
 type DocumentStatus = "current" | "outdated" | "requires_regeneration";
@@ -202,98 +202,65 @@ export default function DocumentationPage() {
             </div>
 
             <section className="mb-6 overflow-hidden rounded-[15px] border border-[#CBD5E1] bg-white shadow-[0px_3.5px_7px_-1.75px_rgba(23,23,23,0.10),0px_1.7px_3.5px_-1.75px_rgba(23,23,23,0.06)]">
-              <div className="border-b border-[#E2E8F0] px-6 py-4">
-                <div className="flex items-center gap-2">
-                  <Filter className="h-5 w-5 text-[#64748B]" />
-                  <h2 className="text-[15px] font-bold text-[#1E293B]">Filters</h2>
-                </div>
-              </div>
-              <div className="p-6">
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-                  <div>
-                    <label className="mb-2 block text-[12px] font-semibold text-[#64748B]">Search</label>
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#94A3B8]" />
-                      <input
-                        type="text"
-                        placeholder="Search by system name, type..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="h-10 w-full rounded-[10px] border border-[#CBD5E1] bg-white pl-10 pr-4 text-[13px] text-[#1E293B] placeholder:text-[#94A3B8] outline-none transition-all focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6]/20"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="mb-2 block text-[12px] font-semibold text-[#64748B]">Regulation</label>
-                    <div className="relative">
-                      <select
-                        value={regulationFilter}
-                        onChange={(e) => setRegulationFilter(e.target.value)}
-                        className="h-10 w-full appearance-none rounded-[10px] border border-[#CBD5E1] bg-white px-4 pr-10 text-[13px] text-[#1E293B] outline-none transition-all focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6]/20"
-                      >
-                        <option value="all">All Regulations</option>
-                        <option value="EU AI Act">EU AI Act</option>
-                        <option value="UK AI Act">UK AI Act</option>
-                        <option value="MAS">MAS</option>
-                      </select>
-                      <ChevronDown className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#94A3B8] pointer-events-none" />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="mb-2 block text-[12px] font-semibold text-[#64748B]">Document Type</label>
-                    <div className="relative">
-                      <select
-                        className="h-10 w-full appearance-none rounded-[10px] border border-[#CBD5E1] bg-white px-4 pr-10 text-[13px] text-[#1E293B] outline-none transition-all focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6]/20"
-                      >
-                        <option value="all">All Types</option>
-                        <option value="Compliance Summary">Compliance Summary</option>
-                        <option value="AI System Card">AI System Card</option>
-                        <option value="Technical Documentation">Technical Documentation</option>
-                        <option value="Risk Assessment Report">Risk Assessment Report</option>
-                      </select>
-                      <ChevronDown className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#94A3B8] pointer-events-none" />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="mb-2 block text-[12px] font-semibold text-[#64748B]">Status</label>
-                    <div className="relative">
-                      <select
-                        value={statusFilter}
-                        onChange={(e) => setStatusFilter(e.target.value)}
-                        className="h-10 w-full appearance-none rounded-[10px] border border-[#CBD5E1] bg-white px-4 pr-10 text-[13px] text-[#1E293B] outline-none transition-all focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6]/20"
-                      >
-                        <option value="all">All Statuses</option>
-                        <option value="current">Current</option>
-                        <option value="outdated">Outdated</option>
-                        <option value="requires_regeneration">Requires Regeneration</option>
-                      </select>
-                      <ChevronDown className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#94A3B8] pointer-events-none" />
-                    </div>
-                  </div>
-                </div>
-                {hasActiveFilters && (
-                  <div className="mt-4">
-                    <button
-                      type="button"
-                      onClick={clearFilters}
-                      className="flex items-center gap-1.5 text-[13px] font-medium text-[#64748B] hover:text-[#1E293B] transition-colors"
-                    >
-                      <X className="h-4 w-4" />
-                      Clear Filters
-                    </button>
-                  </div>
-                )}
-              </div>
-            </section>
-
-            <section className="overflow-hidden rounded-[15px] border border-[#CBD5E1] bg-white shadow-[0px_3.5px_7px_-1.75px_rgba(23,23,23,0.10),0px_1.7px_3.5px_-1.75px_rgba(23,23,23,0.06)]">
-              <div className="flex items-center justify-between border-b border-[#E2E8F0] px-6 py-4">
+              <div className="flex items-start justify-between px-6 pb-3 pt-4">
                 <div>
                   <h2 className="text-[17.5px] font-extrabold tracking-[-0.01em] text-[#1E293B]">All Documentation</h2>
                   <p className="text-[11px] text-[#667085]">{filteredDocs.length} document{filteredDocs.length !== 1 ? "s" : ""} found</p>
                 </div>
+                <div className="flex items-center gap-3">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#94A3B8]" />
+                    <input
+                      type="text"
+                      placeholder="Search..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="h-9 w-[180px] rounded-[10px] border border-[#CBD5E1] bg-white pl-10 pr-4 text-[12px] font-bold text-[#475569] placeholder:text-[#94A3B8] outline-none transition-all focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6]/20"
+                    />
+                  </div>
+                  <Select value={regulationFilter} onValueChange={setRegulationFilter}>
+                    <SelectTrigger className="flex h-9 items-center gap-2 rounded-[10px] border border-[#CBD5E1] px-3 text-[12px] font-bold text-[#475569] shadow-none w-[150px] bg-white">
+                      <div className="flex items-center gap-2">
+                        <ShieldCheck className="h-4 w-4" />
+                        <SelectValue placeholder="All Regulations" />
+                      </div>
+                    </SelectTrigger>
+                    <SelectContent className="bg-white z-50 rounded-[10px] text-[12px] font-semibold text-[#475569] shadow-md border-[#CBD5E1]">
+                      <SelectItem value="all">All Regulations</SelectItem>
+                      <SelectItem value="EU AI Act">EU AI Act</SelectItem>
+                      <SelectItem value="UK AI Act">UK AI Act</SelectItem>
+                      <SelectItem value="MAS">MAS</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="flex h-9 items-center gap-2 rounded-[10px] border border-[#CBD5E1] px-3 text-[12px] font-bold text-[#475569] shadow-none w-[130px] bg-white">
+                      <div className="flex items-center gap-2">
+                        <RefreshCw className="h-4 w-4" />
+                        <SelectValue placeholder="All Status" />
+                      </div>
+                    </SelectTrigger>
+                    <SelectContent className="bg-white z-50 rounded-[10px] text-[12px] font-semibold text-[#475569] shadow-md border-[#CBD5E1]">
+                      <SelectItem value="all">All Status</SelectItem>
+                      <SelectItem value="current">Current</SelectItem>
+                      <SelectItem value="outdated">Outdated</SelectItem>
+                      <SelectItem value="requires_regeneration">Regenerate</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {hasActiveFilters && (
+                    <button
+                      type="button"
+                      onClick={clearFilters}
+                      className="flex h-9 items-center gap-1.5 rounded-[10px] border border-[#CBD5E1] bg-white px-3 text-[12px] font-bold text-[#475569] hover:bg-[#F8FAFC] transition-colors"
+                    >
+                      <X className="h-4 w-4" />
+                      Clear
+                    </button>
+                  )}
+                </div>
               </div>
+            </section>
 
+            <section className="overflow-hidden rounded-[15px] border border-[#CBD5E1] bg-white shadow-[0px_3.5px_7px_-1.75px_rgba(23,23,23,0.10),0px_1.7px_3.5px_-1.75px_rgba(23,23,23,0.06)]">
               <div className="overflow-x-auto">
                 <div className="min-w-[920px]">
                   <div
