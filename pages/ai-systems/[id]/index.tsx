@@ -1,46 +1,43 @@
+"use client";
 
-
-/**
- * AI System Detail Page
- * 
- * Displays detailed information about an AI system with tabs for:
- * - Overview
- * - Risk Assessments
- * - Compliance
- */
-
+import Head from "next/head";
 import { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Plus, ArrowLeft, Loader2, AlertCircle, Info, AlertTriangle as AlertTriangleIcon, ShieldCheck } from "lucide-react";
+import { useRouter } from "next/router";
 import { toast } from "sonner";
+import {
+  AlertCircle,
+  AlertTriangle,
+  ArrowLeft,
+  CheckCircle2,
+  ChevronDown,
+  Clock,
+  FileText,
+  Info,
+  Loader2,
+  LogOut,
+  Plus,
+  ShieldCheck,
+  UserCircle2,
+  XCircle,
+} from "lucide-react";
+import Sidebar from "@/components/sidebar";
 import RiskTable from "@/components/ai-systems-details/RiskAssessments/RiskTable";
 import RiskForm from "@/components/ai-systems-details/RiskAssessments/RiskForm";
 import RiskDetail from "@/components/ai-systems-details/RiskAssessments/RiskDetail";
-import DocumentationTab from "@/components/ai-systems-details/Documentation/DocumentationTab"
+import DocumentationTab from "@/components/ai-systems-details/Documentation/DocumentationTab";
+import TasksTab from "@/components/ai-systems-details/Tasks/TasksTab";
+import { supabase } from "@/utils/supabase/client";
 import type { RiskAssessment, CreateRiskAssessmentInput } from "@/types/risk-assessment";
 import type { GovernanceTask } from "@/types/governance-task";
 import type { LifecycleStage } from "@/types/lifecycle";
 import { calculateOverallRiskLevel } from "@/lib/risk";
-import {
-  canCreateRiskAssessment,
-  getLifecycleWarnings,
-  getLifecycleConstraints
-} from "@/lib/lifecycle";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import TasksTab from "@/components/ai-systems-details/Tasks/TasksTab";
-import Sidebar from "@/components/sidebar";
-import { supabase } from "@/utils/supabase/client";
-import Head from 'next/head';
+import { canCreateRiskAssessment, getLifecycleWarnings, getLifecycleConstraints } from "@/lib/lifecycle";
+
+type TabType = "overview" | "risk-assessments" | "compliance" | "tasks" | "documentation";
 
 export default function AISystemDetailPage() {
-  const params = useParams();
   const router = useRouter();
-  const systemId = params?.id as string;
+  const { id: systemId } = router.query;
 
   const [assessments, setAssessments] = useState<RiskAssessment[]>([]);
   const [selectedAssessment, setSelectedAssessment] = useState<RiskAssessment | null>(null);
@@ -48,8 +45,8 @@ export default function AISystemDetailPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<string>('risk-assessments');
-  const [userRole, setUserRole] = useState<'user' | 'admin'>('user');
+  const [activeTab, setActiveTab] = useState<TabType>("overview");
+  const [userRole, setUserRole] = useState<"user" | "admin">("user");
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [systemInfo, setSystemInfo] = useState<any>(null);
   const [complianceData, setComplianceData] = useState<any>(null);
@@ -58,99 +55,70 @@ export default function AISystemDetailPage() {
   const [updatingLifecycle, setUpdatingLifecycle] = useState(false);
   const [tasks, setTasks] = useState<GovernanceTask[]>([]);
   const [loadingTasks, setLoadingTasks] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
 
-  // Check authentication
-  useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setIsLoggedIn(!!user);
-    };
-    checkAuth();
-  }, []);
-
-  async function backendFetch(
-    path: string,
-    options: RequestInit = {}
-  ) {
+  async function backendFetch(path: string, options: RequestInit = {}) {
     const { data } = await supabase.auth.getSession();
-
     const accessToken = data.session?.access_token;
 
     if (!accessToken) {
-      console.error('❌ No access token found in Supabase session');
       throw new Error("User not authenticated");
     }
 
-    console.log('✅ Frontend: Sending token (first 50 chars):', accessToken.substring(0, 50) + '...');
+    const normalizedPath = path.startsWith("/") ? path : `/${path}`;
 
-    const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-
-    return fetch(
-      `${process.env.NEXT_PUBLIC_BACKEND_URL}${normalizedPath}`,
-      {
-        ...options,
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-          ...options.headers,
-        },
-      }
-    );
+    return fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}${normalizedPath}`, {
+      ...options,
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+        ...options.headers,
+      },
+    });
   }
 
-  const handleLogout = async () => {
-    router.push("/");
-  };
-
-  // Check URL for tab parameter on mount and get user role
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const searchParams = new URLSearchParams(window.location.search);
-      const tab = searchParams.get('tab');
-      if (tab) {
-        setActiveTab(tab);
+    const init = async () => {
+      const sessionRes = await supabase.auth.getSession();
+      const session = sessionRes.data.session;
+
+      if (!session) {
+        router.push("/sign-in");
+        return;
       }
 
-      // Get user role
-      const fetchUserRole = async () => {
-        console.log("🔍 [FRONTEND] fetchUserRole called");
-        try {
-          console.log("🔍 [FRONTEND] Calling backendFetch('/api/user/role')");
-          const res = await backendFetch('/api/user/role');
-          console.log("🔍 [FRONTEND] Response received, status:", res.status);
-
-          if (res.ok) {
-            console.log("✅ [FRONTEND] Response OK, parsing JSON");
-            const data = await res.json();
-            console.log("🔍 [FRONTEND] Response data:", data);
-
-            if (data.userId) {
-              console.log("🔍 [FRONTEND] Setting user ID:", data.userId);
-              setCurrentUserId(data.userId);
-            }
-            if (data.role === 'admin') {
-              console.log("🔍 [FRONTEND] Setting user role to admin");
-              setUserRole('admin');
-            } else {
-              console.log("🔍 [FRONTEND] User role is:", data.role);
-            }
-          } else {
-            console.log("❌ [FRONTEND] Response not OK, status:", res.status);
-            const errorText = await res.text();
-            console.log("❌ [FRONTEND] Error response:", errorText);
-          }
-        } catch (err) {
-          console.error("❌ [FRONTEND] Error fetching user role:", err);
+      if (typeof window !== "undefined") {
+        const searchParams = new URLSearchParams(window.location.search);
+        const tab = searchParams.get("tab");
+        if (tab) {
+          setActiveTab(tab as TabType);
         }
-      };
-      fetchUserRole();
-    }
-  }, []);
+      }
 
-  // Fetch risk assessments
+      try {
+        const res = await backendFetch("/api/user/role");
+        if (res.ok) {
+          const data = await res.json();
+          if (data.userId) setCurrentUserId(data.userId);
+          if (data.role === "admin") setUserRole("admin");
+        }
+      } catch (err) {
+        console.error("Error fetching user role:", err);
+      }
+    };
+
+    if (router.isReady) {
+      init();
+    }
+  }, [router.isReady]);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push("/sign-in");
+  };
+
   const fetchAssessments = async () => {
-    if (!systemId) return;
+    if (!systemId || typeof systemId !== "string") return;
 
     try {
       setLoading(true);
@@ -165,16 +133,14 @@ export default function AISystemDetailPage() {
       const data = await res.json();
       setAssessments(data || []);
     } catch (err: any) {
-      console.error("Error fetching risk assessments:", err);
       setError(err.message || "Failed to load risk assessments");
     } finally {
       setLoading(false);
     }
   };
 
-  // Fetch governance tasks
   const fetchTasks = async () => {
-    if (!systemId) return;
+    if (!systemId || typeof systemId !== "string") return;
 
     try {
       setLoadingTasks(true);
@@ -192,114 +158,69 @@ export default function AISystemDetailPage() {
     }
   };
 
-  useEffect(() => {
-    fetchAssessments();
-  }, [systemId]);
+  const fetchComplianceData = async () => {
+    if (!systemId || typeof systemId !== "string") return;
 
-  // Initial fetch tasks
-  useEffect(() => {
-    fetchTasks();
-  }, [systemId]);
+    try {
+      setLoadingCompliance(true);
+      const res = await backendFetch(`/api/ai-systems/${systemId}/compliance-data`);
 
-  // Fetch compliance data for Overview and Compliance tabs
-  useEffect(() => {
-    const fetchComplianceData = async () => {
-      if (!systemId) return;
-
-      try {
-        setLoadingCompliance(true);
-        const res = await backendFetch(`/api/ai-systems/${systemId}/compliance-data`);
-
-        if (res.ok) {
-          const data = await res.json();
-          setSystemInfo(data.systemInfo);
-          setComplianceData(data.complianceData);
-          // Update lifecycle stage from system info - Only for EU AI Act
-          if (data.systemInfo?.type === 'EU AI Act' && data.systemInfo?.lifecycle_stage) {
-            setLifecycleStage(data.systemInfo.lifecycle_stage as LifecycleStage);
-          } else {
-            setLifecycleStage(null);
-          }
+      if (res.ok) {
+        const data = await res.json();
+        setSystemInfo(data.systemInfo);
+        setComplianceData(data.complianceData);
+        if (data.systemInfo?.type === "EU AI Act" && data.systemInfo?.lifecycle_stage) {
+          setLifecycleStage(data.systemInfo.lifecycle_stage as LifecycleStage);
         } else {
-          setSystemInfo(null);
-          setComplianceData(null);
+          setLifecycleStage(null);
         }
-      } catch (err: any) {
-        console.error("Error fetching compliance data:", err);
+      } else {
         setSystemInfo(null);
         setComplianceData(null);
-      } finally {
-        setLoadingCompliance(false);
       }
-    };
+    } catch (err: any) {
+      setSystemInfo(null);
+      setComplianceData(null);
+    } finally {
+      setLoadingCompliance(false);
+    }
+  };
 
-    fetchComplianceData();
-  }, [systemId]);
-
-  // Fetch lifecycle stage - Only for EU AI Act
   useEffect(() => {
-    const fetchLifecycle = async () => {
-      if (!systemId || !systemInfo || systemInfo.type !== 'EU AI Act') {
-        // Not an EU AI Act system, set to null
-        setLifecycleStage(null);
-        return;
-      }
+    if (router.isReady && systemId) {
+      fetchAssessments();
+      fetchTasks();
+      fetchComplianceData();
+    }
+  }, [router.isReady, systemId]);
 
-      try {
-        const res = await backendFetch(`/api/ai-systems/${systemId}/lifecycle`);
-        if (res.ok) {
-          const data = await res.json();
-          setLifecycleStage((data.lifecycle_stage as LifecycleStage) || 'Draft');
-        }
-      } catch (err) {
-        console.error("Error fetching lifecycle:", err);
-        setLifecycleStage(null);
-      }
-    };
-
-    fetchLifecycle();
-  }, [systemId, systemInfo]);
-
-  // Handle lifecycle stage change - Only for EU AI Act
   const handleLifecycleChange = async (newStage: LifecycleStage) => {
-    if (!systemId || systemInfo?.type !== 'EU AI Act' || newStage === lifecycleStage) return;
+    if (!systemId || systemInfo?.type !== "EU AI Act" || newStage === lifecycleStage) return;
 
-    const currentStage = lifecycleStage || 'Draft';
+    const currentStage = lifecycleStage || "Draft";
+    const isProhibited = complianceData?.eu && (complianceData.eu.risk_tier === "Prohibited" || complianceData.eu.prohibited_practices_detected);
 
-    // Check if system is prohibited
-    const isProhibited = complianceData?.eu && (complianceData.eu.risk_tier === 'Prohibited' || complianceData.eu.prohibited_practices_detected);
-
-    if (isProhibited && newStage === 'Deployed') {
-      toast.error(
-        "Cannot deploy to Production: This system has been classified as 'Prohibited' under the EU AI Act. Prohibited AI practices cannot be deployed.",
-        { duration: 6000 }
-      );
+    if (isProhibited && newStage === "Deployed") {
+      toast.error("Cannot deploy: This system has been classified as 'Prohibited' under the EU AI Act.");
       return;
     }
 
-    // Show confirmation for Production (Deployed) transitions
-    if (newStage === 'Deployed') {
+    if (newStage === "Deployed") {
       const confirmed = window.confirm(
-        "Moving to Production (Deployed) requires:\n" +
-        "• At least one APPROVED risk assessment\n" +
-        "• MAS: Accountability owner must be specified\n" +
-        "• UK AI Act: Governance and safety principles should be met\n\n" +
-        "Do you want to continue?"
+        "Moving to Production (Deployed) requires:\n• At least one APPROVED risk assessment\n• MAS: Accountability owner must be specified\n• UK AI Act: Governance and safety principles should be met\n\nDo you want to continue?"
       );
-      if (!confirmed) {
-        return; // User cancelled
-      }
+      if (!confirmed) return;
     }
 
     try {
       setUpdatingLifecycle(true);
-      setError(null); // Clear previous errors
+      setError(null);
 
       const res = await backendFetch(`/api/ai-systems/${systemId}/lifecycle`, {
-        method: 'PUT',
+        method: "PUT",
         body: JSON.stringify({
           lifecycle_stage: newStage,
-          change_reason: `Transition from ${currentStage} to ${newStage}`
+          change_reason: `Transition from ${currentStage} to ${newStage}`,
         }),
       });
 
@@ -308,42 +229,17 @@ export default function AISystemDetailPage() {
       if (res.ok) {
         setLifecycleStage(newStage);
         toast.success("Lifecycle stage updated successfully");
-
-        // Show warnings if any
-        if (responseData.warnings && responseData.warnings.length > 0) {
-          responseData.warnings.forEach((warning: string) => {
-            toast.warning(warning, { duration: 5000 });
-          });
-        }
-
-        // Refresh compliance data to get updated lifecycle stage
-        const complianceRes = await backendFetch(`/api/ai-systems/${systemId}/compliance-data`);
-        if (complianceRes.ok) {
-          const data = await complianceRes.json();
-          setSystemInfo(data.systemInfo);
-        }
-
-        // Refresh assessments to update UI state
         await fetchAssessments();
         await fetchTasks();
       } else {
-        // Show validation error
-        const errorMsg = responseData.reason || responseData.error || 'Failed to update lifecycle stage';
+        const errorMsg = responseData.reason || responseData.error || "Failed to update lifecycle stage";
         setError(errorMsg);
-        toast.error(errorMsg, { duration: 6000 });
-
-        // Show additional warnings
-        if (responseData.warnings && responseData.warnings.length > 0) {
-          responseData.warnings.forEach((warning: string) => {
-            toast.warning(warning, { duration: 5000 });
-          });
-        }
+        toast.error(errorMsg);
       }
     } catch (err: any) {
-      console.error("Error updating lifecycle:", err);
-      const errorMsg = err.message || 'Failed to update lifecycle stage';
+      const errorMsg = err.message || "Failed to update lifecycle stage";
       setError(errorMsg);
-      toast.error(errorMsg, { duration: 5000 });
+      toast.error(errorMsg);
     } finally {
       setUpdatingLifecycle(false);
     }
@@ -361,39 +257,24 @@ export default function AISystemDetailPage() {
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        // Show detailed error message if available
-        const errorMsg = err.details
-          ? `${err.error}: ${err.details}`
-          : err.error || "Failed to create risk assessment";
+        const errorMsg = err.details ? `${err.error}: ${err.details}` : err.error || "Failed to create risk assessment";
         throw new Error(errorMsg);
       }
 
-      // Refresh assessments list
       await fetchAssessments();
       setShowForm(false);
     } catch (err: any) {
-      console.error("Error creating risk assessment:", err);
       setError(err.message || "Failed to create risk assessment");
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleViewDetail = (assessment: RiskAssessment) => {
-    setSelectedAssessment(assessment);
-  };
-
-  const handleCloseDetail = () => {
-    setSelectedAssessment(null);
-  };
-
   const handleStatusChange = async () => {
-    // Refresh assessments and tasks after status change
     await fetchAssessments();
     await fetchTasks();
   };
 
-  // Calculate overall risk level (only approved assessments count)
   const getOverallRiskLevel = (): "low" | "medium" | "high" | null => {
     const result = calculateOverallRiskLevel(assessments);
     return result.assessment_count > 0 ? result.level : null;
@@ -401,663 +282,498 @@ export default function AISystemDetailPage() {
 
   const overallRisk = getOverallRiskLevel();
 
+  const tabs: { id: TabType; label: string }[] = [
+    { id: "overview", label: "Overview" },
+    { id: "risk-assessments", label: "Risk Assessments" },
+    { id: "compliance", label: "Compliance" },
+    { id: "tasks", label: "To-Do" },
+    { id: "documentation", label: "Documentation" },
+  ];
+
   if (!systemId) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <Card className="glass-panel shadow-elevated border-border/50">
-          <CardContent className="pt-6">
-            <p className="text-red-600">Invalid system ID</p>
-          </CardContent>
-        </Card>
+      <div className="min-h-screen bg-[#F6F6F6] flex items-center justify-center">
+        <div className="rounded-[15px] border border-[#F1A4A4] bg-[#FFE0E0] px-6 py-4">
+          <p className="text-[#C71F1F] font-semibold">Invalid system ID</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-[#F6F6F6] text-[#18181B]" style={{ fontFamily: "Inter, Plus Jakarta Sans, sans-serif" }}>
       <Head>
         <title>AI System Details</title>
         <meta name="description" content="Detailed information and risk management for an AI system." />
       </Head>
-      {/* Sidebar */}
       <Sidebar onLogout={handleLogout} />
-
-      <div className={`container mx-auto max-w-7xl py-8 px-4 ${isLoggedIn ? 'lg:pl-72 pt-24' : ''}`}>
-        {/* Header */}
-        <div className="mb-8">
-          <Button
-            variant="ghost"
-            onClick={() => router.back()}
-            className="text-muted-foreground hover:text-foreground mb-6 hover:bg-secondary/50 rounded-lg px-3 py-2 transition-all"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back
-          </Button>
-          <div className="flex items-start justify-between gap-6">
-            <div className="flex-1">
-              <h1 className="text-5xl lg:text-6xl font-extrabold text-foreground mb-3 tracking-tight">
-                AI System <span className="gradient-text">Details</span>
-              </h1>
-              <div className="flex items-center gap-4 mt-4">
-                <div className="flex items-center gap-2">
-                  <div className="h-2 w-2 rounded-full bg-primary animate-pulse"></div>
-                  <p className="text-muted-foreground font-mono text-sm break-all">
-                    System ID: {systemId}
-                  </p>
-                </div>
-              </div>
+      <div className="mx-auto w-full max-w-[1440px] lg:pl-[267px]">
+        <main className="flex-1">
+          <header className="flex h-[83px] items-center justify-between border-b border-[#E4E4E7] px-9">
+            <div className="flex items-center gap-4">
+              <button
+                type="button"
+                onClick={() => router.back()}
+                className="flex items-center gap-2 text-[14px] font-medium text-[#667085] hover:text-[#18181B] transition-colors"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Back
+              </button>
+              <div className="h-6 w-px bg-[#E4E4E7]" />
+              <h1 className="text-[22px] font-semibold tracking-[0.5px]">AI System Details</h1>
             </div>
-            {overallRisk && activeTab !== 'documentation' && (
-              <div className="flex flex-col items-end gap-2">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Overall Risk</p>
-                <Badge
-                  className={
+            <div className="flex items-center gap-3">
+              {overallRisk && activeTab !== "documentation" && (
+                <span
+                  className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12px] font-bold ${
                     overallRisk === "high"
-                      ? "bg-gradient-to-r from-red-50 to-red-100/80 text-red-700 border border-red-200/60 font-semibold px-4 py-2 rounded-full shadow-md hover:shadow-lg transition-all text-sm"
+                      ? "border-[#F1A4A4] bg-[#FFE0E0] text-[#C71F1F]"
                       : overallRisk === "medium"
-                        ? "bg-gradient-to-r from-amber-50 to-amber-100/80 text-amber-700 border border-amber-200/60 font-semibold px-4 py-2 rounded-full shadow-md hover:shadow-lg transition-all text-sm"
-                        : "bg-gradient-to-r from-emerald-50 to-emerald-100/80 text-emerald-700 border border-emerald-200/60 font-semibold px-4 py-2 rounded-full shadow-md hover:shadow-lg transition-all text-sm"
-                  }
+                      ? "border-[#F2CD69] bg-[#FFF3CF] text-[#A97B00]"
+                      : "border-[#8EC4F8] bg-[#D9EEFF] text-[#2573C2]"
+                  }`}
                 >
+                  {overallRisk === "high" ? <AlertTriangle className="h-3.5 w-3.5" /> : overallRisk === "medium" ? <AlertCircle className="h-3.5 w-3.5" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
                   {overallRisk.charAt(0).toUpperCase() + overallRisk.slice(1)} Risk
-                </Badge>
+                </span>
+              )}
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setAccountMenuOpen((prev) => !prev)}
+                  className="flex items-center gap-2 rounded-full border border-[#E4E4E7] bg-white px-2 py-1"
+                >
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#E5E7EB]">
+                    <UserCircle2 className="h-6 w-6 text-[#6B7280]" />
+                  </div>
+                  <ChevronDown className="h-4 w-4 text-[#667085]" />
+                </button>
+                {accountMenuOpen && (
+                  <div className="absolute right-0 z-20 mt-2 w-36 rounded-[10px] border border-[#E4E4E7] bg-white p-1 shadow-lg">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAccountMenuOpen(false);
+                        void handleLogout();
+                      }}
+                      className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-[14px] text-[#E72C2C] hover:bg-[#FFF1F2]"
+                    >
+                      <LogOut className="h-4 w-4" />
+                      Logout
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </header>
+
+          <section className="px-9 py-7">
+            <div className="mb-6 flex items-center gap-3">
+              <div className="h-2.5 w-2.5 rounded-full bg-[#3B82F6] animate-pulse" />
+              <p className="font-mono text-[13px] text-[#667085]">System ID: {systemId}</p>
+            </div>
+
+            {error && (
+              <div className="mb-6 flex items-center gap-3 rounded-[10px] border border-[#F1A4A4] bg-[#FFE0E0] px-4 py-3">
+                <AlertCircle className="h-5 w-5 flex-shrink-0 text-[#C71F1F]" />
+                <p className="text-[14px] text-[#C71F1F]">{error}</p>
               </div>
             )}
-          </div>
-        </div>
 
-
-        {/* Error Alert */}
-        {error && (
-          <div className="mb-6">
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3 glass-panel">
-              <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0" />
-              <p className="text-red-700">{error}</p>
+            <div className="mb-6 flex gap-1 rounded-[12px] border border-[#E4E4E7] bg-white p-1.5">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`rounded-[8px] px-5 py-2 text-[14px] font-semibold transition-all ${
+                    activeTab === tab.id ? "bg-[#3B82F6] text-white shadow-md" : "text-[#667085] hover:bg-[#F8FAFC] hover:text-[#1E293B]"
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
             </div>
-          </div>
-        )}
 
-        {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
-          <TabsList className="glass-panel border-border/50 p-1.5 rounded-xl shadow-elevated bg-secondary/20">
-            <TabsTrigger
-              value="overview"
-              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-blue-500 data-[state=active]:shadow-lg data-[state=active]:shadow-primary/30 text-muted-foreground rounded-lg px-6 py-2.5 font-semibold transition-all duration-300 hover:text-foreground hover:bg-secondary/50 data-[state=active]:scale-[1.02]"
-            >
-              Overview
-            </TabsTrigger>
-            <TabsTrigger
-              value="risk-assessments"
-              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-blue-500 data-[state=active]:shadow-lg data-[state=active]:shadow-primary/30 text-muted-foreground rounded-lg px-6 py-2.5 font-semibold transition-all duration-300 hover:text-foreground hover:bg-secondary/50 data-[state=active]:scale-[1.02]"
-            >
-              Risk Assessments
-            </TabsTrigger>
-            <TabsTrigger
-              value="compliance"
-              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-blue-500 data-[state=active]:shadow-lg data-[state=active]:shadow-primary/30 text-muted-foreground rounded-lg px-6 py-2.5 font-semibold transition-all duration-300 hover:text-foreground hover:bg-secondary/50 data-[state=active]:scale-[1.02]"
-            >
-              Compliance
-            </TabsTrigger>
-            <TabsTrigger
-              value="tasks"
-              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-blue-500 data-[state=active]:shadow-lg data-[state=active]:shadow-primary/30 text-muted-foreground rounded-lg px-6 py-2.5 font-semibold transition-all duration-300 hover:text-foreground hover:bg-secondary/50 data-[state=active]:scale-[1.02]"
-            >
-              To-Do
-            </TabsTrigger>
-            <TabsTrigger
-              value="documentation"
-              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-blue-500 data-[state=active]:shadow-lg data-[state=active]:shadow-primary/30 text-muted-foreground rounded-lg px-6 py-2.5 font-semibold transition-all duration-300 hover:text-foreground hover:bg-secondary/50 data-[state=active]:scale-[1.02]"
-            >
-              Documentation
-            </TabsTrigger>
-          </TabsList>
-
-          {/* Overview Tab */}
-          <TabsContent value="overview" className="space-y-6">
-            {loadingCompliance ? (
-              <Card className="glass-panel shadow-elevated border-border/50 rounded-2xl">
-                <CardContent className="pt-6">
-                  <div className="flex items-center justify-center py-12">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                  </div>
-                </CardContent>
-              </Card>
-            ) : systemInfo ? (
+            {activeTab === "overview" && (
               <div className="space-y-6">
-                {/* Lifecycle Warnings - Only for EU AI Act */}
-                {systemInfo?.type === 'EU AI Act' && lifecycleStage && (() => {
-                  const hasApprovedAssessments = assessments.some(a => a.status === 'approved');
-                  const warnings: Array<{ type: 'error' | 'warning' | 'info', message: string, action?: string }> = getLifecycleWarnings(
-                    lifecycleStage as LifecycleStage,
-                    hasApprovedAssessments
-                  );
+                {loadingCompliance ? (
+                  <div className="flex items-center justify-center py-16">
+                    <Loader2 className="h-8 w-8 animate-spin text-[#3B82F6]" />
+                  </div>
+                ) : systemInfo ? (
+                  <>
+                    {systemInfo?.type === "EU AI Act" && lifecycleStage && (() => {
+                      const hasApprovedAssessments = assessments.some((a) => a.status === "approved");
+                      const warnings = getLifecycleWarnings(lifecycleStage as LifecycleStage, hasApprovedAssessments);
 
-                  return warnings.length > 0 && (
-                    <div className="space-y-3">
-                      {warnings.map((warning, idx) => (
-                        <div
-                          key={idx}
-                          className={
-                            warning.type === 'error'
-                              ? 'bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3 glass-panel'
-                              : warning.type === 'warning'
-                                ? 'bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-center gap-3 glass-panel'
-                                : 'bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center gap-3 glass-panel'
-                          }
-                        >
-                          {warning.type === 'error' ? (
-                            <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0" />
-                          ) : warning.type === 'warning' ? (
-                            <AlertTriangleIcon className="h-5 w-5 text-amber-500 flex-shrink-0" />
-                          ) : (
-                            <Info className="h-5 w-5 text-blue-500 flex-shrink-0" />
-                          )}
-                          <div className="flex-1">
-                            <p className={
-                              warning.type === 'error'
-                                ? 'text-red-700'
-                                : warning.type === 'warning'
-                                  ? 'text-amber-700'
-                                  : 'text-blue-700'
-                            }>
-                              {warning.message}
-                              {warning.action && (
-                                <Button
-                                  variant="link"
-                                  className="ml-2 text-primary hover:text-primary/80 p-0 h-auto"
-                                  onClick={() => {
-                                    if (warning.action === 'Add Risk Assessment') {
-                                      setShowForm(true);
-                                      setActiveTab('risk-assessments');
-                                    } else if (warning.action === 'Review Risk Assessments') {
-                                      setActiveTab('risk-assessments');
-                                    }
-                                  }}
-                                >
-                                  {warning.action}
-                                </Button>
-                              )}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  );
-                })()}
-
-                <Card className="glass-panel shadow-elevated border-border/50 rounded-2xl overflow-hidden hover:shadow-blue transition-all duration-300">
-                  <CardHeader className="pb-4 border-b border-border/30">
-                    <CardTitle className="text-foreground text-2xl font-bold">System Information</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-6 pt-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-1">
-                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">System Name</p>
-                        <p className="text-foreground font-semibold text-lg">{systemInfo.name}</p>
-                      </div>
-                      <div className="space-y-1">
-                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Regulation Type</p>
-                        <Badge className="bg-gradient-to-r from-purple-50 to-purple-100/80 text-purple-700 border-purple-200/60 font-semibold px-3 py-1.5 rounded-full shadow-md hover:shadow-lg transition-all">
-                          {systemInfo.type}
-                        </Badge>
-                      </div>
-                      <div className="space-y-1">
-                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">System ID</p>
-                        <p className="text-foreground text-sm font-mono bg-secondary/30 px-3 py-2 rounded-lg border border-border/50">{systemInfo.id}</p>
-                      </div>
-                      <div className="space-y-1">
-                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Accountable Person</p>
-                        <p className="text-foreground font-medium">{systemInfo.accountable_person}</p>
-                      </div>
-                      <div className="space-y-1">
-                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Created At</p>
-                        <p className="text-foreground text-sm font-medium">
-                          {new Date(systemInfo.created_at).toLocaleDateString()}
-                        </p>
-                      </div>
-                      <div className="space-y-1">
-                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Risk Assessments</p>
-                        <p className="text-foreground font-semibold text-lg">{assessments.length} assessment{assessments.length !== 1 ? "s" : ""}</p>
-                      </div>
-                      {/* Lifecycle Stage - Only for EU AI Act */}
-                      {systemInfo?.type === 'EU AI Act' && lifecycleStage && (
-                        <div className="space-y-2">
-                          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Lifecycle Stage</p>
-                          <Select
-                            value={lifecycleStage}
-                            onValueChange={handleLifecycleChange}
-                            disabled={updatingLifecycle || lifecycleStage === 'Retired'}
-                          >
-                            <SelectTrigger className="w-[200px] bg-background border-border/50 text-foreground rounded-xl shadow-sm hover:shadow-md transition-all">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent className="glass-panel border-border/50 rounded-xl shadow-lg">
-                              <SelectItem
-                                value="Draft"
-                                className="text-foreground rounded-lg"
-                                disabled={lifecycleStage === 'Monitoring'}
+                      return (
+                        warnings.length > 0 && (
+                          <div className="space-y-3">
+                            {warnings.map((warning: any, idx: number) => (
+                              <div
+                                key={idx}
+                                className={`flex items-center gap-3 rounded-[10px] border px-4 py-3 ${
+                                  warning.type === "error"
+                                    ? "border-[#F1A4A4] bg-[#FFE0E0]"
+                                    : warning.type === "warning"
+                                    ? "border-[#F2CD69] bg-[#FFF3CF]"
+                                    : "border-[#93C5FD] bg-[#EFF6FF]"
+                                }`}
                               >
-                                Draft
-                              </SelectItem>
-                              <SelectItem
-                                value="Development"
-                                className="text-foreground rounded-lg"
-                                disabled={lifecycleStage === 'Monitoring'}
-                              >
-                                Development
-                              </SelectItem>
-                              <SelectItem
-                                value="Testing"
-                                className="text-foreground rounded-lg"
-                                disabled={lifecycleStage === 'Monitoring'}
-                              >
-                                Testing
-                              </SelectItem>
-                              <SelectItem
-                                value="Deployed"
-                                className="text-foreground rounded-lg"
-                                disabled={
-                                  lifecycleStage === 'Monitoring' ||
-                                  (complianceData?.eu && (complianceData.eu.risk_tier === 'Prohibited' || complianceData.eu.prohibited_practices_detected))
-                                }
-                              >
-                                Deployed
-                                {complianceData?.eu && (complianceData.eu.risk_tier === 'Prohibited' || complianceData.eu.prohibited_practices_detected) && (
-                                  <span className="ml-2 text-xs text-red-600">(Blocked - Prohibited)</span>
+                                {warning.type === "error" ? (
+                                  <AlertCircle className="h-5 w-5 flex-shrink-0 text-[#C71F1F]" />
+                                ) : warning.type === "warning" ? (
+                                  <AlertTriangle className="h-5 w-5 flex-shrink-0 text-[#A97B00]" />
+                                ) : (
+                                  <Info className="h-5 w-5 flex-shrink-0 text-[#3B82F6]" />
                                 )}
-                              </SelectItem>
-                              <SelectItem value="Monitoring" className="text-foreground rounded-lg">
-                                Monitoring
-                              </SelectItem>
-                              <SelectItem value="Retired" className="text-foreground rounded-lg">
-                                Retired
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
-                          {lifecycleStage === 'Retired' && (
-                            <p className="text-xs text-muted-foreground mt-2 font-medium">Read-only mode</p>
-                          )}
-                          {lifecycleStage === 'Monitoring' && (
-                            <p className="text-xs text-amber-600 mt-2 font-medium">Forward-only: Can only move to Retired</p>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
+                                <p className={`text-[13px] ${warning.type === "error" ? "text-[#C71F1F]" : warning.type === "warning" ? "text-[#A97B00]" : "text-[#1E40AF]"}`}>
+                                  {warning.message}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        )
+                      );
+                    })()}
 
-                {/* Lifecycle Constraints - Only for EU AI Act */}
-                {systemInfo?.type === 'EU AI Act' && (
-                  <Card className="glass-panel shadow-elevated border-border/50 rounded-2xl overflow-hidden hover:shadow-blue transition-all duration-300">
-                    <CardHeader className="pb-4 border-b border-border/30">
-                      <CardTitle className="text-foreground flex items-center gap-3 text-xl font-bold">
-                        <div className="p-2 bg-primary/10 rounded-lg">
-                          <Info className="h-5 w-5 text-primary" />
-                        </div>
-                        Lifecycle Governance Rules
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="pt-6">
-                      <ul className="space-y-3">
-                        {lifecycleStage && getLifecycleConstraints(lifecycleStage as LifecycleStage).map((constraint, idx) => (
-                          <li key={idx} className="text-sm text-foreground flex items-start gap-3 p-3 bg-secondary/20 rounded-lg border border-border/30">
-                            <span className="text-primary mt-0.5 font-bold">•</span>
-                            <span className="flex-1">{constraint}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </CardContent>
-                  </Card>
-                )}
-
-                {overallRisk && activeTab !== 'documentation' && (
-                  <Card className="glass-panel shadow-elevated border-border/50 rounded-2xl overflow-hidden hover:shadow-blue transition-all duration-300">
-                    <CardHeader className="pb-4 border-b border-border/30">
-                      <CardTitle className="text-foreground text-xl font-bold">Risk Summary</CardTitle>
-                    </CardHeader>
-                    <CardContent className="pt-6">
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div className="text-center p-4 bg-gradient-to-br from-secondary/30 to-secondary/10 rounded-xl border border-border/30">
-                          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Overall Risk Level</p>
-                          <Badge
-                            className={
-                              overallRisk === "high"
-                                ? "bg-gradient-to-r from-red-50 to-red-100/80 text-red-700 border border-red-200/60 font-semibold px-4 py-2 rounded-full shadow-md hover:shadow-lg transition-all"
-                                : overallRisk === "medium"
-                                  ? "bg-gradient-to-r from-amber-50 to-amber-100/80 text-amber-700 border border-amber-200/60 font-semibold px-4 py-2 rounded-full shadow-md hover:shadow-lg transition-all"
-                                  : "bg-gradient-to-r from-emerald-50 to-emerald-100/80 text-emerald-700 border border-emerald-200/60 font-semibold px-4 py-2 rounded-full shadow-md hover:shadow-lg transition-all"
-                            }
-                          >
-                            {overallRisk.charAt(0).toUpperCase() + overallRisk.slice(1)}
-                          </Badge>
-                        </div>
-                        <div className="text-center p-4 bg-gradient-to-br from-secondary/30 to-secondary/10 rounded-xl border border-border/30">
-                          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Total Assessments</p>
-                          <p className="text-foreground text-4xl font-extrabold">{assessments.length}</p>
-                        </div>
-                        <div className="text-center p-4 bg-gradient-to-br from-secondary/30 to-secondary/10 rounded-xl border border-border/30">
-                          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Approved Assessments</p>
-                          <p className="text-foreground text-4xl font-extrabold">
-                            {assessments.filter(a => a.status === 'approved').length}
-                          </p>
+                    <section className="overflow-hidden rounded-[15px] border border-[#CBD5E1] bg-white shadow-[0px_3.5px_7px_-1.75px_rgba(23,23,23,0.10)]">
+                      <div className="border-b border-[#E2E8F0] px-6 py-4">
+                        <h2 className="text-[17px] font-bold text-[#1E293B]">System Information</h2>
+                      </div>
+                      <div className="p-6">
+                        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+                          <InfoCard label="System Name" value={systemInfo.name} />
+                          <InfoCard label="Regulation Type" value={systemInfo.type} badge />
+                          <InfoCard label="Accountable Person" value={systemInfo.accountable_person || "N/A"} />
+                          <InfoCard label="Created At" value={new Date(systemInfo.created_at).toLocaleDateString()} />
+                          <InfoCard label="Risk Assessments" value={`${assessments.length} assessment${assessments.length !== 1 ? "s" : ""}`} />
+                          {systemInfo?.type === "EU AI Act" && lifecycleStage && (
+                            <div className="rounded-[10px] border border-[#E2E8F0] bg-[#F8FAFC] p-4">
+                              <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-[#94A3B8]">Lifecycle Stage</p>
+                              <div className="relative">
+                                <select
+                                  value={lifecycleStage}
+                                  onChange={(e) => handleLifecycleChange(e.target.value as LifecycleStage)}
+                                  disabled={updatingLifecycle || lifecycleStage === "Retired"}
+                                  className="h-10 w-full appearance-none rounded-[8px] border border-[#CBD5E1] bg-white px-3 pr-10 text-[14px] font-semibold text-[#1E293B] outline-none transition-all focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6]/20 disabled:opacity-50"
+                                >
+                                  <option value="Draft">Draft</option>
+                                  <option value="Development">Development</option>
+                                  <option value="Testing">Testing</option>
+                                  <option value="Deployed">Deployed</option>
+                                  <option value="Monitoring">Monitoring</option>
+                                  <option value="Retired">Retired</option>
+                                </select>
+                                <ChevronDown className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#94A3B8] pointer-events-none" />
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
-                    </CardContent>
-                  </Card>
-                )}
-              </div>
-            ) : (
-              <Card className="glass-panel shadow-elevated border-border/50">
-                <CardHeader>
-                  <CardTitle className="text-foreground">System Overview</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-foreground">
-                    No system information found for this ID. This system may only have risk assessments.
-                  </p>
-                </CardContent>
-              </Card>
-            )}
-          </TabsContent>
+                    </section>
 
-          {/* Risk Assessments Tab */}
-          <TabsContent value="risk-assessments" className="space-y-6">
-            {/* Action Bar */}
-            <div className="flex justify-between items-center pb-4 border-b border-border/30">
-              <div>
-                <h2 className="text-3xl font-bold text-foreground mb-2">Risk Assessments</h2>
-                <p className="text-muted-foreground font-medium">
-                  {assessments.length} assessment{assessments.length !== 1 ? "s" : ""} found
-                </p>
-              </div>
-              {!showForm && (
-                // For EU AI Act: check lifecycle stage
-                // For other regulations: always allow
-                (systemInfo?.type === 'EU AI Act'
-                  ? (lifecycleStage ? canCreateRiskAssessment(lifecycleStage as LifecycleStage) : true)
-                  : true
-                ) && (
-                  <Button
-                    onClick={() => setShowForm(true)}
-                    variant="hero"
-                    size="lg"
-                    className="rounded-xl shadow-lg hover:shadow-xl transition-all"
-                  >
-                    <Plus className="h-5 w-5 mr-2" />
-                    New Assessment
-                  </Button>
-                )
-              )}
-              {systemInfo?.type === 'EU AI Act' && lifecycleStage === 'Retired' && (
-                <p className="text-sm text-muted-foreground italic">System is retired. No new assessments can be created.</p>
-              )}
-            </div>
+                    {systemInfo?.type === "EU AI Act" && lifecycleStage && (
+                      <section className="overflow-hidden rounded-[15px] border border-[#CBD5E1] bg-white shadow-[0px_3.5px_7px_-1.75px_rgba(23,23,23,0.10)]">
+                        <div className="flex items-center gap-3 border-b border-[#E2E8F0] px-6 py-4">
+                          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#EAF4FF]">
+                            <Info className="h-5 w-5 text-[#3B82F6]" />
+                          </div>
+                          <h2 className="text-[17px] font-bold text-[#1E293B]">Lifecycle Governance Rules</h2>
+                        </div>
+                        <div className="p-6">
+                          <ul className="space-y-2">
+                            {getLifecycleConstraints(lifecycleStage as LifecycleStage).map((constraint: string, idx: number) => (
+                              <li key={idx} className="flex items-start gap-3 rounded-[8px] border border-[#E2E8F0] bg-[#F8FAFC] px-4 py-3 text-[13px] text-[#475569]">
+                                <span className="mt-0.5 font-bold text-[#3B82F6]">•</span>
+                                <span>{constraint}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </section>
+                    )}
 
-            {/* Form or Table */}
-            {showForm ? (
-              <RiskForm
-                aiSystemId={systemId}
-                onSubmit={handleCreateAssessment}
-                onCancel={() => {
-                  setShowForm(false);
-                  setError(null);
-                }}
-                loading={submitting}
-              />
-            ) : (
-              <RiskTable
-                assessments={assessments}
-                onViewDetail={handleViewDetail}
-                loading={loading}
-                userRole={userRole}
-              />
-            )}
-          </TabsContent>
-
-          {/* Compliance Tab */}
-          <TabsContent value="compliance">
-            {loadingCompliance ? (
-              <Card className="glass-panel shadow-elevated border-border/50">
-                <CardContent className="pt-6">
-                  <div className="flex items-center justify-center py-8">
-                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                    {overallRisk && (
+                      <section className="overflow-hidden rounded-[15px] border border-[#CBD5E1] bg-white shadow-[0px_3.5px_7px_-1.75px_rgba(23,23,23,0.10)]">
+                        <div className="border-b border-[#E2E8F0] px-6 py-4">
+                          <h2 className="text-[17px] font-bold text-[#1E293B]">Risk Summary</h2>
+                        </div>
+                        <div className="p-6">
+                          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                            <MetricCard
+                              label="Overall Risk Level"
+                              value={overallRisk.charAt(0).toUpperCase() + overallRisk.slice(1)}
+                              valueColor={overallRisk === "high" ? "#C71F1F" : overallRisk === "medium" ? "#A97B00" : "#178746"}
+                              iconType={overallRisk as "high" | "medium" | "low"}
+                            />
+                            <MetricCard label="Total Assessments" value={String(assessments.length)} valueColor="#0D1C2E" iconType="total" />
+                            <MetricCard
+                              label="Approved Assessments"
+                              value={String(assessments.filter((a) => a.status === "approved").length)}
+                              valueColor="#178746"
+                              iconType="approved"
+                            />
+                          </div>
+                        </div>
+                      </section>
+                    )}
+                  </>
+                ) : (
+                  <div className="rounded-[15px] border border-[#CBD5E1] bg-white p-8 text-center">
+                    <p className="text-[#667085]">No system information found for this ID.</p>
                   </div>
-                </CardContent>
-              </Card>
-            ) : complianceData ? (
+                )}
+              </div>
+            )}
+
+            {activeTab === "risk-assessments" && (
               <div className="space-y-6">
-                {/* EU AI Act Compliance */}
-                {complianceData?.eu && (
-                  <Card className="glass-panel shadow-elevated border-border/50 rounded-2xl overflow-hidden hover:shadow-blue transition-all duration-300">
-                    <CardHeader className="pb-4 border-b border-border/30">
-                      <CardTitle className="text-foreground flex items-center justify-between text-xl font-bold">
-                        <span className="flex items-center gap-3">
-                          <div className="p-2 bg-blue-100 rounded-lg">
-                            <ShieldCheck className="h-5 w-5 text-blue-600" />
-                          </div>
-                          EU AI Act Compliance
-                        </span>
-                        <Badge
-                          className={
-                            complianceData?.eu?.compliance_status === "Compliant"
-                              ? "bg-gradient-to-r from-emerald-50 to-emerald-100/80 text-emerald-700 border border-emerald-200/60 font-semibold px-4 py-2 rounded-full shadow-md hover:shadow-lg transition-all"
-                              : complianceData?.eu?.compliance_status === "Partially compliant"
-                                ? "bg-gradient-to-r from-amber-50 to-amber-100/80 text-amber-700 border border-amber-200/60 font-semibold px-4 py-2 rounded-full shadow-md hover:shadow-lg transition-all"
-                                : "bg-gradient-to-r from-red-50 to-red-100/80 text-red-700 border border-red-200/60 font-semibold px-4 py-2 rounded-full shadow-md hover:shadow-lg transition-all"
-                          }
-                        >
-                          {complianceData?.eu?.compliance_status || "Unknown"}
-                        </Badge>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-6 pt-6">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="p-4 bg-gradient-to-br from-secondary/30 to-secondary/10 rounded-xl border border-border/30">
-                          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Risk Tier</p>
-                          <Badge className="bg-gradient-to-r from-purple-50 to-purple-100/80 text-purple-700 border-purple-200/60 font-semibold px-4 py-2 rounded-full shadow-md hover:shadow-lg transition-all">
-                            {complianceData?.eu?.risk_tier || "N/A"}
-                          </Badge>
-                        </div>
-                        <div className="p-4 bg-gradient-to-br from-secondary/30 to-secondary/10 rounded-xl border border-border/30">
-                          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Prohibited Practices</p>
-                          <div className="text-foreground">
-                            {complianceData?.eu?.prohibited_practices_detected ? (
-                              <Badge className="bg-gradient-to-r from-red-50 to-red-100/80 text-red-700 border-red-200/60 font-semibold px-4 py-2 rounded-full shadow-md hover:shadow-lg transition-all">
-                                Detected
-                              </Badge>
-                            ) : (
-                              <Badge className="bg-gradient-to-r from-emerald-50 to-emerald-100/80 text-emerald-700 border-emerald-200/60 font-semibold px-4 py-2 rounded-full shadow-md hover:shadow-lg transition-all">
-                                None
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="pt-4 border-t border-border/30">
-                        <Button
-                          onClick={() => router.push(`/compliance/${systemId}`)}
-                          variant="hero"
-                          size="lg"
-                          className="rounded-xl shadow-lg hover:shadow-xl transition-all"
-                        >
-                          View Full Compliance Details
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
+                <div className="flex items-center justify-between border-b border-[#E2E8F0] pb-4">
+                  <div>
+                    <h2 className="text-[18px] font-bold text-[#1E293B]">Risk Assessments</h2>
+                    <p className="mt-1 text-[13px] text-[#667085]">{assessments.length} assessment{assessments.length !== 1 ? "s" : ""} found</p>
+                  </div>
+                  {!showForm &&
+                    (systemInfo?.type === "EU AI Act" ? (lifecycleStage ? canCreateRiskAssessment(lifecycleStage as LifecycleStage) : true) : true) && (
+                      <button
+                        type="button"
+                        onClick={() => setShowForm(true)}
+                        className="flex h-10 items-center gap-2 rounded-[10px] bg-[#3B82F6] px-5 text-[14px] font-semibold text-white shadow-md hover:bg-[#2563EB] hover:shadow-lg transition-all"
+                      >
+                        <Plus className="h-4 w-4" />
+                        New Assessment
+                      </button>
+                    )}
+                </div>
 
-                {/* MAS Compliance */}
-                {complianceData?.mas && (
-                  <Card className="glass-panel shadow-elevated border-border/50 rounded-2xl overflow-hidden hover:shadow-blue transition-all duration-300">
-                    <CardHeader className="pb-4 border-b border-border/30">
-                      <CardTitle className="text-foreground flex items-center justify-between text-xl font-bold">
-                        <span className="flex items-center gap-3">
-                          <div className="p-2 bg-purple-100 rounded-lg">
-                            <ShieldCheck className="h-5 w-5 text-purple-600" />
-                          </div>
-                          MAS AI Risk Management
-                        </span>
-                        <Badge
-                          className={
-                            (complianceData?.mas as any)?.overall_compliance_status === "Compliant"
-                              ? "bg-gradient-to-r from-emerald-50 to-emerald-100/80 text-emerald-700 border border-emerald-200/60 font-semibold px-4 py-2 rounded-full shadow-md hover:shadow-lg transition-all"
-                              : "bg-gradient-to-r from-amber-50 to-amber-100/80 text-amber-700 border border-amber-200/60 font-semibold px-4 py-2 rounded-full shadow-md hover:shadow-lg transition-all"
-                          }
-                        >
-                          {(complianceData?.mas as any)?.overall_compliance_status || "Unknown"}
-                        </Badge>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-6 pt-6">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="p-4 bg-gradient-to-br from-secondary/30 to-secondary/10 rounded-xl border border-border/30">
-                          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Risk Level</p>
-                          <Badge className="bg-gradient-to-r from-purple-50 to-purple-100/80 text-purple-700 border-purple-200/60 font-semibold px-4 py-2 rounded-full shadow-md hover:shadow-lg transition-all">
-                            {(complianceData?.mas as any)?.overall_risk_level || "N/A"}
-                          </Badge>
-                        </div>
-                        <div className="p-4 bg-gradient-to-br from-secondary/30 to-secondary/10 rounded-xl border border-border/30">
-                          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Sector</p>
-                          <p className="text-foreground font-semibold text-lg">{(complianceData?.mas as any)?.sector || "N/A"}</p>
-                        </div>
-                      </div>
-                      <div className="pt-4 border-t border-border/30">
-                        <Button
-                          onClick={() => router.push(`/mas/${systemId}`)}
-                          variant="hero"
-                          size="lg"
-                          className="rounded-xl shadow-lg hover:shadow-xl transition-all"
-                        >
-                          View Full MAS Assessment
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-
-                {/* UK AI Act Compliance */}
-                {complianceData?.uk && (
-                  <Card className="glass-panel shadow-elevated border-border/50 rounded-2xl overflow-hidden hover:shadow-blue transition-all duration-300">
-                    <CardHeader className="pb-4 border-b border-border/30">
-                      <CardTitle className="text-foreground flex items-center justify-between text-xl font-bold">
-                        <span className="flex items-center gap-3">
-                          <div className="p-2 bg-emerald-100 rounded-lg">
-                            <ShieldCheck className="h-5 w-5 text-emerald-600" />
-                          </div>
-                          UK AI Act Assessment
-                        </span>
-                        <Badge
-                          className={
-                            complianceData?.uk?.overall_assessment === "Compliant"
-                              ? "bg-gradient-to-r from-emerald-50 to-emerald-100/80 text-emerald-700 border border-emerald-200/60 font-semibold px-4 py-2 rounded-full shadow-md hover:shadow-lg transition-all"
-                              : complianceData?.uk?.overall_assessment === "Partially compliant"
-                                ? "bg-gradient-to-r from-amber-50 to-amber-100/80 text-amber-700 border border-amber-200/60 font-semibold px-4 py-2 rounded-full shadow-md hover:shadow-lg transition-all"
-                                : "bg-gradient-to-r from-red-50 to-red-100/80 text-red-700 border border-red-200/60 font-semibold px-4 py-2 rounded-full shadow-md hover:shadow-lg transition-all"
-                          }
-                        >
-                          {complianceData?.uk?.overall_assessment || "Unknown"}
-                        </Badge>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-6 pt-6">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="p-4 bg-gradient-to-br from-secondary/30 to-secondary/10 rounded-xl border border-border/30">
-                          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Risk Level</p>
-                          <Badge className="bg-gradient-to-r from-purple-50 to-purple-100/80 text-purple-700 border-purple-200/60 font-semibold px-4 py-2 rounded-full shadow-md hover:shadow-lg transition-all">
-                            {complianceData?.uk?.risk_level || "N/A"}
-                          </Badge>
-                        </div>
-                        <div className="p-4 bg-gradient-to-br from-secondary/30 to-secondary/10 rounded-xl border border-border/30">
-                          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Sector</p>
-                          <p className="text-foreground font-semibold text-lg">
-                            {complianceData?.uk?.sector_regulation?.sector || "N/A"}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="pt-4 border-t border-border/30">
-                        <Button
-                          onClick={() => router.push(`/uk/${systemId}`)}
-                          variant="hero"
-                          size="lg"
-                          className="rounded-xl shadow-lg hover:shadow-xl transition-all"
-                        >
-                          View Full UK Assessment
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-
-                {!complianceData?.eu && !complianceData?.mas && !complianceData?.uk && (
-                  <Card className="glass-panel shadow-elevated border-border/50">
-                    <CardContent className="pt-6">
-                      <p className="text-foreground text-center">
-                        No compliance assessments found for this system ID.
-                      </p>
-                    </CardContent>
-                  </Card>
+                {showForm ? (
+                  <RiskForm aiSystemId={systemId as string} onSubmit={handleCreateAssessment} onCancel={() => { setShowForm(false); setError(null); }} loading={submitting} />
+                ) : (
+                  <RiskTable assessments={assessments} onViewDetail={(a) => setSelectedAssessment(a)} loading={loading} userRole={userRole} />
                 )}
               </div>
-            ) : (
-              <Card className="glass-panel shadow-elevated border-border/50">
-                <CardContent className="pt-6">
-                  <p className="text-foreground text-center">
-                    No compliance data available for this system.
-                  </p>
-                </CardContent>
-              </Card>
             )}
-          </TabsContent>
 
-          {/* Governance Tasks Tab */}
-          <TabsContent value="tasks">
-            {complianceData ? (
-              <TasksTab
-                tasks={tasks}
-                loading={loadingTasks}
-                onRefresh={fetchTasks}
-                systemId={systemId}
-                systemName={systemInfo?.name || "Unnamed System"}
-                systemDescription={systemInfo?.description || ""}
-                riskLevel={systemInfo?.risk_tier || "unknown"}
-                complianceStatus={complianceData.eu?.compliance_status || complianceData.uk?.overall_assessment || complianceData.mas?.overall_compliance_status || "unknown"}
-                lifecycleStage={complianceData.eu?.lifecycle_stage || complianceData.uk?.lifecycle_stage || complianceData.mas?.lifecycle_stage || "Draft"}
-                regulation={complianceData.eu ? "EU" : complianceData.uk ? "UK" : complianceData.mas ? "MAS" : "EU"}
-              />
-            ) : (
-              <div className="text-center py-8">
-                <p className="text-muted-foreground">Loading compliance data...</p>
+            {activeTab === "compliance" && (
+              <div className="space-y-6">
+                {loadingCompliance ? (
+                  <div className="flex items-center justify-center py-16">
+                    <Loader2 className="h-8 w-8 animate-spin text-[#3B82F6]" />
+                  </div>
+                ) : complianceData ? (
+                  <>
+                    {complianceData?.eu && (
+                      <ComplianceCard
+                        title="EU AI Act Compliance"
+                        status={complianceData.eu.compliance_status}
+                        iconColor="#3B82F6"
+                        fields={[
+                          { label: "Risk Tier", value: complianceData.eu.risk_tier || "N/A" },
+                          { label: "Prohibited Practices", value: complianceData.eu.prohibited_practices_detected ? "Detected" : "None", isAlert: complianceData.eu.prohibited_practices_detected },
+                        ]}
+                        onViewDetails={() => router.push(`/compliance/${systemId}`)}
+                      />
+                    )}
+
+                    {complianceData?.mas && (
+                      <ComplianceCard
+                        title="MAS AI Risk Management"
+                        status={complianceData.mas.overall_compliance_status}
+                        iconColor="#7C3AED"
+                        fields={[
+                          { label: "Risk Level", value: complianceData.mas.overall_risk_level || "N/A" },
+                          { label: "Sector", value: complianceData.mas.sector || "N/A" },
+                        ]}
+                        onViewDetails={() => router.push(`/mas/${systemId}`)}
+                      />
+                    )}
+
+                    {complianceData?.uk && (
+                      <ComplianceCard
+                        title="UK AI Act Assessment"
+                        status={complianceData.uk.overall_assessment}
+                        iconColor="#178746"
+                        fields={[
+                          { label: "Risk Level", value: complianceData.uk.risk_level || "N/A" },
+                          { label: "Sector", value: complianceData.uk.sector_regulation?.sector || "N/A" },
+                        ]}
+                        onViewDetails={() => router.push(`/uk/${systemId}`)}
+                      />
+                    )}
+
+                    {!complianceData?.eu && !complianceData?.mas && !complianceData?.uk && (
+                      <div className="rounded-[15px] border border-[#CBD5E1] bg-white p-8 text-center">
+                        <p className="text-[#667085]">No compliance assessments found for this system ID.</p>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="rounded-[15px] border border-[#CBD5E1] bg-white p-8 text-center">
+                    <p className="text-[#667085]">No compliance data available for this system.</p>
+                  </div>
+                )}
               </div>
             )}
-          </TabsContent>
 
-          {/* Documentation Tab */}
-          <TabsContent value="documentation">
-            <DocumentationTab
-              systemId={systemId}
+            {activeTab === "tasks" && (
+              <div>
+                {complianceData ? (
+                  <TasksTab
+                    tasks={tasks}
+                    loading={loadingTasks}
+                    onRefresh={fetchTasks}
+                    systemId={systemId as string}
+                    systemName={systemInfo?.name || "Unnamed System"}
+                    systemDescription={systemInfo?.description || ""}
+                    riskLevel={systemInfo?.risk_tier || "unknown"}
+                    complianceStatus={complianceData.eu?.compliance_status || complianceData.uk?.overall_assessment || complianceData.mas?.overall_compliance_status || "unknown"}
+                    lifecycleStage={complianceData.eu?.lifecycle_stage || complianceData.uk?.lifecycle_stage || complianceData.mas?.lifecycle_stage || "Draft"}
+                    regulation={complianceData.eu ? "EU" : complianceData.uk ? "UK" : complianceData.mas ? "MAS" : "EU"}
+                  />
+                ) : (
+                  <div className="flex items-center justify-center py-16">
+                    <p className="text-[#667085]">Loading compliance data...</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeTab === "documentation" && <DocumentationTab systemId={systemId as string} systemType={systemInfo?.type || null} />}
+          </section>
+        </main>
+      </div>
+
+      {selectedAssessment && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-[15px] border border-[#CBD5E1] bg-white shadow-2xl">
+            <RiskDetail
+              assessment={selectedAssessment}
+              onClose={() => setSelectedAssessment(null)}
+              userRole={userRole}
+              currentUserId={currentUserId || undefined}
+              onStatusChange={handleStatusChange}
+              lifecycleStage={systemInfo?.type === "EU AI Act" ? lifecycleStage : null}
               systemType={systemInfo?.type || null}
             />
-          </TabsContent>
-        </Tabs>
-
-        {/* Risk Detail Modal */}
-        {selectedAssessment && (
-          <div className="fixed inset-0 bg-white/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="max-w-3xl w-full max-h-[90vh] overflow-y-auto glass-panel rounded-lg border-border/50 shadow-2xl">
-              <RiskDetail
-                assessment={selectedAssessment}
-                onClose={handleCloseDetail}
-                userRole={userRole}
-                currentUserId={currentUserId || undefined}
-                onStatusChange={handleStatusChange}
-                lifecycleStage={systemInfo?.type === 'EU AI Act' ? lifecycleStage : null}
-                systemType={systemInfo?.type || null}
-              />
-            </div>
           </div>
-        )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function InfoCard({ label, value, badge }: { label: string; value: string; badge?: boolean }) {
+  return (
+    <div className="rounded-[10px] border border-[#E2E8F0] bg-[#F8FAFC] p-4">
+      <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-[#94A3B8]">{label}</p>
+      {badge ? (
+        <span className="inline-flex rounded-full bg-[#F3E8FF] px-3 py-1 text-[13px] font-semibold text-[#7C3AED]">{value}</span>
+      ) : (
+        <p className="text-[15px] font-semibold text-[#1E293B]">{value}</p>
+      )}
+    </div>
+  );
+}
+
+function MetricCard({
+  label,
+  value,
+  valueColor,
+  iconType,
+}: {
+  label: string;
+  value: string;
+  valueColor: string;
+  iconType: "high" | "medium" | "low" | "total" | "approved";
+}) {
+  const iconByType = {
+    high: <AlertTriangle className="h-5 w-5 text-[#C71F1F]" />,
+    medium: <AlertCircle className="h-5 w-5 text-[#A97B00]" />,
+    low: <CheckCircle2 className="h-5 w-5 text-[#178746]" />,
+    total: <FileText className="h-5 w-5 text-[#3B82F6]" />,
+    approved: <CheckCircle2 className="h-5 w-5 text-[#178746]" />,
+  };
+
+  const bgByType = {
+    high: "bg-[#FFE8E8]",
+    medium: "bg-[#FFF5D9]",
+    low: "bg-[#E8FAEF]",
+    total: "bg-[#EAF4FF]",
+    approved: "bg-[#E8FAEF]",
+  };
+
+  return (
+    <div className="rounded-[10px] border border-[#E2E8F0] bg-[#F8FAFC] p-4">
+      <div className="flex items-start justify-between">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-[#94A3B8]">{label}</p>
+          <p className="mt-1 text-[24px] font-bold" style={{ color: valueColor }}>
+            {value}
+          </p>
+        </div>
+        <div className={`flex h-10 w-10 items-center justify-center rounded-full ${bgByType[iconType]}`}>{iconByType[iconType]}</div>
       </div>
     </div>
+  );
+}
+
+function ComplianceCard({
+  title,
+  status,
+  iconColor,
+  fields,
+  onViewDetails,
+}: {
+  title: string;
+  status: string;
+  iconColor: string;
+  fields: { label: string; value: string; isAlert?: boolean }[];
+  onViewDetails: () => void;
+}) {
+  const statusClasses =
+    status === "Compliant"
+      ? "border-[#8EC4F8] bg-[#D9EEFF] text-[#2573C2]"
+      : status === "Partially compliant"
+      ? "border-[#F2CD69] bg-[#FFF3CF] text-[#A97B00]"
+      : "border-[#F1A4A4] bg-[#FFE0E0] text-[#C71F1F]";
+
+  return (
+    <section className="overflow-hidden rounded-[15px] border border-[#CBD5E1] bg-white shadow-[0px_3.5px_7px_-1.75px_rgba(23,23,23,0.10)]">
+      <div className="flex items-center justify-between border-b border-[#E2E8F0] px-6 py-4">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full" style={{ backgroundColor: `${iconColor}15` }}>
+            <ShieldCheck className="h-5 w-5" style={{ color: iconColor }} />
+          </div>
+          <h2 className="text-[17px] font-bold text-[#1E293B]">{title}</h2>
+        </div>
+        <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12px] font-bold ${statusClasses}`}>
+          {status === "Compliant" ? <CheckCircle2 className="h-3.5 w-3.5" /> : status === "Partially compliant" ? <AlertCircle className="h-3.5 w-3.5" /> : <XCircle className="h-3.5 w-3.5" />}
+          {status || "Unknown"}
+        </span>
+      </div>
+      <div className="p-6">
+        <div className="mb-6 grid grid-cols-2 gap-4">
+          {fields.map((field, idx) => (
+            <div key={idx} className="rounded-[10px] border border-[#E2E8F0] bg-[#F8FAFC] p-4">
+              <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-[#94A3B8]">{field.label}</p>
+              {field.isAlert ? (
+                <span className="inline-flex rounded-full bg-[#FFE0E0] px-3 py-1 text-[13px] font-semibold text-[#C71F1F]">{field.value}</span>
+              ) : (
+                <span className="inline-flex rounded-full bg-[#F3E8FF] px-3 py-1 text-[13px] font-semibold text-[#7C3AED]">{field.value}</span>
+              )}
+            </div>
+          ))}
+        </div>
+        <button
+          type="button"
+          onClick={onViewDetails}
+          className="flex h-10 items-center gap-2 rounded-[10px] bg-[#3B82F6] px-5 text-[14px] font-semibold text-white shadow-md hover:bg-[#2563EB] hover:shadow-lg transition-all"
+        >
+          View Full Details
+        </button>
+      </div>
+    </section>
   );
 }

@@ -1,59 +1,30 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { 
-  Lightbulb, 
-  ChevronDown, 
-  ChevronUp, 
-  Loader2, 
-  AlertTriangle, 
-  CheckCircle, 
-  Clock,
-  ArrowRight,
-  HelpCircle,
-  Zap,
-  Target,
-  BookOpen,
-  Shield,
-  Activity
-} from 'lucide-react';
+import { useState, useEffect } from "react";
+import { Activity, AlertTriangle, ArrowRight, BookOpen, CheckCircle, ChevronDown, ChevronUp, Clock, Lightbulb, Loader2, RefreshCw, Shield, Target, Zap } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/utils/supabase/client";
-import type { SmartSuggestion, TaskSuggestionContext } from '@/types/smart-governance-suggestions';
-import type { GovernanceRegulation } from '@/types/governance-task';
+import type { SmartSuggestion, TaskSuggestionContext } from "@/types/smart-governance-suggestions";
+import type { GovernanceRegulation } from "@/types/governance-task";
 
-async function backendFetch(
-  path: string,
-  options: RequestInit = {}
-) {
+async function backendFetch(path: string, options: RequestInit = {}) {
   const { data } = await supabase.auth.getSession();
-
   const accessToken = data.session?.access_token;
 
   if (!accessToken) {
-    console.error('❌ No access token found in Supabase session');
     throw new Error("User not authenticated");
   }
 
-  console.log('✅ Frontend: Sending token (first 50 chars):', accessToken.substring(0, 50) + '...');
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
 
-  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-
-  return fetch(
-    `${process.env.NEXT_PUBLIC_BACKEND_URL}${normalizedPath}`,
-    {
-      ...options,
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-    }
-  );
+  return fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}${normalizedPath}`, {
+    ...options,
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
+  });
 }
 
 interface SmartGovernanceSuggestionsProps {
@@ -70,23 +41,23 @@ interface SmartGovernanceSuggestionsProps {
 }
 
 const priorityStyles = {
-  high: { badge: "bg-red-50 text-red-700 border-red-200", icon: AlertTriangle },
-  medium: { badge: "bg-amber-50 text-amber-700 border-amber-200", icon: Clock },
-  low: { badge: "bg-blue-50 text-blue-700 border-blue-200", icon: CheckCircle }
+  high: { bg: "bg-[#FFE0E0]", text: "text-[#C71F1F]", border: "border-[#F1A4A4]" },
+  medium: { bg: "bg-[#FFF3CF]", text: "text-[#A97B00]", border: "border-[#F2CD69]" },
+  low: { bg: "bg-[#EAF4FF]", text: "text-[#2573C2]", border: "border-[#93C5FD]" },
 };
 
 const categoryStyles = {
-  compliance: { badge: "bg-purple-50 text-purple-700 border-purple-200", icon: Shield },
-  risk_management: { badge: "bg-red-50 text-red-700 border-red-200", icon: AlertTriangle },
-  documentation: { badge: "bg-blue-50 text-blue-700 border-blue-200", icon: BookOpen },
-  governance: { badge: "bg-green-50 text-green-700 border-green-200", icon: Target },
-  monitoring: { badge: "bg-orange-50 text-orange-700 border-orange-200", icon: Activity }
+  compliance: { bg: "bg-[#F3E8FF]", text: "text-[#7C3AED]", icon: Shield },
+  risk_management: { bg: "bg-[#FFE0E0]", text: "text-[#C71F1F]", icon: AlertTriangle },
+  documentation: { bg: "bg-[#EAF4FF]", text: "text-[#2573C2]", icon: BookOpen },
+  governance: { bg: "bg-[#E8FAEF]", text: "text-[#178746]", icon: Target },
+  monitoring: { bg: "bg-[#FFF3CF]", text: "text-[#A97B00]", icon: Activity },
 };
 
 const effortStyles = {
-  low: { badge: "bg-emerald-50 text-emerald-700 border-emerald-200", label: "Low Effort" },
-  medium: { badge: "bg-amber-50 text-amber-700 border-amber-200", label: "Medium Effort" },
-  high: { badge: "bg-red-50 text-red-700 border-red-200", label: "High Effort" }
+  low: { bg: "bg-[#E8FAEF]", text: "text-[#178746]", label: "Low Effort" },
+  medium: { bg: "bg-[#FFF3CF]", text: "text-[#A97B00]", label: "Medium Effort" },
+  high: { bg: "bg-[#FFE0E0]", text: "text-[#C71F1F]", label: "High Effort" },
 };
 
 export function SmartGovernanceSuggestions({
@@ -99,7 +70,7 @@ export function SmartGovernanceSuggestions({
   regulation,
   existingTasks,
   completedTasks,
-  onTaskCreate
+  onTaskCreate,
 }: SmartGovernanceSuggestionsProps) {
   const { toast } = useToast();
   const [suggestions, setSuggestions] = useState<SmartSuggestion[]>([]);
@@ -120,17 +91,17 @@ export function SmartGovernanceSuggestions({
         lifecycleStage,
         regulation,
         existingTasks,
-        completedTasks
+        completedTasks,
       };
 
-      const response = await backendFetch('/api/governance-tasks/suggestions', {
-        method: 'POST',
-        body: JSON.stringify(context)
+      const response = await backendFetch("/api/governance-tasks/suggestions", {
+        method: "POST",
+        body: JSON.stringify(context),
       });
 
       if (!response.ok) {
         const error = await response.json().catch(() => ({}));
-        throw new Error(error.error || 'Failed to fetch suggestions');
+        throw new Error(error.error || "Failed to fetch suggestions");
       }
 
       const data = await response.json();
@@ -143,7 +114,7 @@ export function SmartGovernanceSuggestions({
         });
       }
     } catch (error) {
-      console.error('Error fetching smart suggestions:', error);
+      console.error("Error fetching smart suggestions:", error);
       toast({
         title: "Unable to generate suggestions",
         description: error instanceof Error ? error.message : "An error occurred",
@@ -157,7 +128,7 @@ export function SmartGovernanceSuggestions({
   const fetchContextualHelp = async (suggestion: SmartSuggestion) => {
     if (contextualHelp[suggestion.id] || loadingHelp.has(suggestion.id)) return;
 
-    setLoadingHelp(prev => new Set(prev).add(suggestion.id));
+    setLoadingHelp((prev) => new Set(prev).add(suggestion.id));
     try {
       const context: TaskSuggestionContext = {
         systemId,
@@ -168,29 +139,29 @@ export function SmartGovernanceSuggestions({
         lifecycleStage,
         regulation,
         existingTasks,
-        completedTasks
+        completedTasks,
       };
 
-      const response = await backendFetch('/api/governance-tasks/contextual-help', {
-        method: 'POST',
+      const response = await backendFetch("/api/governance-tasks/contextual-help", {
+        method: "POST",
         body: JSON.stringify({
           taskTitle: suggestion.title,
           taskDescription: suggestion.description,
-          ...context
-        })
+          ...context,
+        }),
       });
 
       if (response.ok) {
         const data = await response.json();
-        setContextualHelp(prev => ({
+        setContextualHelp((prev) => ({
           ...prev,
-          [suggestion.id]: data.contextual_help
+          [suggestion.id]: data.contextual_help,
         }));
       }
     } catch (error) {
-      console.error('Error fetching contextual help:', error);
+      console.error("Error fetching contextual help:", error);
     } finally {
-      setLoadingHelp(prev => {
+      setLoadingHelp((prev) => {
         const newSet = new Set(prev);
         newSet.delete(suggestion.id);
         return newSet;
@@ -199,14 +170,13 @@ export function SmartGovernanceSuggestions({
   };
 
   const toggleExpanded = (suggestionId: string) => {
-    setExpandedSuggestions(prev => {
+    setExpandedSuggestions((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(suggestionId)) {
         newSet.delete(suggestionId);
       } else {
         newSet.add(suggestionId);
-        // Fetch contextual help when expanding
-        const suggestion = suggestions.find(s => s.id === suggestionId);
+        const suggestion = suggestions.find((s) => s.id === suggestionId);
         if (suggestion) {
           fetchContextualHelp(suggestion);
         }
@@ -227,202 +197,176 @@ export function SmartGovernanceSuggestions({
     }
   };
 
-  // Auto-fetch suggestions on mount
   useEffect(() => {
     fetchSuggestions();
   }, [systemId, regulation]);
 
   return (
-    <Card className="glass-panel shadow-elevated rounded-xl">
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-primary/10 rounded-lg">
-              <Zap className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <CardTitle className="text-foreground">Smart Governance Suggestions</CardTitle>
-              <CardDescription>
-                AI-powered task recommendations based on system characteristics and platform best practices
-              </CardDescription>
-            </div>
+    <section className="overflow-hidden rounded-[15px] border border-[#CBD5E1] bg-white shadow-[0px_3.5px_7px_-1.75px_rgba(23,23,23,0.10)]">
+      <div className="flex items-center justify-between border-b border-[#E2E8F0] px-6 py-4">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#EAF4FF]">
+            <Zap className="h-5 w-5 text-[#3B82F6]" />
           </div>
-          <Button
-            variant="outline"
-            onClick={fetchSuggestions}
-            disabled={loading}
-            className="rounded-xl"
-          >
-            {loading ? (
-              <Loader2 className="h-4 w-4 animate-spin mr-2" />
-            ) : (
-              <Lightbulb className="h-4 w-4 mr-2" />
-            )}
-            Refresh Suggestions
-          </Button>
+          <div>
+            <h3 className="text-[15px] font-bold text-[#1E293B]">Smart Governance Suggestions</h3>
+            <p className="text-[12px] text-[#667085]">AI-powered task recommendations based on system characteristics and platform best practices</p>
+          </div>
         </div>
-      </CardHeader>
-      <CardContent>
+        <button
+          type="button"
+          onClick={fetchSuggestions}
+          disabled={loading}
+          className="flex h-9 items-center gap-2 rounded-[8px] border border-[#CBD5E1] bg-white px-4 text-[12px] font-semibold text-[#475569] hover:bg-[#F8FAFC] transition-all disabled:opacity-50"
+        >
+          <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
+          Refresh Suggestions
+        </button>
+      </div>
+      <div className="p-6">
         {loading ? (
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin text-primary mr-3" />
-            <span className="text-muted-foreground">Generating smart suggestions...</span>
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="mr-3 h-6 w-6 animate-spin text-[#3B82F6]" />
+            <span className="text-[13px] text-[#667085]">Generating smart suggestions...</span>
           </div>
         ) : suggestions.length === 0 ? (
-          <div className="text-center py-8">
-            <div className="p-4 bg-primary/10 rounded-full w-16 h-16 mx-auto flex items-center justify-center mb-4">
-              <Lightbulb className="h-8 w-8 text-primary" />
+          <div className="py-12 text-center">
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[#EAF4FF]">
+              <Lightbulb className="h-7 w-7 text-[#3B82F6]" />
             </div>
-            <p className="text-foreground font-semibold">No suggestions available</p>
-            <p className="text-muted-foreground text-sm mt-1">
-              All governance requirements appear to be well-covered, or try refreshing for new suggestions.
-            </p>
+            <p className="text-[14px] font-semibold text-[#1E293B]">No suggestions available</p>
+            <p className="mt-1 text-[12px] text-[#667085]">All governance requirements appear to be well-covered, or try refreshing for new suggestions.</p>
           </div>
         ) : (
           <div className="space-y-4">
-            {suggestions.map((suggestion, index) => {
+            {suggestions.map((suggestion) => {
               const isExpanded = expandedSuggestions.has(suggestion.id);
-              const PriorityIcon = priorityStyles[suggestion.priority].icon;
-              const CategoryIcon = categoryStyles[suggestion.category].icon;
-              
+              const CategoryIcon = categoryStyles[suggestion.category]?.icon || Target;
+
               return (
-                <Card key={suggestion.id} className="border border-border/50 hover:border-primary/30 transition-colors">
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1 space-y-3">
-                        {/* Header */}
-                        <div className="flex items-start gap-3">
-                          <div className="p-1.5 bg-primary/10 rounded-lg flex-shrink-0">
-                            <CategoryIcon className="h-4 w-4 text-primary" />
+                <article key={suggestion.id} className="rounded-[12px] border border-[#E2E8F0] bg-[#FAFBFC] p-4 transition-all hover:border-[#3B82F6]/30">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 space-y-3">
+                      <div className="flex items-start gap-3">
+                        <div className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-[6px] ${categoryStyles[suggestion.category]?.bg || "bg-[#EAF4FF]"}`}>
+                          <CategoryIcon className={`h-4 w-4 ${categoryStyles[suggestion.category]?.text || "text-[#3B82F6]"}`} />
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="text-[14px] font-semibold text-[#1E293B]">{suggestion.title}</h4>
+                          <p className="mt-1 text-[12px] text-[#667085]">{suggestion.description}</p>
+                        </div>
+                      </div>
+
+                      <div className="ml-11 flex flex-wrap items-center gap-2">
+                        <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${priorityStyles[suggestion.priority].bg} ${priorityStyles[suggestion.priority].text}`}>
+                          {suggestion.priority === "high" ? <AlertTriangle className="h-3 w-3" /> : suggestion.priority === "medium" ? <Clock className="h-3 w-3" /> : <CheckCircle className="h-3 w-3" />}
+                          {suggestion.priority.charAt(0).toUpperCase() + suggestion.priority.slice(1)} Priority
+                        </span>
+                        <span className={`inline-flex rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${categoryStyles[suggestion.category]?.bg || "bg-[#EAF4FF]"} ${categoryStyles[suggestion.category]?.text || "text-[#3B82F6]"}`}>
+                          {suggestion.category.replace("_", " ").charAt(0).toUpperCase() + suggestion.category.replace("_", " ").slice(1)}
+                        </span>
+                        <span className={`inline-flex rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${effortStyles[suggestion.estimated_effort].bg} ${effortStyles[suggestion.estimated_effort].text}`}>
+                          {effortStyles[suggestion.estimated_effort].label}
+                        </span>
+                      </div>
+
+                      <div className="ml-11 rounded-[8px] bg-[#F1F5F9] p-2.5">
+                        <p className="text-[11px] text-[#475569]">
+                          <span className="font-semibold">Why this matters:</span> {suggestion.rationale}
+                        </p>
+                      </div>
+
+                      {isExpanded && (
+                        <div className="ml-11 space-y-4 border-t border-[#E2E8F0] pt-4">
+                          <div>
+                            <h5 className="mb-2 text-[12px] font-semibold text-[#1E293B]">Actionable Steps:</h5>
+                            <ul className="space-y-1">
+                              {suggestion.actionable_steps.map((step, stepIndex) => (
+                                <li key={stepIndex} className="flex items-start gap-2 text-[11px] text-[#667085]">
+                                  <ArrowRight className="mt-0.5 h-3 w-3 flex-shrink-0 text-[#3B82F6]" />
+                                  {step}
+                                </li>
+                              ))}
+                            </ul>
                           </div>
-                          <div className="flex-1">
-                            <h4 className="font-semibold text-foreground">{suggestion.title}</h4>
-                            <p className="text-sm text-muted-foreground mt-1">{suggestion.description}</p>
-                          </div>
-                        </div>
 
-                        {/* Badges */}
-                        <div className="flex items-center gap-2 flex-wrap ml-7">
-                          <Badge className={`${priorityStyles[suggestion.priority].badge} rounded-xl`}>
-                            <PriorityIcon className="h-3 w-3 mr-1" />
-                            {suggestion.priority.charAt(0).toUpperCase() + suggestion.priority.slice(1)} Priority
-                          </Badge>
-                          <Badge className={`${categoryStyles[suggestion.category].badge} rounded-xl`}>
-                            {suggestion.category.replace('_', ' ').charAt(0).toUpperCase() + suggestion.category.replace('_', ' ').slice(1)}
-                          </Badge>
-                          <Badge className={`${effortStyles[suggestion.estimated_effort].badge} rounded-xl`}>
-                            {effortStyles[suggestion.estimated_effort].label}
-                          </Badge>
-                        </div>
-
-                        {/* Rationale */}
-                        <div className="ml-7">
-                          <p className="text-xs text-muted-foreground bg-muted/30 p-2 rounded-lg">
-                            <strong>Why this matters:</strong> {suggestion.rationale}
-                          </p>
-                        </div>
-
-                        {/* Expanded Content */}
-                        {isExpanded && (
-                          <div className="ml-7 space-y-4 pt-2 border-t border-border/30">
-                            {/* Actionable Steps */}
+                          {suggestion.dependencies && suggestion.dependencies.length > 0 && (
                             <div>
-                              <h5 className="font-medium text-foreground mb-2">Actionable Steps:</h5>
-                              <ul className="space-y-1">
-                                {suggestion.actionable_steps.map((step, stepIndex) => (
-                                  <li key={stepIndex} className="flex items-start gap-2 text-sm text-muted-foreground">
-                                    <ArrowRight className="h-3 w-3 text-primary mt-0.5 flex-shrink-0" />
-                                    {step}
-                                  </li>
+                              <h5 className="mb-2 text-[12px] font-semibold text-[#1E293B]">Dependencies:</h5>
+                              <div className="flex flex-wrap gap-1">
+                                {suggestion.dependencies.map((dep, depIndex) => (
+                                  <span key={depIndex} className="rounded-full border border-[#E2E8F0] bg-white px-2 py-0.5 text-[10px] text-[#475569]">
+                                    {dep}
+                                  </span>
                                 ))}
-                              </ul>
+                              </div>
                             </div>
-
-                            {/* Dependencies */}
-                            {suggestion.dependencies && suggestion.dependencies.length > 0 && (
-                              <div>
-                                <h5 className="font-medium text-foreground mb-2">Dependencies:</h5>
-                                <div className="flex flex-wrap gap-1">
-                                  {suggestion.dependencies.map((dep, depIndex) => (
-                                    <Badge key={depIndex} variant="outline" className="text-xs">
-                                      {dep}
-                                    </Badge>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-
-                            {/* Resources */}
-                            {suggestion.resources && suggestion.resources.length > 0 && (
-                              <div>
-                                <h5 className="font-medium text-foreground mb-2">Helpful Resources:</h5>
-                                <div className="flex flex-wrap gap-1">
-                                  {suggestion.resources.map((resource, resIndex) => (
-                                    <Badge key={resIndex} variant="outline" className="text-xs">
-                                      {resource}
-                                    </Badge>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-
-                            {/* Contextual Help */}
-                            {contextualHelp[suggestion.id] && (
-                              <div>
-                                <h5 className="font-medium text-foreground mb-2">Contextual Guidance:</h5>
-                                <div className="text-sm text-muted-foreground bg-blue-50/50 p-3 rounded-lg border border-blue-200/30">
-                                  {contextualHelp[suggestion.id]}
-                                </div>
-                              </div>
-                            )}
-
-                            {loadingHelp.has(suggestion.id) && (
-                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                <Loader2 className="h-3 w-3 animate-spin" />
-                                Loading contextual guidance...
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Actions */}
-                      <div className="flex flex-col gap-2 min-w-[120px]">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => toggleExpanded(suggestion.id)}
-                          className="rounded-xl"
-                        >
-                          {isExpanded ? (
-                            <>
-                              <ChevronUp className="h-3 w-3 mr-1" />
-                              Less
-                            </>
-                          ) : (
-                            <>
-                              <ChevronDown className="h-3 w-3 mr-1" />
-                              More
-                            </>
                           )}
-                        </Button>
-                        <Button
-                          size="sm"
-                          onClick={() => handleCreateTask(suggestion)}
-                          className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl"
-                        >
-                          <Target className="h-3 w-3 mr-1" />
-                          Create Task
-                        </Button>
-                      </div>
+
+                          {suggestion.resources && suggestion.resources.length > 0 && (
+                            <div>
+                              <h5 className="mb-2 text-[12px] font-semibold text-[#1E293B]">Helpful Resources:</h5>
+                              <div className="flex flex-wrap gap-1">
+                                {suggestion.resources.map((resource, resIndex) => (
+                                  <span key={resIndex} className="rounded-full border border-[#E2E8F0] bg-white px-2 py-0.5 text-[10px] text-[#475569]">
+                                    {resource}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {contextualHelp[suggestion.id] && (
+                            <div>
+                              <h5 className="mb-2 text-[12px] font-semibold text-[#1E293B]">Contextual Guidance:</h5>
+                              <div className="rounded-[8px] border border-[#93C5FD] bg-[#EFF6FF] p-3 text-[11px] text-[#1E40AF]">{contextualHelp[suggestion.id]}</div>
+                            </div>
+                          )}
+
+                          {loadingHelp.has(suggestion.id) && (
+                            <div className="flex items-center gap-2 text-[11px] text-[#667085]">
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                              Loading contextual guidance...
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
-                  </CardContent>
-                </Card>
+
+                    <div className="flex min-w-[100px] flex-col gap-2">
+                      <button
+                        type="button"
+                        onClick={() => toggleExpanded(suggestion.id)}
+                        className="flex h-8 w-full items-center justify-center gap-1 rounded-[6px] border border-[#CBD5E1] bg-white text-[11px] font-semibold text-[#475569] hover:bg-[#F8FAFC] transition-all"
+                      >
+                        {isExpanded ? (
+                          <>
+                            <ChevronUp className="h-3 w-3" />
+                            Less
+                          </>
+                        ) : (
+                          <>
+                            <ChevronDown className="h-3 w-3" />
+                            More
+                          </>
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleCreateTask(suggestion)}
+                        className="flex h-8 w-full items-center justify-center gap-1 rounded-[6px] bg-[#3B82F6] text-[11px] font-semibold text-white hover:bg-[#2563EB] transition-all"
+                      >
+                        <Target className="h-3 w-3" />
+                        Create Task
+                      </button>
+                    </div>
+                  </div>
+                </article>
               );
             })}
           </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </section>
   );
 }

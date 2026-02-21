@@ -1,23 +1,6 @@
 "use client";
 
-/**
- * RiskTable Component
- * 
- * Displays a table of risk assessments for an AI system.
- * Shows category, risk level, mitigation status, and assessment date.
- */
-
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Eye, AlertTriangle, CheckCircle2, Clock, FileText, XCircle } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Clock, Eye, FileText, XCircle } from "lucide-react";
 import type { RiskAssessment, RiskLevel, MitigationStatus, AssessmentStatus } from "@/types/risk-assessment";
 import { format } from "date-fns";
 
@@ -28,31 +11,31 @@ interface RiskTableProps {
   userRole?: "user" | "admin";
 }
 
-export default function RiskTable({ assessments, onViewDetail, loading, userRole = 'user' }: RiskTableProps) {
+export default function RiskTable({ assessments, onViewDetail, loading }: RiskTableProps) {
   const getRiskBadge = (level: RiskLevel) => {
     const variants = {
-      low: "bg-gradient-to-r from-emerald-50 to-emerald-100/80 text-emerald-700 border border-emerald-200/60 font-semibold px-3 py-1.5 rounded-full shadow-md hover:shadow-lg transition-all",
-      medium: "bg-gradient-to-r from-amber-50 to-amber-100/80 text-amber-700 border border-amber-200/60 font-semibold px-3 py-1.5 rounded-full shadow-md hover:shadow-lg transition-all",
-      high: "bg-gradient-to-r from-red-50 to-red-100/80 text-red-700 border border-red-200/60 font-semibold px-3 py-1.5 rounded-full shadow-md hover:shadow-lg transition-all",
+      low: "bg-[#D9EEFF] text-[#2573C2] border-[#8EC4F8]",
+      medium: "bg-[#FFF3CF] text-[#A97B00] border-[#F2CD69]",
+      high: "bg-[#FFE0E0] text-[#C71F1F] border-[#F1A4A4]",
     };
     return (
-      <Badge className={variants[level]}>
+      <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${variants[level]}`}>
         {level.charAt(0).toUpperCase() + level.slice(1)}
-      </Badge>
+      </span>
     );
   };
 
   const getMitigationBadge = (status: MitigationStatus) => {
     const variants = {
-      not_started: "bg-secondary/30 text-muted-foreground border-border/50",
-      in_progress: "bg-gradient-to-r from-blue-50 to-blue-100/80 text-blue-700 border border-blue-200/60",
-      mitigated: "bg-gradient-to-r from-emerald-50 to-emerald-100/80 text-emerald-700 border border-emerald-200/60",
+      not_started: "bg-[#F8FAFC] text-[#667085] border-[#E2E8F0]",
+      in_progress: "bg-[#EAF4FF] text-[#2573C2] border-[#93C5FD]",
+      mitigated: "bg-[#E8FAEF] text-[#178746] border-[#86EFAC]",
     };
-    
+
     const icons = {
-      not_started: <AlertTriangle className="h-3 w-3 mr-1" />,
-      in_progress: <Clock className="h-3 w-3 mr-1" />,
-      mitigated: <CheckCircle2 className="h-3 w-3 mr-1" />,
+      not_started: <AlertTriangle className="mr-1 h-3 w-3" />,
+      in_progress: <Clock className="mr-1 h-3 w-3" />,
+      mitigated: <CheckCircle2 className="mr-1 h-3 w-3" />,
     };
 
     const labels = {
@@ -62,26 +45,26 @@ export default function RiskTable({ assessments, onViewDetail, loading, userRole
     };
 
     return (
-      <Badge className={variants[status]}>
+      <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${variants[status]}`}>
         {icons[status]}
         {labels[status]}
-      </Badge>
+      </span>
     );
   };
 
   const getStatusBadge = (status: AssessmentStatus) => {
     const variants = {
-      draft: "bg-secondary/30 text-muted-foreground border-border/50",
-      submitted: "bg-gradient-to-r from-amber-50 to-amber-100/80 text-amber-700 border border-amber-200/60",
-      approved: "bg-gradient-to-r from-emerald-50 to-emerald-100/80 text-emerald-700 border border-emerald-200/60",
-      rejected: "bg-gradient-to-r from-red-50 to-red-100/80 text-red-700 border border-red-200/60",
+      draft: "bg-[#F8FAFC] text-[#667085] border-[#E2E8F0]",
+      submitted: "bg-[#FFF3CF] text-[#A97B00] border-[#F2CD69]",
+      approved: "bg-[#E8FAEF] text-[#178746] border-[#86EFAC]",
+      rejected: "bg-[#FFE0E0] text-[#C71F1F] border-[#F1A4A4]",
     };
 
     const icons = {
-      draft: <FileText className="h-3 w-3 mr-1" />,
-      submitted: <Clock className="h-3 w-3 mr-1" />,
-      approved: <CheckCircle2 className="h-3 w-3 mr-1" />,
-      rejected: <XCircle className="h-3 w-3 mr-1" />,
+      draft: <FileText className="mr-1 h-3 w-3" />,
+      submitted: <Clock className="mr-1 h-3 w-3" />,
+      approved: <CheckCircle2 className="mr-1 h-3 w-3" />,
+      rejected: <XCircle className="mr-1 h-3 w-3" />,
     };
 
     const labels = {
@@ -92,10 +75,10 @@ export default function RiskTable({ assessments, onViewDetail, loading, userRole
     };
 
     return (
-      <Badge className={variants[status]}>
+      <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${variants[status]}`}>
         {icons[status]}
         {labels[status]}
-      </Badge>
+      </span>
     );
   };
 
@@ -111,7 +94,7 @@ export default function RiskTable({ assessments, onViewDetail, loading, userRole
 
   if (loading) {
     return (
-      <div className="text-center py-8 text-muted-foreground">
+      <div className="flex items-center justify-center py-16 text-[#667085]">
         Loading risk assessments...
       </div>
     );
@@ -119,67 +102,47 @@ export default function RiskTable({ assessments, onViewDetail, loading, userRole
 
   if (assessments.length === 0) {
     return (
-      <div className="text-center py-8 text-muted-foreground">
+      <div className="flex items-center justify-center py-16 text-[#667085]">
         No risk assessments found. Create your first assessment to get started.
       </div>
     );
   }
 
   return (
-    <div className="rounded-lg border border-border/50 overflow-hidden">
-      <Table>
-                    <TableHeader>
-                      <TableRow className="bg-secondary/30 hover:bg-secondary/30 border-b border-border">
-                        <TableHead className="font-bold text-foreground text-xs uppercase tracking-wider">
-                          Category
-                        </TableHead>
-                        <TableHead className="font-bold text-foreground text-xs uppercase tracking-wider">
-                          Risk Level
-                        </TableHead>
-                        <TableHead className="font-bold text-foreground text-xs uppercase tracking-wider">
-                          Status
-                        </TableHead>
-                        <TableHead className="font-bold text-foreground text-xs uppercase tracking-wider">
-                          Mitigation Status
-                        </TableHead>
-                        <TableHead className="font-bold text-foreground text-xs uppercase tracking-wider">
-                          Assessed At
-                        </TableHead>
-                        <TableHead className="font-bold text-foreground text-xs uppercase tracking-wider">
-                          Actions
-                        </TableHead>
-                      </TableRow>
-                    </TableHeader>
-        <TableBody>
+    <div className="overflow-hidden rounded-[15px] border border-[#CBD5E1] bg-white shadow-[0px_3.5px_7px_-1.75px_rgba(23,23,23,0.10)]">
+      <table className="w-full">
+        <thead>
+          <tr className="border-b border-[#E2E8F0] bg-[#F8FAFC]">
+            <th className="px-6 py-3 text-left text-[11px] font-bold uppercase tracking-wide text-[#64748B]">Category</th>
+            <th className="px-6 py-3 text-left text-[11px] font-bold uppercase tracking-wide text-[#64748B]">Risk Level</th>
+            <th className="px-6 py-3 text-left text-[11px] font-bold uppercase tracking-wide text-[#64748B]">Status</th>
+            <th className="px-6 py-3 text-left text-[11px] font-bold uppercase tracking-wide text-[#64748B]">Mitigation Status</th>
+            <th className="px-6 py-3 text-left text-[11px] font-bold uppercase tracking-wide text-[#64748B]">Assessed At</th>
+            <th className="px-6 py-3 text-left text-[11px] font-bold uppercase tracking-wide text-[#64748B]">Actions</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-[#E2E8F0]">
           {assessments.map((assessment) => (
-            <TableRow
-              key={assessment.id}
-              className="hover:bg-secondary/20 transition-colors duration-150 border-b border-border/30"
-            >
-                            <TableCell className="text-foreground font-medium py-4">
-                              {getCategoryLabel(assessment.category)}
-                            </TableCell>
-                            <TableCell>{getRiskBadge(assessment.risk_level)}</TableCell>
-                            <TableCell>{getStatusBadge(assessment.status)}</TableCell>
-                            <TableCell>{getMitigationBadge(assessment.mitigation_status)}</TableCell>
-                            <TableCell className="text-muted-foreground font-medium py-4">
-                              {format(new Date(assessment.assessed_at), "MMM dd, yyyy")}
-                            </TableCell>
-                            <TableCell>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => onViewDetail(assessment)}
-                                className="text-primary hover:text-primary/80 hover:bg-primary/10 rounded-xl"
-                              >
-                                <Eye className="h-4 w-4 mr-1" />
-                                View
-                              </Button>
-                            </TableCell>
-            </TableRow>
+            <tr key={assessment.id} className="transition-colors hover:bg-[#F8FAFC]">
+              <td className="px-6 py-4 text-[13px] font-medium text-[#1E293B]">{getCategoryLabel(assessment.category)}</td>
+              <td className="px-6 py-4">{getRiskBadge(assessment.risk_level)}</td>
+              <td className="px-6 py-4">{getStatusBadge(assessment.status)}</td>
+              <td className="px-6 py-4">{getMitigationBadge(assessment.mitigation_status)}</td>
+              <td className="px-6 py-4 text-[13px] text-[#667085]">{format(new Date(assessment.assessed_at), "MMM dd, yyyy")}</td>
+              <td className="px-6 py-4">
+                <button
+                  type="button"
+                  onClick={() => onViewDetail(assessment)}
+                  className="flex items-center gap-1 rounded-[8px] bg-[#EAF4FF] px-3 py-1.5 text-[12px] font-semibold text-[#3B82F6] transition-all hover:bg-[#3B82F6] hover:text-white"
+                >
+                  <Eye className="h-3.5 w-3.5" />
+                  View
+                </button>
+              </td>
+            </tr>
           ))}
-        </TableBody>
-      </Table>
+        </tbody>
+      </table>
     </div>
   );
 }

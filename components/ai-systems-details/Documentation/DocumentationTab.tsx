@@ -1,55 +1,58 @@
 "use client";
 
-/**
- * Documentation Tab Component
- * 
- * Displays and manages compliance documentation for an AI system
- */
-
 import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, FileText, Download, RefreshCw, AlertCircle, CheckCircle2, Info } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  AlertCircle,
+  CheckCircle2,
+  ChevronDown,
+  Download,
+  FileText,
+  Info,
+  Loader2,
+  RefreshCw,
+  X,
+} from "lucide-react";
 import { supabase } from "@/utils/supabase/client";
 import type { ComplianceDocumentation } from "@/types/documentation";
 import { toast } from "sonner";
 
-async function backendFetch(
-  path: string,
-  options: RequestInit = {}
-) {
+async function backendFetch(path: string, options: RequestInit = {}) {
   const { data } = await supabase.auth.getSession();
-
   const accessToken = data.session?.access_token;
 
   if (!accessToken) {
-    console.error('❌ No access token found in Supabase session');
     throw new Error("User not authenticated");
   }
 
-  console.log('✅ Frontend: Sending token (first 50 chars):', accessToken.substring(0, 50) + '...');
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
 
-  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-
-  return fetch(
-    `${process.env.NEXT_PUBLIC_BACKEND_URL}${normalizedPath}`,
-    {
-      ...options,
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-    }
-  );
+  return fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}${normalizedPath}`, {
+    ...options,
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
+  });
 }
 
 interface DocumentationTabProps {
   systemId: string;
-  systemType: 'EU AI Act' | 'MAS' | 'UK AI Act' | null;
+  systemType: "EU AI Act" | "MAS" | "UK AI Act" | null;
+}
+
+function statusClasses(status: string): string {
+  if (status === "current") return "border-[#8EC4F8] bg-[#D9EEFF] text-[#2573C2]";
+  if (status === "outdated") return "border-[#F2CD69] bg-[#FFF3CF] text-[#A97B00]";
+  if (status === "requires_regeneration") return "border-[#F1A4A4] bg-[#FFE0E0] text-[#C71F1F]";
+  return "border-[#CBD5E1] bg-[#F1F5F9] text-[#64748B]";
+}
+
+function statusIcon(status: string) {
+  if (status === "current") return <CheckCircle2 className="h-3.5 w-3.5" />;
+  if (status === "outdated") return <AlertCircle className="h-3.5 w-3.5" />;
+  if (status === "requires_regeneration") return <RefreshCw className="h-3.5 w-3.5" />;
+  return <FileText className="h-3.5 w-3.5" />;
 }
 
 export default function DocumentationTab({ systemId, systemType }: DocumentationTabProps) {
@@ -62,43 +65,37 @@ export default function DocumentationTab({ systemId, systemType }: Documentation
   const [selectedDoc, setSelectedDoc] = useState<ComplianceDocumentation | null>(null);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
 
-  // Determine available regulations based on system type
-  const availableRegulations = systemType ? [systemType] : ['EU AI Act', 'UK AI Act', 'MAS'];
-  
-  // Available document types (EU AI Act does not include Algorithm Impact Assessment)
+  const availableRegulations = systemType ? [systemType] : ["EU AI Act", "UK AI Act", "MAS"];
+
   const allDocumentTypes = [
-    'Compliance Summary',
-    'AI System Card',
-    'Technical Documentation',
-    'Data Protection Impact Assessment',
-    'Risk Assessment Report',
-    'Algorithm Impact Assessment',
-    'Audit Trail'
+    "Compliance Summary",
+    "AI System Card",
+    "Technical Documentation",
+    "Data Protection Impact Assessment",
+    "Risk Assessment Report",
+    "Algorithm Impact Assessment",
+    "Audit Trail",
   ];
-  const documentTypes = systemType === 'EU AI Act'
-    ? allDocumentTypes.filter((t) => t !== 'Algorithm Impact Assessment')
-    : allDocumentTypes;
+  const documentTypes = systemType === "EU AI Act" ? allDocumentTypes.filter((t) => t !== "Algorithm Impact Assessment") : allDocumentTypes;
 
   useEffect(() => {
     fetchDocumentation();
   }, [systemId]);
 
-  // When EU AI Act: if user had Algorithm Impact Assessment selected, reset to Compliance Summary
   useEffect(() => {
-    if (systemType === 'EU AI Act' && selectedDocumentType === 'Algorithm Impact Assessment') {
-      setSelectedDocumentType('Compliance Summary');
+    if (systemType === "EU AI Act" && selectedDocumentType === "Algorithm Impact Assessment") {
+      setSelectedDocumentType("Compliance Summary");
     }
   }, [systemType, selectedDocumentType]);
 
   const fetchDocumentation = async () => {
     try {
-      // Don't show loading spinner on auto-refresh
       if (documentation.length === 0) {
         setLoading(true);
       }
       setError(null);
       const res = await backendFetch(`/api/ai-systems/${systemId}/documentation`);
-      
+
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.error || "Failed to fetch documentation");
@@ -107,7 +104,6 @@ export default function DocumentationTab({ systemId, systemType }: Documentation
       const data = await res.json();
       setDocumentation(data.documentation || []);
     } catch (err: any) {
-      console.error("Error fetching documentation:", err);
       setError(err.message || "Failed to load documentation");
     } finally {
       setLoading(false);
@@ -128,7 +124,7 @@ export default function DocumentationTab({ systemId, systemType }: Documentation
         method: "POST",
         body: JSON.stringify({
           regulation_type: selectedRegulation,
-          document_type: selectedDocumentType
+          document_type: selectedDocumentType,
         }),
       });
 
@@ -142,18 +138,10 @@ export default function DocumentationTab({ systemId, systemType }: Documentation
         throw new Error(err.error || "Failed to generate documentation");
       }
 
-      const data = await res.json();
-      
-      // Refresh documentation list
       await fetchDocumentation();
-      
-      // Show success message
       toast.success("Document generated successfully");
-      
-      // Reset selection
       setSelectedRegulation("");
     } catch (err: any) {
-      console.error("Error generating documentation:", err);
       setError(err.message || "Failed to generate documentation");
     } finally {
       setGenerating(false);
@@ -164,92 +152,74 @@ export default function DocumentationTab({ systemId, systemType }: Documentation
     try {
       const { data } = await supabase.auth.getSession();
       const accessToken = data.session?.access_token;
-  
+
       if (!accessToken) {
         toast.error("Not authenticated");
         return;
       }
-  
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/documentation/${docId}/pdf`,
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        }
-      );
-  
+
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/documentation/${docId}/pdf`, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+
       if (!res.ok) {
         throw new Error("Failed to download PDF");
       }
-  
+
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
-  
+
       const a = document.createElement("a");
       a.href = url;
       a.download = `documentation-${docId}.pdf`;
       document.body.appendChild(a);
       a.click();
-  
+
       a.remove();
       window.URL.revokeObjectURL(url);
       toast.success("PDF downloaded successfully");
     } catch (err) {
-      console.error(err);
       toast.error("PDF download failed");
     }
   };
-  
-  
-  
-  
 
   const handleView = async (doc: ComplianceDocumentation) => {
     setSelectedDoc(doc);
-    
-    // Fetch PDF for viewing
+
     try {
       const { data } = await supabase.auth.getSession();
       const accessToken = data.session?.access_token;
-      
+
       if (!accessToken) {
-        console.error('No access token found');
         return;
       }
-      
-      // Fetch PDF and create blob URL
-      const pdfResponse = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/documentation/${doc.id}/pdf`,
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        }
-      );
-      
+
+      const pdfResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/documentation/${doc.id}/pdf`, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+
       if (pdfResponse.ok) {
         const blob = await pdfResponse.blob();
         const url = window.URL.createObjectURL(blob);
         setPdfUrl(url);
-      } else {
-        console.error('Failed to fetch PDF for viewing');
       }
     } catch (error) {
-      console.error('Error loading PDF for view:', error);
+      console.error("Error loading PDF for view:", error);
     }
   };
 
   const handleCloseView = () => {
     setSelectedDoc(null);
-    // Clean up the PDF URL blob
     if (pdfUrl) {
       window.URL.revokeObjectURL(pdfUrl);
       setPdfUrl(null);
     }
   };
 
-  // Group documentation by regulation type
   const docsByRegulation = documentation.reduce((acc, doc) => {
     if (!acc[doc.regulation_type]) {
       acc[doc.regulation_type] = [];
@@ -260,8 +230,9 @@ export default function DocumentationTab({ systemId, systemType }: Documentation
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="flex items-center justify-center py-16">
+        <Loader2 className="h-8 w-8 animate-spin text-[#3B82F6]" />
+        <p className="ml-3 text-[15px] text-[#667085]">Loading documentation...</p>
       </div>
     );
   }
@@ -269,343 +240,252 @@ export default function DocumentationTab({ systemId, systemType }: Documentation
   if (selectedDoc) {
     return (
       <div className="space-y-6">
-        <div className="flex items-center justify-between pb-4 border-b border-border/30">
+        <div className="flex items-center justify-between border-b border-[#E2E8F0] pb-4">
           <div>
-            <h3 className="text-3xl font-bold text-foreground mb-2">
+            <h3 className="text-[20px] font-bold text-[#1E293B]">
               {selectedDoc.regulation_type} - Version {selectedDoc.version}
             </h3>
-            <p className="text-sm text-muted-foreground font-medium">
-              Generated: {new Date(selectedDoc.created_at).toLocaleString()}
-            </p>
+            <p className="mt-1 text-[13px] text-[#667085]">Generated: {new Date(selectedDoc.created_at).toLocaleString()}</p>
           </div>
-          <div className="flex gap-3">
-            <Button
-              variant="outline"
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
               onClick={handleCloseView}
-              className="border-border/50 bg-secondary/30 text-foreground hover:bg-secondary/50 rounded-xl shadow-sm hover:shadow-md transition-all font-semibold px-4 py-2"
+              className="flex h-9 items-center gap-2 rounded-[10px] border border-[#CBD5E1] bg-white px-4 text-[14px] font-semibold text-[#475569] hover:bg-[#F8FAFC] transition-all"
             >
+              <X className="h-4 w-4" />
               Close
-            </Button>
-            <Button
+            </button>
+            <button
+              type="button"
               onClick={() => handleDownloadPDF(selectedDoc.id)}
-              variant="hero"
-              size="lg"
-              className="rounded-xl shadow-lg hover:shadow-xl transition-all"
+              className="flex h-9 items-center gap-2 rounded-[10px] bg-[#3B82F6] px-4 text-[14px] font-semibold text-white shadow-md hover:bg-[#2563EB] hover:shadow-lg transition-all"
             >
-              <Download className="h-5 w-5 mr-2" />
+              <Download className="h-4 w-4" />
               Download PDF
-            </Button>
+            </button>
           </div>
         </div>
 
-        <Card className="glass-panel shadow-elevated border-border/50 rounded-2xl overflow-hidden">
-          <CardContent className="pt-6 p-0">
-            {pdfUrl ? (
-              <div className="w-full rounded-xl overflow-hidden border border-border/30 shadow-inner bg-gray-100" style={{ minHeight: '600px', height: 'calc(100vh - 300px)' }}>
-                <object
-                  data={`${pdfUrl}#toolbar=0&navpanes=0`}
-                  type="application/pdf"
-                  className="w-full h-full"
-                  style={{ minHeight: '600px' }}
-                >
-                  <div className="flex items-center justify-center h-full p-8">
-                    <div className="text-center">
-                      <p className="text-muted-foreground mb-4">PDF cannot be displayed in your browser.</p>
-                      <Button
-                        onClick={() => handleDownloadPDF(selectedDoc.id)}
-                        variant="hero"
-                        size="lg"
-                      >
-                        <Download className="h-5 w-5 mr-2" />
-                        Download PDF to View
-                      </Button>
-                    </div>
+        <div className="overflow-hidden rounded-[15px] border border-[#CBD5E1] bg-white shadow-[0px_3.5px_7px_-1.75px_rgba(23,23,23,0.10),0px_1.7px_3.5px_-1.75px_rgba(23,23,23,0.06)]">
+          {pdfUrl ? (
+            <div className="w-full bg-[#F1F5F9]" style={{ minHeight: "600px", height: "calc(100vh - 350px)" }}>
+              <object data={`${pdfUrl}#toolbar=0&navpanes=0`} type="application/pdf" className="h-full w-full" style={{ minHeight: "600px" }}>
+                <div className="flex h-full items-center justify-center p-8">
+                  <div className="text-center">
+                    <p className="text-[#667085] mb-4">PDF cannot be displayed in your browser.</p>
+                    <button
+                      type="button"
+                      onClick={() => handleDownloadPDF(selectedDoc.id)}
+                      className="flex items-center gap-2 rounded-[10px] bg-[#3B82F6] px-5 py-2.5 text-[14px] font-semibold text-white shadow-md hover:bg-[#2563EB] hover:shadow-lg transition-all mx-auto"
+                    >
+                      <Download className="h-4 w-4" />
+                      Download PDF to View
+                    </button>
                   </div>
-                </object>
-              </div>
-            ) : (
-              <div className="flex items-center justify-center h-[600px]">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                </div>
+              </object>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center" style={{ height: "600px" }}>
+              <Loader2 className="h-8 w-8 animate-spin text-[#3B82F6]" />
+            </div>
+          )}
+        </div>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      {/* Info Alert about Auto-Generation */}
       {documentation.length === 0 && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center gap-3 glass-panel">
-          <Info className="h-5 w-5 text-blue-500 flex-shrink-0" />
-          <p className="text-blue-700">
-            Documentation is automatically generated when you create an assessment. If you don't see it yet, it may still be generating in the background. 
-            Use the Refresh button to check for new documentation.
+        <div className="flex items-center gap-3 rounded-[10px] border border-[#93C5FD] bg-[#EFF6FF] px-4 py-3">
+          <Info className="h-5 w-5 flex-shrink-0 text-[#3B82F6]" />
+          <p className="text-[13px] text-[#1E40AF]">
+            Documentation is automatically generated when you create an assessment. If you don't see it yet, it may still be generating in the
+            background. Use the Refresh button to check for new documentation.
           </p>
         </div>
       )}
 
-      {/* Generate New Documentation */}
-      <Card className="glass-panel shadow-elevated border-border/50 rounded-2xl overflow-hidden hover:shadow-blue transition-all duration-300">
-        <CardHeader className="pb-4 border-b border-border/30">
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-foreground text-2xl font-bold mb-2">Generate Compliance Documentation</CardTitle>
-              <CardDescription className="text-muted-foreground text-base">
-                Generate automated compliance documentation based on system data and approved risk assessments
-              </CardDescription>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={fetchDocumentation}
-              disabled={loading}
-              className="border-border/50 bg-secondary/30 text-foreground hover:bg-secondary/50 rounded-xl shadow-sm hover:shadow-md transition-all"
-            >
-              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-              Refresh
-            </Button>
+      <section className="overflow-hidden rounded-[15px] border border-[#CBD5E1] bg-white shadow-[0px_3.5px_7px_-1.75px_rgba(23,23,23,0.10),0px_1.7px_3.5px_-1.75px_rgba(23,23,23,0.06)]">
+        <div className="flex items-center justify-between border-b border-[#E2E8F0] px-6 py-4">
+          <div>
+            <h2 className="text-[17px] font-bold text-[#1E293B]">Generate Compliance Documentation</h2>
+            <p className="mt-1 text-[12px] text-[#667085]">Generate automated compliance documentation based on system data and approved risk assessments</p>
           </div>
-        </CardHeader>
-        <CardContent className="space-y-6 pt-6">
+          <button
+            type="button"
+            onClick={fetchDocumentation}
+            disabled={loading}
+            className="flex h-9 items-center gap-2 rounded-[10px] border border-[#CBD5E1] bg-white px-4 text-[13px] font-semibold text-[#475569] hover:bg-[#F8FAFC] transition-all disabled:opacity-50"
+          >
+            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+            Refresh
+          </button>
+        </div>
+
+        <div className="p-6">
           {error && (
-            <div className={`rounded-xl p-5 border-2 ${
-              error.toLowerCase().includes('prohibited')
-                ? 'bg-gradient-to-br from-amber-50 to-orange-50 border-amber-200'
-                : 'bg-red-50 border-red-200'
-            }`}>
-              <div className="flex items-start gap-4">
-                <div className={`flex-shrink-0 p-2 rounded-lg ${
-                  error.toLowerCase().includes('prohibited') ? 'bg-amber-100' : 'bg-red-100'
-                }`}>
-                  <AlertCircle className={`h-6 w-6 ${
-                    error.toLowerCase().includes('prohibited') ? 'text-amber-600' : 'text-red-600'
-                  }`} />
-                </div>
-                <div className="flex-1 min-w-0 space-y-3">
-                  <div>
-                    <h4 className={`text-base font-semibold mb-1 ${
-                      error.toLowerCase().includes('prohibited') ? 'text-amber-900' : 'text-red-900'
-                    }`}>
-                      {error.toLowerCase().includes('prohibited') ? 'Prohibited System' : 'Error'}
-                    </h4>
-                    <p className={`text-sm leading-relaxed ${
-                      error.toLowerCase().includes('prohibited') ? 'text-amber-800' : 'text-red-700'
-                    }`}>
-                      {error.toLowerCase().includes('prohibited')
-                        ? "This system has been classified as 'Prohibited' under the EU AI Act. Documentation cannot be generated for prohibited systems."
-                        : error
-                      }
-                    </p>
-                  </div>
-                  {error.toLowerCase().includes('prohibited') && (
-                    <div className="pt-2 border-t border-amber-300">
-                      <p className="text-xs font-semibold text-amber-900 mb-2">Next Steps:</p>
-                      <div className="space-y-2">
-                        <div className="flex items-start gap-2.5">
-                          <div className="flex-shrink-0 w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center mt-0.5">
-                            <span className="text-xs font-bold text-primary">1</span>
-                          </div>
-                          <p className="text-xs text-foreground leading-relaxed pt-0.5">
-                            Review your EU AI Act compliance assessment
-                          </p>
-                        </div>
-                        <div className="flex items-start gap-2.5">
-                          <div className="flex-shrink-0 w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center mt-0.5">
-                            <span className="text-xs font-bold text-primary">2</span>
-                          </div>
-                          <p className="text-xs text-foreground leading-relaxed pt-0.5">
-                            Remove prohibited practices from your system
-                          </p>
-                        </div>
-                        <div className="flex items-start gap-2.5">
-                          <div className="flex-shrink-0 w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center mt-0.5">
-                            <span className="text-xs font-bold text-primary">3</span>
-                          </div>
-                          <p className="text-xs text-foreground leading-relaxed pt-0.5">
-                            Re-submit the compliance assessment with corrected information
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
+            <div
+              className={`mb-6 rounded-[10px] border px-4 py-3 ${
+                error.toLowerCase().includes("prohibited") ? "border-[#F2CD69] bg-[#FFF3CF]" : "border-[#F1A4A4] bg-[#FFE0E0]"
+              }`}
+            >
+              <div className="flex items-start gap-3">
+                <AlertCircle className={`h-5 w-5 flex-shrink-0 ${error.toLowerCase().includes("prohibited") ? "text-[#A97B00]" : "text-[#C71F1F]"}`} />
+                <div>
+                  <p className={`text-[13px] font-semibold ${error.toLowerCase().includes("prohibited") ? "text-[#A97B00]" : "text-[#C71F1F]"}`}>
+                    {error.toLowerCase().includes("prohibited") ? "Prohibited System" : "Error"}
+                  </p>
+                  <p className={`mt-1 text-[12px] ${error.toLowerCase().includes("prohibited") ? "text-[#92700C]" : "text-[#991B1B]"}`}>
+                    {error.toLowerCase().includes("prohibited")
+                      ? "This system has been classified as 'Prohibited' under the EU AI Act. Documentation cannot be generated for prohibited systems."
+                      : error}
+                  </p>
                 </div>
               </div>
             </div>
           )}
 
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label className="text-sm font-semibold text-foreground uppercase tracking-wider">Regulation Type</label>
-                <Select value={selectedRegulation} onValueChange={setSelectedRegulation}>
-                  <SelectTrigger className="w-full bg-background border-border/50 text-foreground rounded-xl shadow-sm hover:shadow-md transition-all h-12">
-                    <SelectValue placeholder="Select regulation" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-background border-border/50 rounded-xl shadow-lg">
-                    {availableRegulations.map((reg) => (
-                      <SelectItem key={reg} value={reg} className="text-foreground rounded-lg">
-                        {reg}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-semibold text-foreground uppercase tracking-wider">Document Type</label>
-                <Select value={selectedDocumentType} onValueChange={setSelectedDocumentType}>
-                  <SelectTrigger className="w-full bg-background border-border/50 text-foreground rounded-xl shadow-sm hover:shadow-md transition-all h-12">
-                    <SelectValue placeholder="Select document type" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-background border-border/50 rounded-xl shadow-lg">
-                    {documentTypes.map((type) => (
-                      <SelectItem key={type} value={type} className="text-foreground rounded-lg">
-                        {type}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div>
+              <label className="mb-2 block text-[12px] font-semibold text-[#64748B]">Regulation Type</label>
+              <div className="relative">
+                <select
+                  value={selectedRegulation}
+                  onChange={(e) => setSelectedRegulation(e.target.value)}
+                  className="h-11 w-full appearance-none rounded-[10px] border border-[#CBD5E1] bg-white px-4 pr-10 text-[14px] text-[#1E293B] outline-none transition-all focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6]/20"
+                >
+                  <option value="">Select regulation</option>
+                  {availableRegulations.map((reg) => (
+                    <option key={reg} value={reg}>
+                      {reg}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#94A3B8] pointer-events-none" />
               </div>
             </div>
-            <Button
-              onClick={handleGenerate}
-              disabled={!selectedRegulation || generating}
-              variant="hero"
-              size="lg"
-              className="rounded-xl w-full shadow-lg hover:shadow-xl transition-all"
-            >
-              {generating ? (
-                <>
-                  <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                  Generating...
-                </>
-              ) : (
-                <>
-                  <FileText className="h-5 w-5 mr-2" />
-                  Generate Documentation
-                </>
-              )}
-            </Button>
+            <div>
+              <label className="mb-2 block text-[12px] font-semibold text-[#64748B]">Document Type</label>
+              <div className="relative">
+                <select
+                  value={selectedDocumentType}
+                  onChange={(e) => setSelectedDocumentType(e.target.value)}
+                  className="h-11 w-full appearance-none rounded-[10px] border border-[#CBD5E1] bg-white px-4 pr-10 text-[14px] text-[#1E293B] outline-none transition-all focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6]/20"
+                >
+                  {documentTypes.map((type) => (
+                    <option key={type} value={type}>
+                      {type}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#94A3B8] pointer-events-none" />
+              </div>
+            </div>
           </div>
-        </CardContent>
-      </Card>
 
-      {/* Documentation List */}
-      <div className="space-y-6">
-        <div className="flex items-center justify-between pb-4 border-b border-border/30">
-          <h3 className="text-3xl font-bold text-foreground">Generated Documentation</h3>
+          <button
+            type="button"
+            onClick={handleGenerate}
+            disabled={!selectedRegulation || generating}
+            className="mt-6 flex h-11 w-full items-center justify-center gap-2 rounded-[10px] bg-[#3B82F6] text-[15px] font-semibold text-white shadow-md hover:bg-[#2563EB] hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {generating ? (
+              <>
+                <Loader2 className="h-5 w-5 animate-spin" />
+                Generating...
+              </>
+            ) : (
+              <>
+                <FileText className="h-5 w-5" />
+                Generate Documentation
+              </>
+            )}
+          </button>
+        </div>
+      </section>
+
+      <section>
+        <div className="mb-4 border-b border-[#E2E8F0] pb-3">
+          <h3 className="text-[18px] font-bold text-[#1E293B]">Generated Documentation</h3>
         </div>
 
         {documentation.length === 0 ? (
-          <Card className="glass-panel shadow-elevated border-border/50 rounded-2xl">
-            <CardContent className="pt-6 text-center py-16">
-              <div className="p-4 bg-secondary/20 rounded-full w-20 h-20 mx-auto mb-6 flex items-center justify-center">
-                <FileText className="h-10 w-10 text-muted-foreground" />
-              </div>
-              <p className="text-foreground font-semibold text-lg mb-2">No documentation generated yet</p>
-              <p className="text-sm text-muted-foreground">
-                Use the form above to generate compliance documentation
-              </p>
-            </CardContent>
-          </Card>
+          <div className="overflow-hidden rounded-[15px] border border-[#CBD5E1] bg-white py-12 text-center shadow-[0px_3.5px_7px_-1.75px_rgba(23,23,23,0.10),0px_1.7px_3.5px_-1.75px_rgba(23,23,23,0.06)]">
+            <FileText className="mx-auto h-12 w-12 text-[#CBD5E1]" />
+            <p className="mt-3 text-[15px] font-medium text-[#667085]">No documentation generated yet</p>
+            <p className="mt-1 text-[13px] text-[#94A3B8]">Use the form above to generate compliance documentation</p>
+          </div>
         ) : (
-          Object.entries(docsByRegulation).map(([regulation, docs]) => (
-            <div key={regulation} className="space-y-4">
-              <h4 className="text-xl font-bold text-foreground flex items-center gap-3">
-                <div className="h-1 w-1 rounded-full bg-primary"></div>
-                {regulation}
-              </h4>
-              {docs.map((doc) => (
-                <Card
-                  key={doc.id}
-                  className="glass-panel shadow-elevated border-border/50 rounded-2xl overflow-hidden hover:shadow-blue hover:-translate-y-1 transition-all duration-300"
-                >
-                  <CardContent className="pt-6">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-6 flex-1">
-                        <div className="p-3 bg-primary/10 rounded-xl">
-                          <FileText className="h-6 w-6 text-primary" />
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-2 flex-wrap">
-                            <span className="font-bold text-foreground text-lg">
-                              Version {doc.version}
-                            </span>
-                            {doc.document_type && doc.document_type !== 'Compliance Summary' && (
-                              <Badge variant="outline" className="bg-secondary/30 text-foreground border-border/50 text-xs font-semibold px-3 py-1 rounded-full shadow-sm">
-                                {doc.document_type}
-                              </Badge>
-                            )}
-                            <Badge
-                              variant="outline"
-                              className={
-                                doc.status === 'current'
-                                  ? "bg-gradient-to-r from-emerald-50 to-emerald-100/80 text-emerald-700 border-emerald-200/60 font-semibold px-3 py-1.5 rounded-full shadow-md hover:shadow-lg transition-all flex items-center gap-1.5"
-                                  : doc.status === 'requires_regeneration'
-                                  ? "bg-gradient-to-r from-red-50 to-red-100/80 text-red-700 border-red-200/60 font-semibold px-3 py-1.5 rounded-full shadow-md hover:shadow-lg transition-all flex items-center gap-1.5"
-                                  : "bg-gradient-to-r from-amber-50 to-amber-100/80 text-amber-700 border-amber-200/60 font-semibold px-3 py-1.5 rounded-full shadow-md hover:shadow-lg transition-all flex items-center gap-1.5"
-                              }
-                            >
-                              {doc.status === 'current' ? (
-                                <>
-                                  <CheckCircle2 className="h-4 w-4" />
-                                  Current
-                                </>
-                              ) : doc.status === 'requires_regeneration' ? (
-                                <>
-                                  <RefreshCw className="h-4 w-4" />
-                                  Requires Regeneration
-                                </>
-                              ) : (
-                                <>
-                                  <AlertCircle className="h-4 w-4" />
-                                  Outdated
-                                </>
-                              )}
-                            </Badge>
+          <div className="space-y-6">
+            {Object.entries(docsByRegulation).map(([regulation, docs]) => (
+              <div key={regulation}>
+                <h4 className="mb-3 flex items-center gap-2 text-[15px] font-bold text-[#1E293B]">
+                  <div className="h-1.5 w-1.5 rounded-full bg-[#3B82F6]" />
+                  {regulation}
+                </h4>
+                <div className="space-y-3">
+                  {docs.map((doc) => (
+                    <article
+                      key={doc.id}
+                      className="overflow-hidden rounded-[12px] border border-[#E2E8F0] bg-white p-4 shadow-sm hover:shadow-md hover:border-[#CBD5E1] transition-all"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-[10px] bg-[#EAF4FF]">
+                            <FileText className="h-5 w-5 text-[#3B82F6]" />
                           </div>
-                          <p className="text-sm text-muted-foreground font-medium">
-                            Generated: {new Date(doc.created_at).toLocaleString()}
-                            {doc.ai_system_version && ` • System v${doc.ai_system_version}`}
-                            {doc.risk_assessment_version && ` • Risk Assessment v${doc.risk_assessment_version}`}
-                          </p>
+                          <div>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-[14px] font-bold text-[#1E293B]">Version {doc.version}</span>
+                              {doc.document_type && doc.document_type !== "Compliance Summary" && (
+                                <span className="rounded-full bg-[#F1F5F9] px-2.5 py-0.5 text-[11px] font-semibold text-[#64748B]">{doc.document_type}</span>
+                              )}
+                              <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[10px] font-bold ${statusClasses(doc.status)}`}>
+                                {statusIcon(doc.status)}
+                                {doc.status === "current" ? "Current" : doc.status === "outdated" ? "Outdated" : "Regenerate"}
+                              </span>
+                            </div>
+                            <p className="mt-0.5 text-[12px] text-[#667085]">
+                              Generated: {new Date(doc.created_at).toLocaleString()}
+                              {doc.ai_system_version && ` • System v${doc.ai_system_version}`}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleView(doc)}
+                            className="flex items-center gap-1.5 rounded-[8px] border border-[#3B82F6]/40 bg-[#3B82F6]/5 px-3 py-1.5 text-[12px] font-semibold text-[#3B82F6] hover:bg-[#3B82F6]/10 hover:border-[#3B82F6]/60 transition-all"
+                          >
+                            View
+                          </button>
+                          {doc.status === "outdated" && (
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                setSelectedRegulation(doc.regulation_type);
+                                setSelectedDocumentType(doc.document_type || "Compliance Summary");
+                                await handleGenerate();
+                              }}
+                              className="flex items-center gap-1.5 rounded-[8px] border border-[#CBD5E1] bg-white px-3 py-1.5 text-[12px] font-semibold text-[#475569] hover:bg-[#F8FAFC] transition-all"
+                            >
+                              <RefreshCw className="h-3.5 w-3.5" />
+                              Regenerate
+                            </button>
+                          )}
                         </div>
                       </div>
-                      <div className="flex gap-3">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleView(doc)}
-                          className="border-primary/40 bg-primary/5 text-primary hover:bg-primary/10 hover:border-primary/60 hover:shadow-md transition-all font-semibold rounded-xl px-4 py-2"
-                        >
-                          View
-                        </Button>
-                        {doc.status === 'outdated' && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={async () => {
-                              setSelectedRegulation(doc.regulation_type);
-                              setSelectedDocumentType(doc.document_type || 'Compliance Summary');
-                              await handleGenerate();
-                            }}
-                            className="border-secondary/40 bg-secondary/30 text-foreground hover:bg-secondary/50 hover:border-primary/40 hover:shadow-md transition-all font-semibold rounded-xl px-4 py-2"
-                          >
-                            <RefreshCw className="h-4 w-4 mr-1" />
-                            Regenerate
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ))
+                    </article>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
         )}
-      </div>
+      </section>
     </div>
   );
 }

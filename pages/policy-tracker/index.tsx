@@ -1,48 +1,49 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter, usePathname } from "next/navigation";
-import Link from "next/link";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Plus, ShieldCheck, FileText, Globe, Building2, Loader2, ExternalLink, Menu, X, LayoutDashboard, Layers, TestTube } from "lucide-react";
-import { supabase } from "@/utils/supabase/client";
+import Head from "next/head";
+import Image from "next/image";
+import { useMemo, useState, useEffect } from "react";
+import { useRouter } from "next/router";
 import { backendFetch } from "@/utils/backend-fetch";
+import { supabase } from "@/utils/supabase/client";
 import Sidebar from "@/components/sidebar";
-import type { Policy, ComplianceStatus } from "../../types/policy";
-import Head from 'next/head';
+import {
+  ArrowUpRight,
+  ChevronDown,
+  FileText,
+  Globe,
+  Building2,
+  LogOut,
+  ShieldCheck,
+  UserCircle2,
+  Loader2,
+  ExternalLink,
+} from "lucide-react";
+import type { Policy } from "../../types/policy";
+
+type PolicyType = "External" | "Internal";
+type PolicyStatus = "Active" | "Draft" | "Archived" | "All";
+
+function typeClasses(type: PolicyType): string {
+  if (type === "External") return "bg-[#EAF4FF] text-[#2573C2]";
+  return "bg-[#F3E8FF] text-[#7C3AED]";
+}
+
+function statusClasses(status: string | undefined): string {
+  if (status === "Active") return "border-[#8EC4F8] bg-[#D9EEFF] text-[#2573C2]";
+  if (status === "Draft") return "border-[#F2CD69] bg-[#FFF3CF] text-[#A97B00]";
+  if (status === "Archived") return "border-[#CBD5E1] bg-[#F1F5F9] text-[#64748B]";
+  return "border-[#8EC4F8] bg-[#D9EEFF] text-[#2573C2]";
+}
 
 export default function PolicyTrackerPage() {
   const router = useRouter();
-  const pathname = usePathname();
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [externalPolicies, setExternalPolicies] = useState<Policy[]>([]);
-  const [internalPolicies, setInternalPolicies] = useState<Policy[]>([]);
-  const [loadingPolicies, setLoadingPolicies] = useState(true);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
-  // Navigation items matching the sidebar
-  const navItems = [
-    { label: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
-    { label: "Discovery", icon: Layers, href: "/discovery" },
-    { label: "Documentation", icon: FileText, href: "/documentation" },
-    { label: "Policy Tracker", icon: ShieldCheck, href: "/policy-tracker" },
-    { label: "Red Teaming", icon: TestTube, href: "/red-teaming" },
-  ];
-
-  // Prevent body scroll when mobile menu is open
-  useEffect(() => {
-    if (isMobileMenuOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, [isMobileMenuOpen]);
+  const [allPolicies, setAllPolicies] = useState<Policy[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [typeFilter, setTypeFilter] = useState<"all" | PolicyType>("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | PolicyStatus>("all");
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
 
   useEffect(() => {
     const init = async () => {
@@ -54,351 +55,288 @@ export default function PolicyTrackerPage() {
         return;
       }
 
-      setIsLoggedIn(true);
-      setIsLoading(false);
-
       await fetchPolicies();
     };
 
     init();
   }, [router]);
 
-
   const fetchPolicies = async () => {
     try {
-      setLoadingPolicies(true);
+      setLoading(true);
+      setError(null);
 
       const res = await backendFetch("/api/policies");
 
       if (!res.ok) {
-        throw new Error("Unauthorized");
+        throw new Error("Failed to fetch policies");
       }
 
       const data = await res.json();
-      setExternalPolicies(data.filter((p: Policy) => p.policy_type === "External"));
-      setInternalPolicies(data.filter((p: Policy) => p.policy_type === "Internal"));
+      setAllPolicies(data);
     } catch (err) {
-      console.error("Error fetching policies:", err);
+      const message = err instanceof Error ? err.message : "Unable to load policies";
+      setError(message);
     } finally {
-      setLoadingPolicies(false);
+      setLoading(false);
     }
   };
 
+  const policies = useMemo(() => {
+    return allPolicies.filter((policy) => {
+      const matchType = typeFilter === "all" || policy.policy_type === typeFilter;
+      const matchStatus = statusFilter === "all" || policy.status === statusFilter || (statusFilter === "Active" && policy.policy_type === "External");
+      return matchType && matchStatus;
+    });
+  }, [allPolicies, typeFilter, statusFilter]);
+
+  const metrics = useMemo(() => {
+    const total = allPolicies.length;
+    const external = allPolicies.filter((p) => p.policy_type === "External").length;
+    const internal = allPolicies.filter((p) => p.policy_type === "Internal").length;
+    const active = allPolicies.filter((p) => p.status === "Active" || p.policy_type === "External").length;
+    return { total, external, internal, active };
+  }, [allPolicies]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    router.push("/");
+    router.push("/sign-in");
   };
 
-
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
-          <p className="text-foreground">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[#F6F6F6] text-[#18181B]" style={{ fontFamily: "Inter, Plus Jakarta Sans, sans-serif" }}>
       <Head>
         <title>Policy Tracker | AI Governance</title>
-        <meta name="description" content="Track and manage AI regulations and organizational policies." />
+        <meta name="description" content="Track and manage AI regulations and organizational policies" />
       </Head>
       <Sidebar onLogout={handleLogout} />
-      
-      {/* Mobile Header */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 glass-panel shadow-soft border-b border-border/30">
-        <div className="flex items-center justify-between px-6 h-16">
-          <h1 className="text-xl font-bold text-foreground">
-            Policy <span className="gradient-text">Tracker</span>
-          </h1>
-          <button
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="p-2 text-foreground hover:bg-secondary/50 rounded-lg transition-colors"
-            aria-label="Toggle menu"
-          >
-            {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-          </button>
-        </div>
-      </div>
-
-      {/* Mobile Menu Overlay */}
-      {isMobileMenuOpen && (
-        <>
-          {/* Dark Overlay */}
-          <div
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden"
-            onClick={() => setIsMobileMenuOpen(false)}
-          />
-          
-          {/* Mobile Menu */}
-          <div className="lg:hidden fixed top-16 left-0 right-0 bottom-0 z-50 bg-background border-t border-border/30 overflow-y-auto">
-            <div className="px-6 py-6">
-              <div className="flex flex-col gap-1">
-                {navItems.map(({ label, icon: Icon, href }) => {
-                  const isActive = pathname === href || pathname?.startsWith(href + "/");
-                  return (
-                    <Link
-                      key={label}
-                      href={href}
-                      onClick={() => setIsMobileMenuOpen(false)}
-                      className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
-                        isActive
-                          ? "bg-primary/10 text-primary font-medium"
-                          : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
-                      }`}
-                    >
-                      <Icon className="h-5 w-5 flex-shrink-0" />
-                      <span className="text-sm">{label}</span>
-                    </Link>
-                  );
-                })}
-                <div className="pt-4 mt-4 border-t border-border/30">
+      <div className="mx-auto w-full max-w-[1440px] lg:pl-[267px]">
+        <main className="flex-1">
+          <header className="flex h-[83px] items-center justify-between border-b border-[#E4E4E7] px-9">
+            <h1 className="text-[22px] font-semibold tracking-[0.5px]">Policy Tracker</h1>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setAccountMenuOpen((prev) => !prev)}
+                className="flex items-center gap-2 rounded-full border border-[#E4E4E7] bg-white px-2 py-1"
+              >
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#E5E7EB]">
+                  <UserCircle2 className="h-6 w-6 text-[#6B7280]" />
+                </div>
+                <ChevronDown className="h-4 w-4 text-[#667085]" />
+              </button>
+              {accountMenuOpen && (
+                <div className="absolute right-0 z-20 mt-2 w-36 rounded-[10px] border border-[#E4E4E7] bg-white p-1 shadow-lg">
                   <button
+                    type="button"
                     onClick={() => {
-                      setIsMobileMenuOpen(false);
-                      handleLogout();
+                      setAccountMenuOpen(false);
+                      void handleLogout();
                     }}
-                    className="flex items-center gap-3 px-4 py-3 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 transition-all w-full text-left"
+                    className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-[14px] text-[#E72C2C] hover:bg-[#FFF1F2]"
                   >
-                    <span className="text-sm font-medium">Logout</span>
+                    <LogOut className="h-4 w-4" />
+                    Logout
+                  </button>
+                </div>
+              )}
+            </div>
+          </header>
+
+          <section className="px-9 py-7">
+            <div className="mb-8 grid grid-cols-2 gap-[22px] xl:grid-cols-4">
+              <MetricCard label="Total Policies" value={String(metrics.total)} footer="All Policies" valueColor="#0D1C2E" iconType="total" />
+              <MetricCard label="External Policies" value={String(metrics.external)} footer="Regulatory Frameworks" valueColor="#2573C2" iconType="external" />
+              <MetricCard label="Internal Policies" value={String(metrics.internal)} footer="Organization Policies" valueColor="#7C3AED" iconType="internal" />
+              <MetricCard label="Active Policies" value={String(metrics.active)} footer="Currently Enforced" valueColor="#178746" iconType="active" />
+            </div>
+
+            <section className="overflow-hidden rounded-[15px] border border-[#CBD5E1] bg-white shadow-[0px_3.5px_7px_-1.75px_rgba(23,23,23,0.10),0px_1.7px_3.5px_-1.75px_rgba(23,23,23,0.06)]">
+              <div className="flex flex-col gap-4 px-[20.9px] pb-3 pt-4 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <h2 className="text-[17.5px] font-extrabold tracking-[-0.01em] text-[#1E293B]">Policy Overview</h2>
+                  <p className="text-[11px] text-[#667085]">Track external AI regulations and manage internal organizational policies</p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <label className="flex h-9 items-center gap-2 rounded-[10px] border border-[#CBD5E1] px-3 text-[12px] font-bold text-[#475569]">
+                    <ShieldCheck className="h-4 w-4" />
+                    <select
+                      value={typeFilter}
+                      onChange={(e) => setTypeFilter(e.target.value as "all" | PolicyType)}
+                      className="bg-transparent text-[12px] font-bold outline-none"
+                    >
+                      <option value="all">All Types</option>
+                      <option value="External">External</option>
+                      <option value="Internal">Internal</option>
+                    </select>
+                  </label>
+                  <label className="flex h-9 items-center gap-2 rounded-[10px] border border-[#CBD5E1] px-3 text-[12px] font-bold text-[#475569]">
+                    <FileText className="h-4 w-4" />
+                    <select
+                      value={statusFilter}
+                      onChange={(e) => setStatusFilter(e.target.value as "all" | PolicyStatus)}
+                      className="bg-transparent text-[12px] font-bold outline-none"
+                    >
+                      <option value="all">All Status</option>
+                      <option value="Active">Active</option>
+                      <option value="Draft">Draft</option>
+                      <option value="Archived">Archived</option>
+                    </select>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => router.push("/policy-tracker/new")}
+                    className="flex h-9 items-center gap-2 rounded-[10px] bg-[#3B82F6] px-4 text-[15px] font-semibold text-white shadow-md hover:bg-[#2563EB] hover:shadow-lg transition-all"
+                  >
+                    <span className="text-[18px] leading-none">+</span>
+                    Create Policy
                   </button>
                 </div>
               </div>
-            </div>
-          </div>
-        </>
-      )}
-      
-      <div className={`p-6 lg:p-8 ${isLoggedIn ? 'lg:pl-72 pt-24' : 'pt-24 lg:pt-6'}`}>
-        <div className="max-w-7xl mx-auto space-y-8">
-          {/* Header */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="hidden lg:block text-4xl lg:text-5xl font-extrabold text-foreground">
-                  Policy <span className="gradient-text">Tracker</span>
-                </h1>
-                <p className="text-muted-foreground mt-3 text-base lg:text-lg font-medium">
-                  Track external AI regulations and manage internal organizational policies
-                </p>
-              </div>
-            </div>
-          </div>
 
-          {/* External Policies Section */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Globe className="h-5 w-5 text-primary" />
-                <h2 className="text-2xl font-bold text-foreground">External Policies</h2>
-              </div>
-            </div>
-            <p className="text-muted-foreground text-sm">
-              Preloaded regulatory frameworks. These policies are read-only and represent official AI regulations.
-            </p>
-
-            {loadingPolicies ? (
-              <Card className="glass-panel shadow-elevated border-border/50">
-                <CardContent className="pt-6">
-                  <div className="flex items-center justify-center py-8">
-                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                  </div>
-                </CardContent>
-              </Card>
-            ) : externalPolicies.length === 0 ? (
-              <Card className="glass-panel shadow-elevated border-border/50">
-                <CardContent className="pt-6">
-                  <p className="text-foreground text-center py-8">No external policies found.</p>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid gap-4 md:grid-cols-3">
-                {externalPolicies.map((policy) => (
-                  <Card
-                    key={policy.id}
-                    className="glass-panel shadow-elevated border-border/50 hover:shadow-blue hover:border-primary/30 transition-all cursor-pointer hover:-translate-y-1"
-                    onClick={() => router.push(`/policy-tracker/${policy.id}`)}
+              <div className="overflow-x-auto">
+                <div className="min-w-[920px]">
+                  <div
+                    className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1.2fr] border-y border-[#CBD5E1] bg-[#F8FAFC] px-[20.9px] py-3 text-[12.2px] font-bold text-[#1E293B]"
+                    style={{ fontFamily: "Plus Jakarta Sans, Inter, sans-serif" }}
                   >
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <CardTitle className="text-foreground flex items-center gap-2">
-                            <ShieldCheck className="h-5 w-5 text-primary" />
-                            {policy.name}
-                          </CardTitle>
-                          {policy.jurisdiction && (
-                            <Badge className="mt-2 bg-purple-50 text-purple-700 border-purple-200 font-medium px-2.5 py-1 rounded-full shadow-sm hover:shadow-md transition-all">
-                              {policy.jurisdiction}
-                            </Badge>
+                    <span>Policy Name</span>
+                    <span>Type</span>
+                    <span>Jurisdiction / Owner</span>
+                    <span>Version</span>
+                    <span>Status</span>
+                    <span>Actions</span>
+                  </div>
+
+                  {loading && (
+                    <div className="flex items-center gap-2 px-[20.9px] py-6 text-[15px] text-[#667085]">
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                      Loading policies...
+                    </div>
+                  )}
+                  {!loading && error && <div className="px-[20.9px] py-6 text-[15px] font-semibold text-[#E72C2C]">{error}</div>}
+                  {!loading && !error && policies.length === 0 && (
+                    <div className="px-[20.9px] py-12 text-center">
+                      <FileText className="mx-auto h-12 w-12 text-[#CBD5E1]" />
+                      <p className="mt-3 text-[15px] text-[#667085]">No policies found.</p>
+                      <button
+                        type="button"
+                        onClick={() => router.push("/policy-tracker/new")}
+                        className="mt-4 inline-flex items-center gap-2 rounded-[10px] bg-[#3B82F6] px-4 py-2 text-[14px] font-semibold text-white shadow-md hover:bg-[#2563EB] hover:shadow-lg transition-all"
+                      >
+                        <span className="text-[16px] leading-none">+</span>
+                        Create Your First Policy
+                      </button>
+                    </div>
+                  )}
+
+                  {!loading &&
+                    !error &&
+                    policies.map((policy) => (
+                      <article
+                        key={policy.id}
+                        className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1.2fr] items-center border-b border-[#E2E8F0] px-[20.9px] py-[10.5px] text-[13px] transition-colors hover:bg-[#F8FAFC] last:border-b-0"
+                        style={{ minHeight: "62.8px", fontFamily: "Plus Jakarta Sans, Inter, sans-serif" }}
+                      >
+                        <div className="min-w-0">
+                          <button
+                            type="button"
+                            onClick={() => router.push(`/policy-tracker/${policy.id}`)}
+                            className="flex items-center gap-2 text-left text-[14px] font-bold text-[#000000] hover:text-[#2573C2]"
+                          >
+                            {policy.policy_type === "External" ? (
+                              <Globe className="h-4 w-4 flex-shrink-0 text-[#2573C2]" />
+                            ) : (
+                              <Building2 className="h-4 w-4 flex-shrink-0 text-[#7C3AED]" />
+                            )}
+                            <span className="truncate">{policy.name}</span>
+                          </button>
+                          {policy.summary && (
+                            <p className="mt-0.5 truncate text-[11.5px] text-[#667085]">{policy.summary}</p>
                           )}
                         </div>
-                        <ExternalLink className="h-4 w-4 text-muted-foreground" />
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      <div>
-                        <p className="text-xs text-muted-foreground mb-1">Policy Type</p>
-                        <Badge className="bg-blue-50 text-blue-700 border-blue-200 font-medium px-2.5 py-1 rounded-full shadow-sm hover:shadow-md transition-all">
+
+                        <span className={`inline-flex w-fit rounded-full px-[10px] py-[4px] text-[12px] font-semibold ${typeClasses(policy.policy_type)}`}>
                           {policy.policy_type}
-                        </Badge>
-                      </div>
-                      {policy.summary && (
-                        <div>
-                          <p className="text-xs text-muted-foreground mb-1">Summary</p>
-                          <p className="text-sm text-foreground line-clamp-2">
-                            {policy.summary}
-                          </p>
-                        </div>
-                      )}
-                      <div>
-                        <p className="text-xs text-muted-foreground mb-1">Version</p>
-                        <p className="text-sm text-foreground">{policy.version}</p>
-                      </div>
-                      <Button
-                        variant="outline"
-                        className="w-full mt-4 border-primary/40 bg-primary/5 text-primary hover:bg-primary/10 hover:border-primary/60 hover:shadow-md transition-all font-medium rounded-xl"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          router.push(`/policy-tracker/${policy.id}`);
-                        }}
-                      >
-                        View Details
-                      </Button>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </div>
+                        </span>
 
-          {/* Internal Policies Section */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Building2 className="h-5 w-5 text-primary" />
-                <h2 className="text-2xl font-bold text-foreground">Internal Policies</h2>
-              </div>
-              <Button
-                onClick={() => router.push("/policy-tracker/new")}
-                variant="hero"
-                className="rounded-xl"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Create Internal Policy
-              </Button>
-            </div>
-            <p className="text-muted-foreground text-sm">
-              Organizational AI policies created and managed by your team.
-            </p>
+                        <span className="text-[14px] text-[#475569]">
+                          {policy.policy_type === "External" ? policy.jurisdiction || "—" : policy.owner || "—"}
+                        </span>
 
-            {loadingPolicies ? (
-              <Card className="glass-panel shadow-elevated border-border/50">
-                <CardContent className="pt-6">
-                  <div className="flex items-center justify-center py-8">
-                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                  </div>
-                </CardContent>
-              </Card>
-            ) : internalPolicies.length === 0 ? (
-              <Card className="glass-panel shadow-elevated border-border/50">
-                <CardContent className="pt-6">
-                  <div className="text-center py-8 space-y-4">
-                    <FileText className="h-12 w-12 text-muted-foreground mx-auto" />
-                    <p className="text-foreground">No internal policies created yet.</p>
-                    <Button
-                      onClick={() => router.push("/policy-tracker/new")}
-                      variant="hero"
-                      className="rounded-xl"
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Create Your First Policy
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {internalPolicies.map((policy) => (
-                  <Card
-                    key={policy.id}
-                    className="glass-panel shadow-elevated border-border/50 hover:shadow-blue hover:border-primary/30 transition-all cursor-pointer hover:-translate-y-1"
-                    onClick={() => router.push(`/policy-tracker/${policy.id}`)}
-                  >
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <CardTitle className="text-foreground flex items-center gap-2">
-                            <FileText className="h-5 w-5 text-primary" />
-                            {policy.name}
-                          </CardTitle>
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <p className="text-xs text-muted-foreground mb-1">Version</p>
-                          <p className="text-sm text-foreground">{policy.version}</p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground mb-1">Status</p>
-                          <Badge
-                            className={
-                              policy.status === "Active"
-                                ? "bg-emerald-50 text-emerald-700 border-emerald-200 font-medium px-2.5 py-1 rounded-full shadow-sm hover:shadow-md transition-all"
-                                : policy.status === "Draft"
-                                  ? "bg-amber-50 text-amber-700 border-amber-200 font-medium px-2.5 py-1 rounded-full shadow-sm hover:shadow-md transition-all"
-                                  : "bg-secondary/80 text-muted-foreground border-border/50 font-medium px-2.5 py-1 rounded-full shadow-sm hover:shadow-md transition-all"
-                            }
+                        <span className="text-[14px] text-[#000000]">{policy.version}</span>
+
+                        <span className={`inline-flex w-fit items-center gap-1 rounded-[10.4px] border px-[10.4px] py-[4px] text-[10px] font-bold ${statusClasses(policy.status)}`}>
+                          {policy.policy_type === "External" ? "Active" : policy.status || "Active"}
+                        </span>
+
+                        <div className="flex items-center gap-[6px] text-[#475569]">
+                          <button
+                            type="button"
+                            onClick={() => router.push(`/policy-tracker/${policy.id}`)}
+                            className="rounded p-1 hover:bg-[#F1F5F9]"
+                            aria-label="View policy details"
                           >
-                            {policy.status || "Active"}
-                          </Badge>
+                            <ArrowUpRight className="h-5 w-5" />
+                          </button>
+                          {policy.policy_type === "External" && (
+                            <span className="flex items-center gap-1 text-[11px] text-[#667085]">
+                              <ExternalLink className="h-3.5 w-3.5" />
+                              Read-only
+                            </span>
+                          )}
                         </div>
-                      </div>
-                      {policy.owner && (
-                        <div>
-                          <p className="text-xs text-muted-foreground mb-1">Owner</p>
-                          <p className="text-sm text-foreground">{policy.owner}</p>
-                        </div>
-                      )}
-                      {policy.enforcement_level && (
-                        <div>
-                          <p className="text-xs text-muted-foreground mb-1">Enforcement Level</p>
-                          <Badge
-                            className={
-                              policy.enforcement_level === "Mandatory"
-                                ? "bg-red-50 text-red-700 border-red-200 font-medium px-2.5 py-1 rounded-full shadow-sm hover:shadow-md transition-all"
-                                : "bg-blue-50 text-blue-700 border-blue-200 font-medium px-2.5 py-1 rounded-full shadow-sm hover:shadow-md transition-all"
-                            }
-                          >
-                            {policy.enforcement_level}
-                          </Badge>
-                        </div>
-                      )}
-                      <Button
-                        variant="outline"
-                        className="w-full mt-4 border-primary/40 bg-primary/5 text-primary hover:bg-primary/10 hover:border-primary/60 hover:shadow-md transition-all font-medium rounded-xl"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          router.push(`/policy-tracker/${policy.id}`);
-                        }}
-                      >
-                        View Details
-                      </Button>
-                    </CardContent>
-                  </Card>
-                ))}
+                      </article>
+                    ))}
+                </div>
               </div>
-            )}
-          </div>
-        </div>
+            </section>
+          </section>
+        </main>
       </div>
     </div>
+  );
+}
+
+function MetricCard({
+  label,
+  value,
+  footer,
+  valueColor,
+  iconType,
+}: {
+  label: string;
+  value: string;
+  footer: string;
+  valueColor: string;
+  iconType: "total" | "external" | "internal" | "active";
+}) {
+  const iconByType = {
+    total: <ShieldCheck className="h-4 w-4 text-[#61A9ED]" />,
+    external: <Globe className="h-4 w-4 text-[#2573C2]" />,
+    internal: <Building2 className="h-4 w-4 text-[#7C3AED]" />,
+    active: <FileText className="h-4 w-4 text-[#178746]" />,
+  } as const;
+
+  const bgByType = {
+    total: "bg-[#EAF4FF]",
+    external: "bg-[#EAF4FF]",
+    internal: "bg-[#F3E8FF]",
+    active: "bg-[#E8FAEF]",
+  } as const;
+
+  return (
+    <article className="h-[136px] rounded-[15px] border border-[#E4E4E7] bg-white p-5">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-[15px] font-medium text-[#18181B]">{label}</p>
+          <p className="mt-[5px] text-[23px] font-semibold leading-[38px]" style={{ color: valueColor }}>
+            {value}
+          </p>
+          <p className="text-[13px] font-medium text-[#18181B]">{footer}</p>
+        </div>
+        <div className={`flex h-9 w-9 items-center justify-center rounded-full ${bgByType[iconType]}`}>{iconByType[iconType]}</div>
+      </div>
+    </article>
   );
 }
