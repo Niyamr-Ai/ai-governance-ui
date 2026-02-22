@@ -68,13 +68,12 @@ export default function Navbar() {
     checkAuth();
   }, [router, pathname]);
 
-  // Show loading state while checking auth or redirecting
   if (isLoading || isLoggedIn) {
     return (
-      <main className="relative bg-gradient-to-br from-slate-950 via-indigo-950 to-purple-950 text-white min-h-screen flex items-center justify-center">
+      <main className="relative bg-white min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-400 mx-auto mb-4"></div>
-          <p className="text-slate-300">Loading...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading...</p>
         </div>
       </main>
     );
